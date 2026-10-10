@@ -110,6 +110,8 @@ Các bảng hiện có:
 
 **Cán bộ quản lý** ở nhóm *Người dân* trong khu quản trị: Phản ánh (xử lý, giao về xã, ghi kết quả xử lý nội bộ — bắt buộc khi đóng phản ánh; số hiệu 8 ký tự để cán bộ đối chiếu), Lộ trình, Tin tức – cảnh báo. Ảnh địa điểm thêm ở mục Địa điểm → Sửa: tối đa 8 ảnh mỗi điểm, ảnh tự thu nhỏ trên trình duyệt (cạnh dài 1600px) trước khi tải lên, lưu trong cơ sở dữ liệu (Render không có ổ đĩa lưu tệp lâu dài). Đánh giá bị du khách bấm *Báo vi phạm* nổi lên đầu mục Đánh giá.
 
+**Giao diện mới (chưa dựng):** bản thiết kế chuyển giao cho người dựng giao diện ở [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md): định hướng thị giác, bảng màu đã đo tương phản, bố cục từng khối, chuyển động, token CSS, checklist nghiệm thu, quy tắc ảnh và dữ liệu minh hoạ.
+
 ## Bảo mật tài khoản
 
 - **Xác thực hai lớp (tự nguyện):** mỗi cán bộ tự bật ở mục *Tài khoản của tôi* — quét mã QR bằng Google Authenticator hoặc Microsoft Authenticator. Từ đó đăng nhập cần cả mật khẩu và mã 6 số; mã đã dùng không dùng lại được. Mất điện thoại: đồng nghiệp bấm *Tắt hai lớp* ở mục Tài khoản cán bộ (ghi nhật ký), hoặc chạy `node scripts-them-can-bo.js --tat-2fa <tên>`.
