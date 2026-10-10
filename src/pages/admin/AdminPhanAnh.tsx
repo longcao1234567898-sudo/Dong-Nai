@@ -1,4 +1,4 @@
-/** Phản ánh của người dân: lọc theo trạng thái, giao về xã/phường, trả lời (người gửi đọc được qua mã tra cứu). */
+/** Phản ánh của người dân: lọc theo trạng thái, giao về xã/phường, ghi kết quả xử lý (nội bộ — người gửi không tra cứu được). */
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -23,7 +23,7 @@ function XuLy({ x, onXong }: { x: PA; onXong: () => void }) {
         {Object.entries(TRANG_THAI).map(([k, [t]]) => <option key={k} value={k}>{t}</option>)}</select></label>
       <label className="text-sm font-semibold">Giao về xã/phường<select className={o} value={f.xaPhuongId} onChange={(e) => setF({ ...f, xaPhuongId: Number(e.target.value) })}>
         <option value={0}>— Chưa giao —</option>{ch?.xaPhuong.filter((z) => z.hien).map((z) => <option key={z.id} value={z.id}>{z.ten}</option>)}</select></label>
-      <label className="text-sm font-semibold sm:col-span-2">Trả lời người gửi <small className="font-normal text-slate-500">(công khai qua mã tra cứu — bắt buộc khi đã xử lý hoặc không xử lý)</small>
+      <label className="text-sm font-semibold sm:col-span-2">Kết quả xử lý <small className="font-normal text-slate-500">(ghi chú nội bộ, người gửi không xem được — bắt buộc khi đã xử lý hoặc không xử lý)</small>
         <textarea className={o} rows={3} maxLength={2000} value={f.phanHoi} onChange={(e) => setF({ ...f, phanHoi: e.target.value })} /></label>
       <div><button type="button" className={nutChinh} disabled={luu.isPending} onClick={() => luu.mutate()}>Lưu</button></div>
     </div>);
@@ -37,7 +37,7 @@ export default function AdminPhanAnh() {
   const { data: ds = [], isLoading } = useQuery({ queryKey: ['qt-phan-anh', trangThai], queryFn: () => adminFetch<PA[]>(`/phan-anh${trangThai ? `?trangThai=${trangThai}` : ''}`) });
   const xa = (id: number | null) => ch?.xaPhuong.find((z) => z.id === id)?.ten;
   return (<>
-    <TieuDeQt tieuDe="Phản ánh của người dân" moTa="Người gửi tra cứu kết quả bằng mã 8 ký tự. Số liên hệ chỉ cán bộ thấy, không bao giờ hiện công khai." />
+    <TieuDeQt tieuDe="Phản ánh của người dân" moTa="Người dân chỉ gửi, không tra cứu kết quả. Ai để lại số liên hệ thì gọi lại khi cần. Số hiệu 8 ký tự dùng để cán bộ đối chiếu với nhau." />
     <The className="mb-4"><div className="flex flex-wrap gap-1.5">{[['', 'Tất cả'], ...Object.entries(TRANG_THAI).map(([k, [t]]) => [k, t])].map(([k, t]) => (
       <button key={k} type="button" aria-pressed={trangThai === k} onClick={() => setTrangThai(k)}
         className={`min-h-[36px] rounded-full border px-3 text-sm ${trangThai === k ? 'border-primary-600 bg-primary-600 text-white' : 'border-slate-200 dark:border-slate-700'}`}>{t}</button>))}</div></The>
@@ -54,7 +54,7 @@ export default function AdminPhanAnh() {
           <p className="mt-1 text-xs text-slate-500">{[x.diaDiem && `Địa điểm: ${x.diaDiem}`, xa(x.xaPhuongId) && `Xã/phường: ${xa(x.xaPhuongId)}`, x.lienHe && `Liên hệ: ${x.lienHe}`,
             x.nguoiXuLy && `Cán bộ xử lý: ${x.nguoiXuLy}`].filter(Boolean).join(' · ')}</p>
           {x.phanHoi && mo !== x.id && <p className="mt-1 rounded-lg border-l-4 border-primary-600 bg-primary-50 px-3 py-1.5 text-sm dark:bg-slate-800">{x.phanHoi}</p>}
-          <button type="button" className={nutVien + ' mt-2'} onClick={() => setMo(mo === x.id ? null : x.id)}>{mo === x.id ? 'Đóng' : 'Xử lý / trả lời'}</button>
+          <button type="button" className={nutVien + ' mt-2'} onClick={() => setMo(mo === x.id ? null : x.id)}>{mo === x.id ? 'Đóng' : 'Xử lý'}</button>
           {mo === x.id && <XuLy x={x} onXong={() => { setMo(null); qc.invalidateQueries({ queryKey: ['qt-phan-anh'] }); qc.invalidateQueries({ queryKey: ['qt-tong-quan'] }); }} />}
         </li>))}</ul>
     </The>

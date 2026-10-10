@@ -212,8 +212,6 @@ router.get('/luu-tru', async (_req, res, next) => {
 export const LOAI_PHAN_ANH = ['gia-ca', 'an-ninh', 've-sinh', 'dich-vu', 'an-toan', 'khac'];
 const gioiHanPhanAnh = rateLimit({ windowMs: 60 * 60_000, max: 5, standardHeaders: true, legacyHeaders: false,
   keyGenerator: (req) => layIpThat(req), message: { error: 'Bạn đã gửi nhiều phản ánh trong một giờ. Thử lại sau, hoặc gọi số khẩn cấp nếu đang nguy hiểm.' } });
-const gioiHanTraCuu = rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => layIpThat(req),
-  message: { error: 'Tra cứu quá nhanh. Chờ một phút.' } });
 
 router.post('/phan-anh', gioiHanPhanAnh, async (req, res, next) => {
   try {
@@ -232,29 +230,19 @@ router.post('/phan-anh', gioiHanPhanAnh, async (req, res, next) => {
       if (!diaDiem) return res.status(400).json({ error: 'Địa điểm không hợp lệ.' });
     }
     const lienHe = sanitizeText(String(b.lienHe || ''), 100) || null;
-    /* Mã tra cứu 8 ký tự (bỏ 0/O, 1/I/L cho khỏi đọc nhầm): gần một nghìn tỉ tổ hợp, đoán mò không ra. */
+    /* Phản ánh KHÔNG có tra cứu kết quả phía người dân: người gửi chỉ nhận lời
+       cảm ơn. Số hiệu 8 ký tự (cột ma_tra_cuu) chỉ để cán bộ gọi tên, đối chiếu
+       phản ánh với nhau trong khu quản trị — không trả ra cho người gửi. */
     for (let lan = 0; lan < 5; lan++) {
       const ma = generateTrackingCode(8);
       try {
         await pool.query(
           `INSERT INTO phan_anh (ma_tra_cuu, loai, dia_diem_id, xa_phuong_id, noi_dung, lien_he, ip_bam) VALUES (?,?,?,?,?,?,?)`,
           [ma, b.loai, diaDiem?.id || null, diaDiem?.xa_phuong_id || null, noiDung, lienHe, bam(layIpThat(req))]);
-        return res.status(201).json({ ma });
+        return res.status(201).json({ ok: true });
       } catch (e) { if (e.code !== 'ER_DUP_ENTRY') throw e; }
     }
-    throw new Error('Không tạo được mã tra cứu.');
-  } catch (e) { next(e); }
-});
-
-router.get('/phan-anh/:ma', gioiHanTraCuu, async (req, res, next) => {
-  try {
-    const ma = String(req.params.ma || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (ma.length !== 8) return res.status(404).json({ error: 'Mã tra cứu gồm 8 ký tự.' });
-    const [[r]] = await pool.query(
-      `SELECT p.loai, p.noi_dung, p.trang_thai, p.phan_hoi, p.created_at, p.xu_ly_luc, d.ten AS dia_diem FROM phan_anh p
-         LEFT JOIN dia_diem d ON d.id = p.dia_diem_id WHERE p.ma_tra_cuu = ?`, [ma]);
-    if (!r) return res.status(404).json({ error: 'Không tìm thấy phản ánh với mã này.' });
-    res.json({ loai: r.loai, noiDung: r.noi_dung, trangThai: r.trang_thai, phanHoi: r.phan_hoi, guiLuc: r.created_at, xuLyLuc: r.xu_ly_luc, diaDiem: r.dia_diem });
+    throw new Error('Không tạo được số hiệu phản ánh.');
   } catch (e) { next(e); }
 });
 

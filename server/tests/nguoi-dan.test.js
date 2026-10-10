@@ -20,9 +20,6 @@ let goi = [];
 pool.query = async (sql, params = []) => {
   goi.push({ sql, params });
   if (/SELECT is_active FROM staff/i.test(sql)) return [[{ is_active: 1 }]];
-  if (/FROM phan_anh p\s+LEFT JOIN dia_diem d ON d.id = p.dia_diem_id WHERE p.ma_tra_cuu/i.test(sql)) {
-    return [params[0] === 'ABCD2345' ? [{ loai: 'gia-ca', noi_dung: 'x', trang_thai: 'moi', phan_hoi: null, created_at: new Date(), xu_ly_luc: null, dia_diem: null, lien_he: '0912345678' }] : []];
-  }
   if (/SELECT id, xa_phuong_id FROM dia_diem WHERE id = \? AND hien = 1/i.test(sql)) return [params[0] === 'ho-tri-an' ? [{ id: 'ho-tri-an', xa_phuong_id: 5 }] : []];
   if (/SELECT id FROM danh_gia WHERE id = \? AND bi_an = 0/i.test(sql)) return [[{ id: params[0] }]];
   if (/SELECT id FROM dia_diem WHERE id IN/i.test(sql)) return [[{ id: 'ho-tri-an' }, { id: 'cu-lao-pho' }]];
@@ -48,23 +45,19 @@ test('phản ánh: thiếu loại, quá ngắn, từ ngữ thô tục đều b�
   assert.equal((await api('/api/cong-khai/phan-anh', { method: 'POST', body: { loai: 'gia-ca', noiDung: 'đồ chó chủ quán này nâng giá' } })).status, 400);
 });
 
-test('phản ánh hợp lệ -> nhận mã 8 ký tự, xã/phường lấy theo địa điểm', async () => {
+test('phản ánh hợp lệ -> 201, KHÔNG trả mã tra cứu cho người gửi; số hiệu nội bộ vẫn lưu', async () => {
   goi = [];
   const r = await api('/api/cong-khai/phan-anh', { method: 'POST', body: { loai: 'gia-ca', diaDiemId: 'ho-tri-an', noiDung: 'Thuê thuyền bị tính giá gấp đôi bảng giá niêm yết.', lienHe: '0912345678' } });
   assert.equal(r.status, 201);
-  assert.match((await r.json()).ma, /^[A-HJ-NP-Z2-9]{8}$/, 'mã bỏ các ký tự dễ đọc nhầm 0/O, 1/I/L');
+  assert.deepEqual(await r.json(), { ok: true });
   const ghi = goi.find((g) => /INSERT INTO phan_anh/i.test(g.sql));
-  assert.equal(ghi.params[3], 5);
+  assert.match(ghi.params[0], /^[A-HJ-NP-Z2-9]{8}$/, 'số hiệu nội bộ bỏ các ký tự dễ đọc nhầm 0/O, 1/I/L');
+  assert.equal(ghi.params[3], 5, 'xã/phường lấy theo địa điểm');
   assert.ok(!ghi.params.includes('127.0.0.1'), 'không lưu IP thô');
 });
 
-test('tra cứu phản ánh KHÔNG bao giờ trả số liên hệ của người gửi', async () => {
-  const r = await api('/api/cong-khai/phan-anh/abcd2345');
-  const d = await r.json();
-  assert.equal(r.status, 200);
-  assert.equal(d.trangThai, 'moi');
-  assert.ok(!JSON.stringify(d).includes('0912345678'));
-  assert.equal((await api('/api/cong-khai/phan-anh/ZZZZ9999')).status, 404);
+test('không còn đường tra cứu phản ánh phía người dân', async () => {
+  assert.equal((await api('/api/cong-khai/phan-anh/ABCD2345')).status, 404);
 });
 
 test('ảnh: nhận diện bằng byte đầu tệp, không tin Content-Type', () => {

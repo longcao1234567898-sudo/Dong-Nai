@@ -22,4 +22,3 @@ export interface LoTrinh { id: number; ten: string; tenEn: string | null; thoiGi
 export interface TinTuc { id: number; loai: 'canh-bao' | 'su-kien' | 'thong-bao' | 'lien-he'; tieuDe: string; tieuDeEn: string | null; noiDung: string | null;
   noiDungEn: string | null; tuNgay: string | null; denNgay: string | null; diaDiemId: string | null }
 export interface LuuTru { id: number; ten: string; diaChi: string | null; hangSao: number; xaPhuong: string }
-export interface KetQuaPhanAnh { loai: string; noiDung: string; trangThai: string; phanHoi: string | null; guiLuc: string; xuLyLuc: string | null; diaDiem: string | null }

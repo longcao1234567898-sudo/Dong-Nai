@@ -189,7 +189,7 @@ router.patch('/phan-anh/:id', async (req, res, next) => {
     if (!TRANG_THAI_PA.includes(b.trangThai)) return res.status(400).json({ error: 'Trạng thái không hợp lệ.' });
     const phanHoi = sanitizeText(String(b.phanHoi || ''), 2000) || null;
     if (['da-xu-ly', 'khong-xu-ly'].includes(b.trangThai) && !phanHoi) {
-      return res.status(400).json({ error: 'Ghi lời trả lời cho người gửi (họ đọc được khi tra cứu bằng mã).' });
+      return res.status(400).json({ error: 'Ghi kết quả xử lý trước khi đóng phản ánh (ghi chú nội bộ, người gửi không xem được).' });
     }
     const xa = Number(b.xaPhuongId) > 0 ? Number(b.xaPhuongId) : null;
     const [kq] = await pool.query(

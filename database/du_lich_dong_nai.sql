@@ -585,8 +585,9 @@ CREATE TABLE IF NOT EXISTS anh_dia_diem (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------- PHẢN ÁNH CỦA NGƯỜI DÂN, DU KHÁCH
--- Người gửi nhận MÃ TRA CỨU để xem kết quả xử lý. Số liên hệ (không bắt buộc)
--- chỉ cán bộ thấy, không bao giờ trả ra đường dẫn công khai.
+-- Người dân chỉ GỬI, không có tra cứu kết quả. ma_tra_cuu là số hiệu nội bộ
+-- để cán bộ đối chiếu; phan_hoi là ghi chú kết quả xử lý, chỉ cán bộ xem.
+-- Số liên hệ (không bắt buộc) để cán bộ gọi lại khi cần, không bao giờ công khai.
 CREATE TABLE IF NOT EXISTS phan_anh (
   id            INT PRIMARY KEY AUTO_INCREMENT,
   ma_tra_cuu    CHAR(8) NOT NULL UNIQUE,
@@ -597,7 +598,7 @@ CREATE TABLE IF NOT EXISTS phan_anh (
   lien_he       VARCHAR(100) NULL,
   ip_bam        CHAR(64) NULL,
   trang_thai    VARCHAR(20) NOT NULL DEFAULT 'moi' COMMENT 'moi | dang-xu-ly | da-xu-ly | khong-xu-ly',
-  phan_hoi      VARCHAR(2000) NULL COMMENT 'Trả lời công khai cho người gửi',
+  phan_hoi      VARCHAR(2000) NULL COMMENT 'Kết quả xử lý — ghi chú nội bộ',
   nguoi_xu_ly   INT NULL,
   xu_ly_luc     DATETIME NULL,
   created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,

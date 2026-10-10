@@ -23,8 +23,8 @@ const MUC: { ic: typeof Home; vi: [string, string]; en: [string, string] }[] = [
     vi: ['Mang theo giấy tờ', 'Luôn mang theo hộ chiếu, hoặc bản sao trang thông tin và thị thực, khi đi lại.'],
     en: ['Carry your documents', 'Always carry your passport, or a copy of the photo page and visa, when travelling around.'] },
   { ic: BadgeDollarSign,
-    vi: ['Tránh bị nâng giá', 'Hỏi rõ giá trước khi dùng dịch vụ (thuê xe, thuyền, ăn uống). Gặp chặt chém, hãy gửi phản ánh — cán bộ địa phương sẽ xử lý và trả lời theo mã tra cứu.'],
-    en: ['Avoid overcharging', 'Agree on the price before using a service (vehicle or boat rental, food). If you are overcharged, send a report — local officials will act on it and reply via your tracking code.'] },
+    vi: ['Tránh bị nâng giá', 'Hỏi rõ giá trước khi dùng dịch vụ (thuê xe, thuyền, ăn uống). Gặp chặt chém, hãy gửi phản ánh để cán bộ địa phương kiểm tra, xử lý.'],
+    en: ['Avoid overcharging', 'Agree on the price before using a service (vehicle or boat rental, food). If you are overcharged, send a report so local officials can look into it.'] },
 ];
 
 export default function KhachQuocTePage() {
