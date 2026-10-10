@@ -485,4 +485,167 @@ SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =
 SET @lenh := IF(@co = 0, 'ALTER TABLE staff ADD COLUMN totp_bi_mat VARCHAR(64) NULL, ADD COLUMN totp_bat BOOLEAN NOT NULL DEFAULT FALSE, ADD COLUMN totp_buoc_cuoi BIGINT NULL COMMENT ''Chặn dùng lại mã vừa dùng''', 'DO 0');
 PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
 
+
+-- ============================================================================
+-- GIAI ĐOẠN 3 — PHÍA NGƯỜI DÂN: LỘ TRÌNH, ẢNH, PHẢN ÁNH, TIN TỨC, TIẾNG ANH
+-- ============================================================================
+
+-- ------------------------------------------- TIẾNG ANH CHO ĐỊA ĐIỂM
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dia_diem' AND COLUMN_NAME = 'ten_en');
+SET @lenh := IF(@co = 0, 'ALTER TABLE dia_diem ADD COLUMN ten_en VARCHAR(120) NULL AFTER ten, ADD COLUMN mo_ta_en TEXT NULL AFTER mo_ta', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
+UPDATE dia_diem SET ten_en = CASE id
+  WHEN 'van-mieu-tran-bien' THEN 'Tran Bien Temple of Literature'
+  WHEN 'den-tho-nguyen-huu-canh' THEN 'Nguyen Huu Canh Temple'
+  WHEN 'khu-du-lich-buu-long' THEN 'Buu Long Tourist Area'
+  WHEN 'thac-giang-dien' THEN 'Giang Dien Waterfall'
+  WHEN 'khu-du-lich-suoi-mo' THEN 'Suoi Mo Eco-tourism Area'
+  WHEN 'khu-du-lich-bo-cap-vang' THEN 'Bo Cap Vang Eco-tourism Area'
+  WHEN 'ho-tri-an' THEN 'Tri An Lake'
+  WHEN 'vuon-quoc-gia-cat-tien' THEN 'Cat Tien National Park'
+  WHEN 'thac-dak-mai' THEN 'Dak Mai Waterfall'
+  WHEN 'vuon-quoc-gia-bu-gia-map' THEN 'Bu Gia Map National Park'
+  WHEN 'nui-ba-ra' THEN 'Ba Ra Mountain'
+  WHEN 'nui-chua-chan' THEN 'Chua Chan Mountain'
+  WHEN 'cu-lao-pho' THEN 'Pho Islet (Cu Lao Pho)'
+  WHEN 'soc-bom-bo' THEN 'Bom Bo Village'
+  WHEN 'ho-suoi-lam' THEN 'Suoi Lam Lake' END,
+mo_ta_en = CASE id
+  WHEN 'van-mieu-tran-bien' THEN 'The first Temple of Literature in southern Vietnam, built in 1715 to honour learning and people who served the culture. Today''s complex is rebuilt on the original site and hosts events that encourage study.'
+  WHEN 'den-tho-nguyen-huu-canh' THEN 'Temple of Nguyen Huu Canh, who founded the administration of the Dong Nai – Gia Dinh region in the late 17th century. It stands by the Dong Nai River, near Pho Islet.'
+  WHEN 'khu-du-lich-buu-long' THEN 'Rocky hills, lakes and pagodas right inside the city, often called a "miniature Ha Long". Highlights include Long An Lake, Buu Phong Pagoda on the hilltop and many recreation areas.'
+  WHEN 'thac-giang-dien' THEN 'A multi-tiered waterfall in the forest — a popular weekend spot for picnics and camping.'
+  WHEN 'khu-du-lich-suoi-mo' THEN 'An eco-tourism area with streams and waterfalls in the forest, good for swimming and family picnics.'
+  WHEN 'khu-du-lich-bo-cap-vang' THEN 'A riverside eco-tourism area with orchards, ponds and folk games; voted among the ten favourite eco-tourism destinations of 2024.'
+  WHEN 'ho-tri-an' THEN 'A large hydropower reservoir dotted with small islands, famous for its sunsets and the O – Dong Truong islands; good for boat trips and camping.'
+  WHEN 'vuon-quoc-gia-cat-tien' THEN 'Lowland tropical forest with rich wildlife, part of a UNESCO world biosphere reserve. Ideal for jungle trekking, bird-watching and cycling.'
+  WHEN 'thac-dak-mai' THEN 'A waterfall inside Bu Gia Map National Park, honoured among the seven most impressive eco-tourism landscapes of 2023.'
+  WHEN 'vuon-quoc-gia-bu-gia-map' THEN 'A vast forest on the northern border with much primary forest and wildlife. Parts of the area are border zones — ask the local police before visiting.'
+  WHEN 'nui-ba-ra' THEN 'The iconic mountain of the Phuoc Long area, linked to the historic Ba Ra prison. The summit offers views over the surrounding hills.'
+  WHEN 'nui-chua-chan' THEN 'A high mountain in the Xuan Loc area with Gia Lao Pagoda on its slope; a well-known hiking and pilgrimage site.'
+  WHEN 'cu-lao-pho' THEN 'An islet on the Dong Nai River, once the busiest trading port of the south in the 17th–18th centuries; many old communal houses, pagodas and shrines remain.'
+  WHEN 'soc-bom-bo' THEN 'A village of the S''tieng people, known from the song about rice-pounding to feed soldiers during the resistance war. Includes a S''tieng cultural conservation area.'
+  WHEN 'ho-suoi-lam' THEN 'A lake among forested hills, a weekend picnic spot for local people.' END
+WHERE ten_en IS NULL AND id IN ('van-mieu-tran-bien','den-tho-nguyen-huu-canh','khu-du-lich-buu-long','thac-giang-dien','khu-du-lich-suoi-mo',
+  'khu-du-lich-bo-cap-vang','ho-tri-an','vuon-quoc-gia-cat-tien','thac-dak-mai','vuon-quoc-gia-bu-gia-map','nui-ba-ra','nui-chua-chan','cu-lao-pho','soc-bom-bo','ho-suoi-lam');
+
+-- ------------------------------------------- LỘ TRÌNH DU LỊCH (cán bộ quản lý)
+CREATE TABLE IF NOT EXISTS lich_trinh (
+  id          INT PRIMARY KEY AUTO_INCREMENT,
+  ten         VARCHAR(120) NOT NULL,
+  ten_en      VARCHAR(120) NULL,
+  thoi_gian   VARCHAR(40) NULL COMMENT 'Ví dụ: 2 ngày 1 đêm',
+  mo_ta       VARCHAR(600) NULL,
+  mo_ta_en    VARCHAR(600) NULL,
+  hien        BOOLEAN NOT NULL DEFAULT TRUE,
+  thu_tu      INT NOT NULL DEFAULT 0,
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS lich_trinh_diem (
+  lich_trinh_id  INT NOT NULL,
+  thu_tu         SMALLINT NOT NULL,
+  dia_diem_id    VARCHAR(80) NOT NULL,
+  ngay           TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Ngày thứ mấy của lộ trình',
+  ghi_chu        VARCHAR(300) NULL,
+  PRIMARY KEY (lich_trinh_id, thu_tu),
+  FOREIGN KEY (lich_trinh_id) REFERENCES lich_trinh(id) ON DELETE CASCADE,
+  FOREIGN KEY (dia_diem_id) REFERENCES dia_diem(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/* Ba lộ trình trước đây viết cứng trong mã giao diện, nay chuyển vào đây để cán bộ sửa được. */
+INSERT IGNORE INTO lich_trinh (id, ten, ten_en, thoi_gian, mo_ta, mo_ta_en, thu_tu) VALUES
+  (1, 'Một ngày di sản bên sông', 'A heritage day by the river', '1 ngày', 'Văn miếu, núi đá Bửu Long và cù lao Phố — gọn trong một ngày quanh khu Biên Hoà cũ.', 'The Temple of Literature, Buu Long rocky hills and Pho Islet — all in one day around old Bien Hoa.', 1),
+  (2, 'Rừng và hồ cuối tuần', 'Forest and lake weekend', '2 ngày 1 đêm', 'Ngắm hoàng hôn trên hồ Trị An, tắm suối, rồi vào rừng Cát Tiên xem chim.', 'Sunset over Tri An Lake, a swim in the streams, then bird-watching in Cat Tien forest.', 2),
+  (3, 'Về miền đất đỏ phía bắc', 'The red-soil north', '2 ngày', 'Núi Bà Rá, sóc Bom Bo và thác Đắk Mai giữa rừng Bù Gia Mập.', 'Ba Ra Mountain, Bom Bo village and Dak Mai Waterfall in Bu Gia Map forest.', 3);
+INSERT IGNORE INTO lich_trinh_diem (lich_trinh_id, thu_tu, dia_diem_id, ngay) VALUES
+  (1, 1, 'van-mieu-tran-bien', 1), (1, 2, 'khu-du-lich-buu-long', 1), (1, 3, 'cu-lao-pho', 1), (1, 4, 'den-tho-nguyen-huu-canh', 1),
+  (2, 1, 'ho-tri-an', 1), (2, 2, 'khu-du-lich-suoi-mo', 1), (2, 3, 'vuon-quoc-gia-cat-tien', 2),
+  (3, 1, 'nui-ba-ra', 1), (3, 2, 'soc-bom-bo', 1), (3, 3, 'thac-dak-mai', 2), (3, 4, 'vuon-quoc-gia-bu-gia-map', 2);
+
+-- ------------------------------------------- ẢNH ĐỊA ĐIỂM
+-- Lưu ngay trong cơ sở dữ liệu: Render không có ổ đĩa giữ tệp lâu dài. Ảnh
+-- được thu nhỏ trên trình duyệt trước khi tải lên (cạnh dài tối đa 1600px).
+CREATE TABLE IF NOT EXISTS anh_dia_diem (
+  id           INT PRIMARY KEY AUTO_INCREMENT,
+  dia_diem_id  VARCHAR(80) NOT NULL,
+  du_lieu      MEDIUMBLOB NOT NULL,
+  kieu         VARCHAR(20) NOT NULL,
+  rong         SMALLINT UNSIGNED NULL,
+  cao          SMALLINT UNSIGNED NULL,
+  chu_thich    VARCHAR(200) NULL,
+  thu_tu       SMALLINT NOT NULL DEFAULT 0,
+  nguoi_tai    INT NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_diem (dia_diem_id, thu_tu),
+  FOREIGN KEY (dia_diem_id) REFERENCES dia_diem(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_tai) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- PHẢN ÁNH CỦA NGƯỜI DÂN, DU KHÁCH
+-- Người gửi nhận MÃ TRA CỨU để xem kết quả xử lý. Số liên hệ (không bắt buộc)
+-- chỉ cán bộ thấy, không bao giờ trả ra đường dẫn công khai.
+CREATE TABLE IF NOT EXISTS phan_anh (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  ma_tra_cuu    CHAR(8) NOT NULL UNIQUE,
+  loai          VARCHAR(30) NOT NULL,
+  dia_diem_id   VARCHAR(80) NULL,
+  xa_phuong_id  INT NULL,
+  noi_dung      VARCHAR(2000) NOT NULL,
+  lien_he       VARCHAR(100) NULL,
+  ip_bam        CHAR(64) NULL,
+  trang_thai    VARCHAR(20) NOT NULL DEFAULT 'moi' COMMENT 'moi | dang-xu-ly | da-xu-ly | khong-xu-ly',
+  phan_hoi      VARCHAR(2000) NULL COMMENT 'Trả lời công khai cho người gửi',
+  nguoi_xu_ly   INT NULL,
+  xu_ly_luc     DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_trang_thai (trang_thai, created_at),
+  FOREIGN KEY (dia_diem_id) REFERENCES dia_diem(id) ON DELETE SET NULL,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE SET NULL,
+  FOREIGN KEY (nguoi_xu_ly) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- TIN TỨC, CẢNH BÁO, SỐ ĐIỆN THOẠI CẦN BIẾT
+CREATE TABLE IF NOT EXISTS tin_tuc (
+  id           INT PRIMARY KEY AUTO_INCREMENT,
+  loai         VARCHAR(20) NOT NULL COMMENT 'canh-bao | su-kien | thong-bao | lien-he',
+  tieu_de      VARCHAR(200) NOT NULL,
+  tieu_de_en   VARCHAR(200) NULL,
+  noi_dung     VARCHAR(3000) NULL,
+  noi_dung_en  VARCHAR(3000) NULL,
+  tu_ngay      DATE NULL,
+  den_ngay     DATE NULL COMMENT 'Hết ngày này thì tự thôi hiện',
+  dia_diem_id  VARCHAR(80) NULL,
+  hien         BOOLEAN NOT NULL DEFAULT TRUE,
+  thu_tu       INT NOT NULL DEFAULT 0,
+  nguoi_tao    INT NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_hien (hien, loai),
+  FOREIGN KEY (dia_diem_id) REFERENCES dia_diem(id) ON DELETE SET NULL,
+  FOREIGN KEY (nguoi_tao) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/* Số khẩn cấp toàn quốc. Đường dây nóng du lịch của thành phố thì cán bộ tự
+   thêm ở mục Tin tức (loại "Số điện thoại") — không đoán số ở đây. */
+INSERT IGNORE INTO tin_tuc (id, loai, tieu_de, tieu_de_en, noi_dung, thu_tu) VALUES
+  (1, 'lien-he', 'Công an', 'Police', '113', 1),
+  (2, 'lien-he', 'Cứu nạn, cứu hộ, chữa cháy', 'Fire and rescue', '114', 2),
+  (3, 'lien-he', 'Cấp cứu y tế', 'Ambulance', '115', 3),
+  (4, 'lien-he', 'Tìm kiếm cứu nạn', 'Search and rescue', '112', 4);
+
+-- ------------------------------------------- BÁO ĐÁNH GIÁ SAI PHẠM
+-- Mỗi thiết bị báo một đánh giá một lần (lưu bản băm, như đánh giá).
+CREATE TABLE IF NOT EXISTS bao_danh_gia (
+  danh_gia_id  BIGINT NOT NULL,
+  ma_thiet_bi  CHAR(64) NOT NULL,
+  ly_do        VARCHAR(30) NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (danh_gia_id, ma_thiet_bi),
+  FOREIGN KEY (danh_gia_id) REFERENCES danh_gia(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

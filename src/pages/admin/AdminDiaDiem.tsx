@@ -5,11 +5,12 @@ import { adminFetch } from '../../services/adminService';
 import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../components/common/KhoiQt';
 import { LOAI } from '../../utils/hangSo';
 import { useCauHinh } from '../../utils/phuLuc';
+import QuanLyAnh from '../../components/common/QuanLyAnh';
 import type { Loai } from '../../utils/kieu';
 
 interface DD { id: string; ten: string; loai: Loai; moTa: string | null; diaChi: string | null; lat: number; lng: number; sdt: string | null; web: string | null;
-  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null }
-const TRONG = { ten: '', loai: 'thien-nhien' as Loai, moTa: '', diaChi: '', xaPhuongId: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
+  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null; tenEn: string | null; moTaEn: string | null }
+const TRONG = { ten: '', tenEn: '', loai: 'thien-nhien' as Loai, moTa: '', moTaEn: '', diaChi: '', xaPhuongId: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
 
 export default function AdminDiaDiem() {
   const qc = useQueryClient();
@@ -24,7 +25,7 @@ export default function AdminDiaDiem() {
   });
   const anHien = useMutation({ mutationFn: (p: DD) => adminFetch(`/dia-diem/${p.id}/hien`, { method: 'PATCH', body: JSON.stringify({ hien: !p.hien }) }), onSuccess: lamMoi,
     onError: (e: Error) => toast.error(e.message) });
-  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '' });
+  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '', tenEn: p.tenEn || '', moTaEn: p.moTaEn || '' });
     window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const dat = (k: keyof typeof TRONG) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value }));
@@ -38,6 +39,9 @@ export default function AdminDiaDiem() {
           <label className={nhan}>Loại<select className={o} value={f.loai} onChange={dat('loai')}>{(Object.keys(LOAI) as Loai[]).map((k) => <option key={k} value={k}>{LOAI[k].ten}</option>)}</select></label>
           <label className={nhan}>Giờ mở cửa<input className={o} value={f.gioMo} onChange={dat('gioMo')} placeholder="7:00 – 17:00" /></label></div>
         <label className={nhan}>Giới thiệu<textarea className={o} rows={3} value={f.moTa} onChange={dat('moTa')} maxLength={1500} /></label>
+        <details className="mt-3 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700"><summary className="cursor-pointer text-sm font-semibold">Tiếng Anh cho khách nước ngoài <small className="font-normal text-slate-500">(không bắt buộc — trống thì hiện tiếng Việt)</small></summary>
+          <label className={nhan}>Tên tiếng Anh<input className={o} value={f.tenEn} onChange={dat('tenEn')} maxLength={120} /></label>
+          <label className={nhan}>Giới thiệu tiếng Anh<textarea className={o} rows={3} value={f.moTaEn} onChange={dat('moTaEn')} maxLength={1500} /></label></details>
         <div className="grid grid-cols-2 gap-3">
           <label className={nhan}>Địa chỉ<input className={o} value={f.diaChi} onChange={dat('diaChi')} maxLength={200} /></label>
           <label className={nhan}>Xã/phường<select className={o} value={f.xaPhuongId} onChange={dat('xaPhuongId')}>
@@ -49,6 +53,7 @@ export default function AdminDiaDiem() {
           <label className={nhan}>Trang web<input className={o} type="url" value={f.web} onChange={dat('web')} placeholder="https://" /></label></div>
         {([['noiBat', 'Đưa lên nổi bật'], ['hien', 'Hiện cho du khách xem'], ['daKiemTra', 'Cán bộ đã kiểm tra thông tin']] as const).map(([k, t]) => (
           <label key={k} className="mt-2.5 flex items-center gap-2 text-sm"><input type="checkbox" className="h-[18px] w-[18px] accent-primary-600" checked={f[k]} onChange={dat(k)} />{t}</label>))}
+        {suaId ? <QuanLyAnh diaDiemId={suaId} dangHien={f.hien} /> : <p className="mt-3 text-xs text-slate-500">Lưu địa điểm xong, bấm Sửa để thêm ảnh.</p>}
         {loi && <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{loi}</div>}
         <div className="mt-4 flex gap-2"><button type="button" className={nutChinh} disabled={luu.isPending} onClick={() => luu.mutate()}>{luu.isPending ? 'Đang lưu…' : 'Lưu địa điểm'}</button>
           {suaId && <button type="button" className={nutVien + ' min-h-[44px] px-4 text-sm'} onClick={() => { setSuaId(null); setF(TRONG); setLoi(''); }}>Huỷ sửa</button>}</div>

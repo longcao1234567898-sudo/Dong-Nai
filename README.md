@@ -2,7 +2,7 @@
 
 Trang du lịch thành phố Đồng Nai cho hai nhóm người dùng:
 
-- **Người dân, du khách** (không cần đăng nhập): bản đồ điểm đến, lịch trình gợi ý, đánh giá theo 4 tiêu chí, thống kê lượt khách.
+- **Người dân, du khách** (không cần đăng nhập, có tiếng Anh): bản đồ điểm đến, trang riêng từng địa điểm có ảnh, lộ trình gợi ý và tự tạo lộ trình, đánh giá theo 4 tiêu chí, gửi phản ánh có mã tra cứu, resort đạt chuẩn, tin tức – cảnh báo – số điện thoại cần biết, hướng dẫn cho khách nước ngoài, thống kê.
 - **Cán bộ** (đăng nhập riêng): quản lý địa điểm và đánh giá, **phụ lục thống kê** theo xã/phường và kỳ báo cáo — nhập tay hoặc nhập Excel, chốt báo cáo, xuất phụ lục đúng mẫu ra Word/Excel, biểu đồ thống kê.
 
 Cùng kiến trúc với Điểm Chạm An Ninh — giao diện React + TypeScript + Vite (Netlify), máy chủ Node.js + Express (Render), cơ sở dữ liệu MySQL 8. Phần đăng nhập cán bộ dùng lại nguyên bản đã kiểm chứng: bcrypt, JWT, đếm sai theo tài khoản, sai 3 lần bật Cloudflare Turnstile, giới hạn 5 lần trong 15 phút.
@@ -92,6 +92,24 @@ Các bảng hiện có:
 
 **Thêm cột hay thêm bảng:** khai trong `server/src/lib/phu-luc.js` (một chỗ duy nhất — biểu mẫu, kiểm tra, tệp mẫu, tệp xuất tự theo) và thêm cột/bảng tương ứng trong `database/du_lich_dong_nai.sql`.
 
+## Phía người dân
+
+| Trang | Nội dung |
+|---|---|
+| `/` Khám phá | Bản đồ, điểm nổi bật (có ảnh), chủ đề, lộ trình gợi ý, xếp hạng; dải **cảnh báo** màu vàng khi cán bộ đăng; sự kiện; **số điện thoại cần biết** |
+| `/dia-diem/:id` | Trang riêng một địa điểm (chia sẻ được): ảnh lớn, bản đồ, chỉ đường, đánh giá, nút phản ánh |
+| `/lo-trinh`, `/lo-trinh/:id` | Lộ trình cán bộ soạn: bản đồ tuyến, chia theo ngày, quãng đường ước tính, **mở chỉ đường cả tuyến trên Google Maps** |
+| `/tu-tao-lo-trinh` | Người dân tự chọn điểm, sắp thứ tự, gửi đường dẫn cho bạn đồng hành (thứ tự nằm ngay trong đường dẫn, không cần tài khoản) |
+| `/phan-anh` | Gửi phản ánh (chặt chém, mất an ninh, mất vệ sinh, nguy hiểm…) → nhận **mã 8 ký tự** để tra cứu kết quả và đọc trả lời của cán bộ. Số liên hệ người gửi chỉ cán bộ thấy |
+| `/luu-tru` | Resort, khu nghỉ dưỡng cán bộ cho hiện (bảng 3): tên, địa chỉ, hạng sao — **không bao giờ hiện tên chủ cơ sở** |
+| `/tin-tuc` | Cảnh báo, sự kiện, thông báo, số điện thoại; hết ngày kết thúc thì tự ẩn |
+| `/khach-quoc-te` | Hướng dẫn khai báo tạm trú, thời hạn lưu trú, khu vực biên giới, giấy tờ, tránh bị nâng giá |
+| `/thong-ke` | Lượt khách, đánh giá; thêm biểu đồ khách theo xã/phường — **chỉ số liệu các xã đã chốt báo cáo** |
+
+**Tiếng Anh:** nút EN/VI ở đầu trang. Tên, giới thiệu địa điểm, lộ trình, tin tức có ô tiếng Anh riêng trong khu cán bộ; ô trống thì hiện tiếng Việt. Đã nạp sẵn tên và giới thiệu tiếng Anh cho 15 điểm đến.
+
+**Cán bộ quản lý** ở nhóm *Người dân* trong khu quản trị: Phản ánh (xử lý, giao về xã, trả lời — bắt buộc trả lời khi đóng phản ánh), Lộ trình, Tin tức – cảnh báo. Ảnh địa điểm thêm ở mục Địa điểm → Sửa: tối đa 8 ảnh mỗi điểm, ảnh tự thu nhỏ trên trình duyệt (cạnh dài 1600px) trước khi tải lên, lưu trong cơ sở dữ liệu (Render không có ổ đĩa lưu tệp lâu dài). Đánh giá bị du khách bấm *Báo vi phạm* nổi lên đầu mục Đánh giá.
+
 ## Bảo mật tài khoản
 
 - **Xác thực hai lớp (tự nguyện):** mỗi cán bộ tự bật ở mục *Tài khoản của tôi* — quét mã QR bằng Google Authenticator hoặc Microsoft Authenticator. Từ đó đăng nhập cần cả mật khẩu và mã 6 số; mã đã dùng không dùng lại được. Mất điện thoại: đồng nghiệp bấm *Tắt hai lớp* ở mục Tài khoản cán bộ (ghi nhật ký), hoặc chạy `node scripts-them-can-bo.js --tat-2fa <tên>`.
@@ -106,6 +124,6 @@ Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là
 ## Kiểm thử
 
 ```
-cd server && npm test     # 45 bài, không cần MySQL
+cd server && npm test     # 54 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```

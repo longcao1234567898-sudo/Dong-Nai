@@ -5,7 +5,7 @@ import { TieuDeQt, The } from '../../components/common/KhoiQt';
 import { so } from '../../utils/hangSo';
 import { ngayVn } from '../../utils/phuLuc';
 
-interface TQ { diaDiem: number; choKiemTra: number; khachThangNay: number; danhGiaMoi: number; diaDiemChuaGanXa: number;
+interface TQ { diaDiem: number; choKiemTra: number; khachThangNay: number; danhGiaMoi: number; diaDiemChuaGanXa: number; phanAnhMoi: number;
   baoCao: { kyId: number; ky: string; hanNop: string | null; khoa: boolean; soXa: number; daChot: number } | null }
 
 export default function AdminTongQuan() {
@@ -18,6 +18,8 @@ export default function AdminTongQuan() {
       {[[d?.diaDiem, 'địa điểm'], [d?.choKiemTra, 'địa điểm chờ kiểm tra'], [d?.khachThangNay, 'lượt khách tháng này'], [d?.danhGiaMoi, 'đánh giá mới trong 7 ngày']].map(([g, n], i) => (
         <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900"><b className="block text-2xl font-extrabold">{d ? so(Number(g)) : '…'}</b><small className="text-xs text-slate-500">{n}</small></div>))}
     </div>
+    {!!d?.phanAnhMoi && <Link to="/quan-tri/phan-anh" className="mt-4 block rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-200">
+      Có {d.phanAnhMoi} phản ánh mới của người dân chưa xử lý →</Link>}
     {bc && <The className="mt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[17px] font-bold">Phụ lục thống kê — {bc.ky}</h2>

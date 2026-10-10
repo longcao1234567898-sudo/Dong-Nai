@@ -1,25 +1,32 @@
 import type { Loai, TieuChi } from './kieu';
 
-export const LOAI: Record<Loai, { ten: string; mau: string }> = {
-  'thien-nhien': { ten: 'Thiên nhiên – sinh thái', mau: '#1B5E20' },
-  'di-tich':     { ten: 'Di tích – văn hoá',       mau: '#1E3A5F' },
-  'vui-choi':    { ten: 'Vui chơi – nghỉ dưỡng',   mau: '#d97706' },
-  'luu-tru':     { ten: 'Lưu trú',                 mau: '#7c3aed' },
-  'am-thuc':     { ten: 'Ẩm thực',                 mau: '#be123c' },
-  'dac-san':     { ten: 'Làng nghề – đặc sản',     mau: '#0891b2' },
+export const LOAI: Record<Loai, { ten: string; en: string; mau: string }> = {
+  'thien-nhien': { ten: 'Thiên nhiên – sinh thái', en: 'Nature & eco-tourism', mau: '#1B5E20' },
+  'di-tich':     { ten: 'Di tích – văn hoá',       en: 'Heritage & culture',   mau: '#1E3A5F' },
+  'vui-choi':    { ten: 'Vui chơi – nghỉ dưỡng',   en: 'Leisure & resorts',    mau: '#d97706' },
+  'luu-tru':     { ten: 'Lưu trú',                 en: 'Accommodation',        mau: '#7c3aed' },
+  'am-thuc':     { ten: 'Ẩm thực',                 en: 'Food',                 mau: '#be123c' },
+  'dac-san':     { ten: 'Làng nghề – đặc sản',     en: 'Crafts & specialties', mau: '#0891b2' },
 };
-export const TIEU_CHI: [keyof TieuChi, string][] = [['canhQuan', 'Cảnh quan'], ['dichVu', 'Dịch vụ'], ['veSinh', 'Vệ sinh'], ['giaCa', 'Giá cả']];
-export const DI_CUNG: Record<string, string> = { 'gia-dinh': 'Gia đình', 'ban-be': 'Bạn bè', 'cap-doi': 'Cặp đôi', 'mot-minh': 'Một mình' };
+export const TIEU_CHI: [keyof TieuChi, string, string][] = [['canhQuan', 'Cảnh quan', 'Scenery'], ['dichVu', 'Dịch vụ', 'Service'], ['veSinh', 'Vệ sinh', 'Cleanliness'], ['giaCa', 'Giá cả', 'Price']];
+export const DI_CUNG: Record<string, [string, string]> = { 'gia-dinh': ['Gia đình', 'Family'], 'ban-be': ['Bạn bè', 'Friends'], 'cap-doi': ['Cặp đôi', 'Couple'], 'mot-minh': ['Một mình', 'Solo'] };
 
-/* Lịch trình gợi ý — biên soạn sẵn theo cụm điểm gần nhau. */
-export const LICH_TRINH = [
-  { ten: 'Một ngày di sản bên sông', tg: '1 ngày', mo: 'Văn miếu, núi đá Bửu Long và cù lao Phố — gọn trong một ngày quanh khu Biên Hoà cũ.',
-    ids: ['van-mieu-tran-bien', 'khu-du-lich-buu-long', 'cu-lao-pho', 'den-tho-nguyen-huu-canh'] },
-  { ten: 'Rừng và hồ cuối tuần', tg: '2 ngày 1 đêm', mo: 'Ngắm hoàng hôn trên hồ Trị An, tắm suối, rồi vào rừng Cát Tiên xem chim.',
-    ids: ['ho-tri-an', 'khu-du-lich-suoi-mo', 'vuon-quoc-gia-cat-tien'] },
-  { ten: 'Về miền đất đỏ phía bắc', tg: '2 ngày', mo: 'Núi Bà Rá, sóc Bom Bo và thác Đắk Mai giữa rừng Bù Gia Mập.',
-    ids: ['nui-ba-ra', 'soc-bom-bo', 'thac-dak-mai', 'vuon-quoc-gia-bu-gia-map'] },
-];
+/* Lộ trình gợi ý nay nằm trong cơ sở dữ liệu (bảng lich_trinh), cán bộ sửa ở mục Lộ trình. */
+
+/** Khoảng cách đường chim bay giữa hai toạ độ (km) — công thức haversine. */
+export function khoangCachKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+/** Đường dẫn chỉ đường Google Maps đi qua nhiều điểm theo thứ tự (tối đa 9 điểm dừng giữa đường). */
+export function duongDanChiDuong(ds: { lat: number; lng: number }[]) {
+  if (!ds.length) return '';
+  const toa = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
+  if (ds.length === 1) return `https://www.google.com/maps/dir/?api=1&destination=${toa(ds[0])}`;
+  const giua = ds.slice(1, -1).slice(0, 9).map(toa).join('|');
+  return `https://www.google.com/maps/dir/?api=1&origin=${toa(ds[0])}&destination=${toa(ds[ds.length - 1])}${giua ? `&waypoints=${encodeURIComponent(giua)}` : ''}&travelmode=driving`;
+}
 
 export const so = (n: number | null | undefined) => Number(n || 0).toLocaleString('vi-VN');
 export const saoChu = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));

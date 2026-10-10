@@ -1,6 +1,6 @@
 /** Gọi máy chủ phía du khách. */
 import { API_URL } from './adminService';
-import type { DiaDiem, DanhGia, ThongKe, DanhGiaGui } from '../utils/kieu';
+import type { DiaDiem, DanhGia, ThongKe, DanhGiaGui, LoTrinh, TinTuc, LuuTru, KetQuaPhanAnh } from '../utils/kieu';
 
 /* Mã thiết bị ngẫu nhiên lưu trong trình duyệt: mỗi thiết bị một đánh giá cho
    mỗi điểm, gửi lại là sửa bài cũ. Máy chủ chỉ lưu bản băm của mã này. */
@@ -34,3 +34,12 @@ export const layDanhGia = (id: string, sx: string) => goi<DanhGia[]>(`/dia-diem/
 export const layDanhGiaCuaToi = (id: string) => goi<DanhGiaGui | null>(`/dia-diem/${encodeURIComponent(id)}/cua-toi`);
 export const guiDanhGia = (d: DanhGiaGui & { diaDiemId: string; captchaToken?: string }) => goi<{ ok: true }>('/danh-gia', { method: 'POST', body: JSON.stringify(d) });
 export const layThongKe = (nam?: string) => goi<ThongKe>(`/thong-ke${nam ? `?nam=${nam}` : ''}`);
+export const layLoTrinh = () => goi<LoTrinh[]>('/lo-trinh');
+export const layTinTuc = () => goi<TinTuc[]>('/tin-tuc');
+export const layLuuTru = () => goi<LuuTru[]>('/luu-tru');
+export const guiPhanAnh = (d: { loai: string; diaDiemId?: string; noiDung: string; lienHe?: string; captchaToken?: string }) =>
+  goi<{ ma: string }>('/phan-anh', { method: 'POST', body: JSON.stringify(d) });
+export const traCuuPhanAnh = (ma: string) => goi<KetQuaPhanAnh>(`/phan-anh/${encodeURIComponent(ma)}`);
+export const baoDanhGia = (id: number, lyDo = 'khac') => goi<{ ok: true }>(`/danh-gia/${id}/bao`, { method: 'POST', body: JSON.stringify({ lyDo }) });
+/** Địa chỉ ảnh địa điểm — ảnh nhớ đệm lâu trên trình duyệt. */
+export const anhUrl = (id: number) => `${API_URL}/api/cong-khai/anh/${id}`;

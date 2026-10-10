@@ -10,7 +10,8 @@ const TEN: Record<string, string> = { login: 'Đăng nhập', login_success: 'Đ
   chot_bao_cao: 'Chốt báo cáo', mo_lai_bao_cao: 'Mở lại báo cáo', danh_dau_khong_phat_sinh: 'Đánh dấu không phát sinh', bo_khong_phat_sinh: 'Bỏ không phát sinh',
   them_phu_luc: 'Thêm dòng phụ lục', xoa_phu_luc: 'Xoá dòng phụ lục', nhap_excel_phu_luc: 'Nhập Excel phụ lục', xuat_phu_luc: 'Xuất phụ lục',
   xem_du_lieu_nhay_cam: 'Xem dữ liệu nhạy cảm', doi_mat_khau: 'Đổi mật khẩu', bat_hai_lop: 'Bật xác thực hai lớp', tat_hai_lop: 'Tắt xác thực hai lớp',
-  tat_hai_lop_ho: 'Tắt hai lớp hộ đồng nghiệp' };
+  tat_hai_lop_ho: 'Tắt hai lớp hộ đồng nghiệp', them_lo_trinh: 'Thêm lộ trình', sua_lo_trinh: 'Sửa lộ trình', xoa_lo_trinh: 'Xoá lộ trình',
+  them_anh: 'Thêm ảnh', xoa_anh: 'Xoá ảnh', them_tin: 'Đăng tin', sua_tin: 'Sửa tin', xoa_tin: 'Xoá tin', xu_ly_phan_anh: 'Xử lý phản ánh' };
 interface NK { luc: string; hanhDong: string; doiTuong: string | null; chiTiet: unknown; ip: string | null; canBo: string | null }
 /* Chi tiết lưu dạng JSON (MySQL trả đối tượng, MariaDB trả chuỗi) — gom thành một dòng chữ dễ đọc. */
 function moTaChiTiet(x: NK) {

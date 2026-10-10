@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Tooltip, Polyline, useMap } from 'reac
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LOAI, giamChuyenDong } from '../../utils/hangSo';
+import { useNN } from '../../i18n/NgonNgu';
 import type { DiaDiem } from '../../utils/kieu';
 
 /* Khung nhìn bao trọn thành phố Đồng Nai (sau hợp nhất với Bình Phước). */
@@ -31,18 +32,19 @@ function DieuKhien({ tam, khoaTuyen }: { tam: [number, number] | null; khoaTuyen
   return null;
 }
 
-export default function BanDo({ ds, tuyen = [], tam = null, onChon }: {
-  ds: DiaDiem[]; tuyen?: DiaDiem[]; tam?: [number, number] | null; onChon: (id: string) => void;
+export default function BanDo({ ds, tuyen = [], tam = null, onChon, thap = false }: {
+  ds: DiaDiem[]; tuyen?: DiaDiem[]; tam?: [number, number] | null; onChon: (id: string) => void; thap?: boolean;
 }) {
+  const { chon } = useNN();
   const toaTuyen = tuyen.map((p) => [p.lat, p.lng] as [number, number]);
   return (
-    <MapContainer bounds={KHUNG} scrollWheelZoom={false} className="h-[460px] w-full rounded-2xl border border-slate-200 shadow-soft sm:h-[600px] dark:border-slate-800"
+    <MapContainer bounds={KHUNG} scrollWheelZoom={false} className={`w-full rounded-2xl border border-slate-200 shadow-soft dark:border-slate-800 ${thap ? 'h-[380px] sm:h-[460px]' : 'h-[460px] sm:h-[600px]'}`}
       aria-label="Bản đồ điểm du lịch">
       <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       {ds.map((p) => (
-        <Marker key={p.id} position={[p.lat, p.lng]} icon={ghim(p)} title={p.ten} riseOnHover eventHandlers={{ click: () => onChon(p.id) }}>
-          <Tooltip direction="top" offset={[0, -8]}>{p.ten}</Tooltip>
+        <Marker key={p.id} position={[p.lat, p.lng]} icon={ghim(p)} title={chon(p.ten, p.tenEn)} riseOnHover eventHandlers={{ click: () => onChon(p.id) }}>
+          <Tooltip direction="top" offset={[0, -8]}>{chon(p.ten, p.tenEn)}</Tooltip>
         </Marker>
       ))}
       {toaTuyen.length > 1 && <Polyline positions={toaTuyen} className="tuyen" pathOptions={{ color: '#1E3A5F', weight: 3.5, opacity: 0.85 }} />}

@@ -11,8 +11,8 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { pool } from '../db.js';
-import { layIpThat } from '../lib/helpers.js';
-import { sanitizeText } from '../lib/security.js';
+import { layIpThat, generateTrackingCode } from '../lib/helpers.js';
+import { sanitizeText, containsProfanity } from '../lib/security.js';
 import { verifyTurnstile, turnstileEnabled } from '../lib/turnstile.js';
 
 const router = Router();
@@ -30,7 +30,7 @@ router.get('/dia-diem', async (_req, res, next) => {
   try {
     if (dem.du && Date.now() - dem.luc < 30_000) return res.json(dem.du);
     const [rows] = await pool.query(
-      `SELECT d.id, d.ten, d.loai, d.mo_ta, d.dia_chi, d.lat, d.lng, d.sdt, d.web, d.gio_mo, d.noi_bat,
+      `SELECT d.id, d.ten, d.ten_en, d.loai, d.mo_ta, d.mo_ta_en, d.dia_chi, d.lat, d.lng, d.sdt, d.web, d.gio_mo, d.noi_bat,
               COUNT(g.id) AS so_dg, AVG(g.sao) AS sao_tb,
               AVG(g.canh_quan) AS tb_canh_quan, AVG(g.dich_vu) AS tb_dich_vu, AVG(g.ve_sinh) AS tb_ve_sinh, AVG(g.gia_ca) AS tb_gia_ca,
               SUM(g.sao = 5) AS s5, SUM(g.sao = 4) AS s4, SUM(g.sao = 3) AS s3, SUM(g.sao = 2) AS s2, SUM(g.sao = 1) AS s1
@@ -40,8 +40,11 @@ router.get('/dia-diem', async (_req, res, next) => {
         ORDER BY d.noi_bat DESC, d.ten`
     );
     const so = (v) => (v === null ? null : Number(v));
+    /* Danh sách ảnh (chỉ mã và kích thước, không kèm dữ liệu ảnh) — ảnh tải riêng qua /anh/:id. */
+    const [anh] = await pool.query('SELECT id, dia_diem_id, rong, cao, chu_thich FROM anh_dia_diem ORDER BY dia_diem_id, thu_tu, id');
     dem = { luc: Date.now(), du: rows.map((r) => ({
-      id: r.id, ten: r.ten, loai: r.loai, moTa: r.mo_ta, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
+      id: r.id, ten: r.ten, tenEn: r.ten_en, loai: r.loai, moTa: r.mo_ta, moTaEn: r.mo_ta_en, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
+      anh: anh.filter((a) => a.dia_diem_id === r.id).map((a) => ({ id: a.id, rong: a.rong, cao: a.cao, chuThich: a.chu_thich })),
       sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat,
       soDanhGia: Number(r.so_dg), saoTb: so(r.sao_tb),
       tieuChi: { canhQuan: so(r.tb_canh_quan), dichVu: so(r.tb_dich_vu), veSinh: so(r.tb_ve_sinh), giaCa: so(r.tb_gia_ca) },
@@ -127,8 +130,21 @@ router.get('/thong-ke', async (req, res, next) => {
     const [saoDiem] = await pool.query(
       `SELECT d.ten, AVG(g.sao) AS tb, COUNT(*) AS so FROM danh_gia g JOIN dia_diem d ON d.id = g.dia_diem_id
         WHERE g.bi_an = 0 AND d.hien = 1 GROUP BY d.id ORDER BY tb DESC, so DESC LIMIT 10`);
+    /* Khách theo xã/phường: chỉ lấy số liệu xã đã CHỐT, của kỳ mới nhất có xã chốt. */
+    const [[kyChot]] = await pool.query(
+      `SELECT k.id, k.ten FROM ky_bao_cao k JOIN nop_bao_cao n ON n.ky_id = k.id AND n.trang_thai = 'da-chot'
+        ORDER BY k.tu_ngay DESC, k.den_ngay DESC LIMIT 1`);
+    let khachTheoXa = null;
+    if (kyChot) {
+      const [rows] = await pool.query(
+        `SELECT x.ten, x.loai, b.quoc_te, b.noi_dia FROM bc_khach b JOIN nop_bao_cao n ON n.ky_id = b.ky_id AND n.xa_phuong_id = b.xa_phuong_id AND n.trang_thai = 'da-chot'
+           JOIN xa_phuong x ON x.id = b.xa_phuong_id WHERE b.ky_id = ? AND b.xoa_luc IS NULL ORDER BY (b.quoc_te + b.noi_dia) DESC`, [kyChot.id]);
+      const LOAI = { xa: 'Xã', phuong: 'Phường', 'dac-khu': 'Đặc khu' };
+      khachTheoXa = { ky: kyChot.ten, ds: rows.map((r) => ({ xa: `${LOAI[r.loai]} ${r.ten}`, quocTe: Number(r.quoc_te), noiDia: Number(r.noi_dia) })) };
+    }
     const n = (v) => (v === null ? null : Number(v));
     res.json({
+      khachTheoXa,
       nams: nams.length ? nams : [nam], nam,
       thang: Array.from({ length: 12 }, (_, i) => { const t = `${nam}-${String(i + 1).padStart(2, '0')}`; const r = thang.find((x) => x.thang === t);
         return { thang: t, noiDia: Number(r?.nd || 0), quocTe: Number(r?.qt || 0) }; }),
@@ -138,6 +154,122 @@ router.get('/thong-ke', async (req, res, next) => {
       danhGiaTheoThang: theoThang.map((r) => ({ thang: r.thang, so: Number(r.so) })),
       saoTheoDiaDiem: saoDiem.map((r) => ({ ten: r.ten, tb: Number(r.tb), so: Number(r.so) })),
     });
+  } catch (e) { next(e); }
+});
+
+/* ====================================================================
+   GIAI ĐOẠN 3 — ẢNH, LỘ TRÌNH, TIN TỨC, LƯU TRÚ, PHẢN ÁNH, BÁO ĐÁNH GIÁ
+   ==================================================================== */
+
+/* Ảnh địa điểm: trả thẳng dữ liệu ảnh, cho trình duyệt nhớ đệm một năm (ảnh
+   không bao giờ sửa tại chỗ — đổi ảnh là xoá ảnh cũ, tải ảnh mới có mã mới). */
+router.get('/anh/:id', async (req, res, next) => {
+  try {
+    const [[a]] = await pool.query(
+      `SELECT a.du_lieu, a.kieu FROM anh_dia_diem a JOIN dia_diem d ON d.id = a.dia_diem_id WHERE a.id = ? AND d.hien = 1`, [Number(req.params.id) || 0]);
+    if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    res.setHeader('Content-Type', a.kieu);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(a.du_lieu);
+  } catch (e) { next(e); }
+});
+
+router.get('/lo-trinh', async (_req, res, next) => {
+  try {
+    const [lt] = await pool.query('SELECT id, ten, ten_en, thoi_gian, mo_ta, mo_ta_en FROM lich_trinh WHERE hien = 1 ORDER BY thu_tu, id');
+    const [diem] = await pool.query(
+      `SELECT ld.lich_trinh_id, ld.dia_diem_id, ld.ngay, ld.ghi_chu FROM lich_trinh_diem ld JOIN dia_diem d ON d.id = ld.dia_diem_id
+        WHERE d.hien = 1 ORDER BY ld.lich_trinh_id, ld.thu_tu`);
+    res.json(lt.map((t) => ({ id: t.id, ten: t.ten, tenEn: t.ten_en, thoiGian: t.thoi_gian, moTa: t.mo_ta, moTaEn: t.mo_ta_en,
+      diem: diem.filter((d) => d.lich_trinh_id === t.id).map((d) => ({ id: d.dia_diem_id, ngay: d.ngay, ghiChu: d.ghi_chu })) })));
+  } catch (e) { next(e); }
+});
+
+/* Tin còn hạn: chưa tới ngày bắt đầu hoặc đã qua ngày kết thúc thì tự thôi hiện. */
+router.get('/tin-tuc', async (_req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, loai, tieu_de, tieu_de_en, noi_dung, noi_dung_en, tu_ngay, den_ngay, dia_diem_id FROM tin_tuc
+        WHERE hien = 1 AND (tu_ngay IS NULL OR tu_ngay <= CURDATE() OR loai = 'su-kien') AND (den_ngay IS NULL OR den_ngay >= CURDATE())
+        ORDER BY FIELD(loai, 'canh-bao', 'su-kien', 'thong-bao', 'lien-he'), thu_tu, tu_ngay, id DESC LIMIT 100`);
+    res.json(rows.map((r) => ({ id: r.id, loai: r.loai, tieuDe: r.tieu_de, tieuDeEn: r.tieu_de_en, noiDung: r.noi_dung, noiDungEn: r.noi_dung_en,
+      tuNgay: r.tu_ngay, denNgay: r.den_ngay, diaDiemId: r.dia_diem_id })));
+  } catch (e) { next(e); }
+});
+
+/* Cơ sở lưu trú cán bộ đã cho hiện (bảng 3). Không bao giờ trả tên chủ cơ sở. */
+router.get('/luu-tru', async (_req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT l.id, l.ten, l.dia_chi, l.hang_sao, x.ten AS xa, x.loai AS loai_xa FROM bc_luu_tru l JOIN xa_phuong x ON x.id = l.xa_phuong_id
+        WHERE l.cong_khai = 1 AND l.xoa_luc IS NULL ORDER BY l.hang_sao DESC, l.ten`);
+    const LOAI = { xa: 'Xã', phuong: 'Phường', 'dac-khu': 'Đặc khu' };
+    res.json(rows.map((r) => ({ id: r.id, ten: r.ten, diaChi: r.dia_chi, hangSao: Number(r.hang_sao), xaPhuong: `${LOAI[r.loai_xa]} ${r.xa}` })));
+  } catch (e) { next(e); }
+});
+
+/* ---------------- Phản ánh ---------------- */
+export const LOAI_PHAN_ANH = ['gia-ca', 'an-ninh', 've-sinh', 'dich-vu', 'an-toan', 'khac'];
+const gioiHanPhanAnh = rateLimit({ windowMs: 60 * 60_000, max: 5, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: (req) => layIpThat(req), message: { error: 'Bạn đã gửi nhiều phản ánh trong một giờ. Thử lại sau, hoặc gọi số khẩn cấp nếu đang nguy hiểm.' } });
+const gioiHanTraCuu = rateLimit({ windowMs: 60_000, max: 20, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => layIpThat(req),
+  message: { error: 'Tra cứu quá nhanh. Chờ một phút.' } });
+
+router.post('/phan-anh', gioiHanPhanAnh, async (req, res, next) => {
+  try {
+    const b = req.body || {};
+    if (!LOAI_PHAN_ANH.includes(b.loai)) return res.status(400).json({ error: 'Chọn loại phản ánh.' });
+    const noiDung = sanitizeText(String(b.noiDung || ''), 2000);
+    if (noiDung.length < 15) return res.status(400).json({ error: 'Mô tả cụ thể hơn (ít nhất 15 ký tự): chuyện gì, ở đâu, lúc nào.' });
+    if (containsProfanity(noiDung)) return res.status(400).json({ error: 'Nội dung có từ ngữ không phù hợp. Sửa lại giúp cán bộ dễ xử lý.' });
+    if (turnstileEnabled()) {
+      const kq = await verifyTurnstile(b.captchaToken, layIpThat(req));
+      if (!kq.ok) return res.status(400).json({ error: kq.error || 'Chưa qua bước xác minh.', canCaptcha: true });
+    }
+    let diaDiem = null;
+    if (b.diaDiemId) {
+      [[diaDiem]] = await pool.query('SELECT id, xa_phuong_id FROM dia_diem WHERE id = ? AND hien = 1', [String(b.diaDiemId)]);
+      if (!diaDiem) return res.status(400).json({ error: 'Địa điểm không hợp lệ.' });
+    }
+    const lienHe = sanitizeText(String(b.lienHe || ''), 100) || null;
+    /* Mã tra cứu 8 ký tự (bỏ 0/O, 1/I/L cho khỏi đọc nhầm): gần một nghìn tỉ tổ hợp, đoán mò không ra. */
+    for (let lan = 0; lan < 5; lan++) {
+      const ma = generateTrackingCode(8);
+      try {
+        await pool.query(
+          `INSERT INTO phan_anh (ma_tra_cuu, loai, dia_diem_id, xa_phuong_id, noi_dung, lien_he, ip_bam) VALUES (?,?,?,?,?,?,?)`,
+          [ma, b.loai, diaDiem?.id || null, diaDiem?.xa_phuong_id || null, noiDung, lienHe, bam(layIpThat(req))]);
+        return res.status(201).json({ ma });
+      } catch (e) { if (e.code !== 'ER_DUP_ENTRY') throw e; }
+    }
+    throw new Error('Không tạo được mã tra cứu.');
+  } catch (e) { next(e); }
+});
+
+router.get('/phan-anh/:ma', gioiHanTraCuu, async (req, res, next) => {
+  try {
+    const ma = String(req.params.ma || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (ma.length !== 8) return res.status(404).json({ error: 'Mã tra cứu gồm 8 ký tự.' });
+    const [[r]] = await pool.query(
+      `SELECT p.loai, p.noi_dung, p.trang_thai, p.phan_hoi, p.created_at, p.xu_ly_luc, d.ten AS dia_diem FROM phan_anh p
+         LEFT JOIN dia_diem d ON d.id = p.dia_diem_id WHERE p.ma_tra_cuu = ?`, [ma]);
+    if (!r) return res.status(404).json({ error: 'Không tìm thấy phản ánh với mã này.' });
+    res.json({ loai: r.loai, noiDung: r.noi_dung, trangThai: r.trang_thai, phanHoi: r.phan_hoi, guiLuc: r.created_at, xuLyLuc: r.xu_ly_luc, diaDiem: r.dia_diem });
+  } catch (e) { next(e); }
+});
+
+/* ---------------- Báo đánh giá sai phạm ---------------- */
+const gioiHanBao = rateLimit({ windowMs: 60 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => layIpThat(req),
+  message: { error: 'Bạn đã báo nhiều lần trong một giờ.' } });
+router.post('/danh-gia/:id/bao', gioiHanBao, async (req, res, next) => {
+  try {
+    const may = String(req.get('X-Ma-Thiet-Bi') || '');
+    if (!/^[a-f0-9-]{20,64}$/i.test(may)) return res.status(400).json({ error: 'Thiếu mã thiết bị. Tải lại trang rồi thử lại.' });
+    const lyDo = ['xuc-pham', 'quang-cao', 'sai-su-that', 'khac'].includes(req.body?.lyDo) ? req.body.lyDo : 'khac';
+    const [[dg]] = await pool.query('SELECT id FROM danh_gia WHERE id = ? AND bi_an = 0', [Number(req.params.id) || 0]);
+    if (!dg) return res.status(404).json({ error: 'Không tìm thấy đánh giá.' });
+    await pool.query('INSERT IGNORE INTO bao_danh_gia (danh_gia_id, ma_thiet_bi, ly_do) VALUES (?,?,?)', [dg.id, bam(may), lyDo]);
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 

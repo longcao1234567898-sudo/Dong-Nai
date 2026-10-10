@@ -7,10 +7,22 @@ import Footer from './components/layout/Footer';
 import AdminLayout from './components/layout/AdminLayout';
 import HomePage from './pages/HomePage';
 import { AdminAuthProvider, useAdminAuth } from './hooks/useAdminAuth';
+import { NgonNguProvider } from './i18n/NgonNgu';
 
 /* Trang thống kê và trang quản trị tách gói riêng: du khách mở trang chủ
    không phải tải thư viện biểu đồ hay mã quản trị. */
 const ThongKePage = lazy(() => import('./pages/ThongKePage'));
+const DiaDiemPage = lazy(() => import('./pages/cong-khai/DiaDiemPage'));
+const LoTrinhDanhSach = lazy(() => import('./pages/cong-khai/LoTrinhPage').then((m) => ({ default: m.LoTrinhDanhSach })));
+const LoTrinhChiTiet = lazy(() => import('./pages/cong-khai/LoTrinhPage').then((m) => ({ default: m.LoTrinhChiTiet })));
+const TuTaoLoTrinh = lazy(() => import('./pages/cong-khai/LoTrinhPage').then((m) => ({ default: m.TuTaoLoTrinh })));
+const LuuTruPage = lazy(() => import('./pages/cong-khai/LuuTruPage'));
+const PhanAnhPage = lazy(() => import('./pages/cong-khai/PhanAnhPage'));
+const TinTucPage = lazy(() => import('./pages/cong-khai/TinTucPage'));
+const KhachQuocTePage = lazy(() => import('./pages/cong-khai/KhachQuocTePage'));
+const AdminLoTrinh = lazy(() => import('./pages/admin/AdminLoTrinh'));
+const AdminTinTuc = lazy(() => import('./pages/admin/AdminTinTuc'));
+const AdminPhanAnh = lazy(() => import('./pages/admin/AdminPhanAnh'));
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
 const AdminTongQuan = lazy(() => import('./pages/admin/AdminTongQuan'));
 const AdminDiaDiem = lazy(() => import('./pages/admin/AdminDiaDiem'));
@@ -40,12 +52,21 @@ function CanDangNhap() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <NgonNguProvider>
       <AdminAuthProvider>
         <BrowserRouter>
           <Routes>
             <Route element={<KhungChung />}>
               <Route path="/" element={<HomePage />} />
               <Route path="/thong-ke" element={<ThongKePage />} />
+              <Route path="/dia-diem/:id" element={<DiaDiemPage />} />
+              <Route path="/lo-trinh" element={<LoTrinhDanhSach />} />
+              <Route path="/lo-trinh/:id" element={<LoTrinhChiTiet />} />
+              <Route path="/tu-tao-lo-trinh" element={<TuTaoLoTrinh />} />
+              <Route path="/luu-tru" element={<LuuTruPage />} />
+              <Route path="/phan-anh" element={<PhanAnhPage />} />
+              <Route path="/tin-tuc" element={<TinTucPage />} />
+              <Route path="/khach-quoc-te" element={<KhachQuocTePage />} />
               <Route path="/dang-nhap" element={<AdminLoginPage />} />
               <Route path="/quan-tri" element={<CanDangNhap />}>
                 <Route index element={<AdminTongQuan />} />
@@ -59,6 +80,9 @@ export default function App() {
                 <Route path="thong-ke" element={<AdminThongKe />} />
                 <Route path="xa-phuong" element={<AdminXaPhuong />} />
                 <Route path="tai-khoan" element={<AdminTaiKhoan />} />
+                <Route path="lo-trinh" element={<AdminLoTrinh />} />
+                <Route path="tin-tuc" element={<AdminTinTuc />} />
+                <Route path="phan-anh" element={<AdminPhanAnh />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
@@ -66,6 +90,7 @@ export default function App() {
         </BrowserRouter>
         <Toaster position="top-center" toastOptions={{ style: { borderRadius: 12, fontFamily: 'inherit' } }} />
       </AdminAuthProvider>
+      </NgonNguProvider>
     </QueryClientProvider>
   );
 }
