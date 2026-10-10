@@ -29,5 +29,9 @@ export const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   charset: 'utf8mb4_unicode_ci',
+  /* Cột kiểu DATE (ngày của kỳ báo cáo, ngày vi phạm...) trả về chuỗi
+     "2026-06-30" thay vì đối tượng Date: Date của JavaScript luôn kèm giờ và
+     múi giờ, đổi qua đổi lại dễ lệch sang ngày hôm trước. */
+  dateStrings: ['DATE'],
   ssl: buildSsl(),
 });

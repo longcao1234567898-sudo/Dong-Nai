@@ -1,24 +1,23 @@
 /**
  * ĐƯỜNG DẪN QUẢN TRỊ — mọi đường dẫn ở đây đã qua requireAuth (index.js).
  *
- * Phân quyền:
- *   handler (cán bộ)   nhập lượt khách, xem tổng quan
- *   manager (chỉ huy)  + quản lý địa điểm, ẩn đánh giá vi phạm, nhật ký, xuất dữ liệu
- *   admin (quản trị)   + khoá, mở khoá, gỡ tạm khoá tài khoản cán bộ
- * Tạo tài khoản mới vẫn bằng lệnh trên máy chủ (scripts-them-can-bo.js), giống
- * Điểm Chạm An Ninh: chiếm được một phiên đăng nhập cũng không tự tạo được
- * tài khoản cửa sau.
+ * MỘT QUYỀN DUY NHẤT: cán bộ nào đã đăng nhập cũng làm được mọi việc — quản
+ * lý địa điểm, nhập lượt khách, ẩn đánh giá, phụ lục thống kê, xem nhật ký,
+ * khoá/mở khoá tài khoản khác. Không phân vai trò, không giới hạn theo xã.
+ * Mọi thao tác đều ghi nhật ký kèm tên cán bộ và địa chỉ IP.
+ *
+ * Tạo tài khoản mới vẫn chỉ làm bằng lệnh trên máy chủ (scripts-them-can-bo.js):
+ * chiếm được một phiên đăng nhập cũng không tự tạo được tài khoản cửa sau.
  */
 import { Router } from 'express';
 import { pool } from '../db.js';
-import { authorize } from '../middleware/authorize.js';
 import { xoaDemTrangThai } from '../middleware/auth.js';
 import { ghiNhatKy } from '../lib/helpers.js';
 import { sanitizeText } from '../lib/security.js';
 import { xoaDemCongKhai } from './cong-khai.js';
+import baoCaoRouter from './bao-cao.js';
 
 const router = Router();
-const CHI_HUY = authorize('admin', 'manager');
 const LOAI = ['thien-nhien', 'di-tich', 'vui-choi', 'luu-tru', 'am-thuc', 'dac-san'];
 const thangHopLe = (t) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(t || ''));
 /* Khung toạ độ của thành phố Đồng Nai (sau hợp nhất với Bình Phước), nới
@@ -41,8 +40,14 @@ function docDiaDiem(b) {
     dia_chi: sanitizeText(String(b.diaChi || ''), 200) || null, lat: Math.round(lat * 1e7) / 1e7, lng: Math.round(lng * 1e7) / 1e7,
     sdt: String(b.sdt || '').replace(/[^0-9+ .()-]/g, '').slice(0, 20) || null, web: String(b.web || '').slice(0, 200) || null,
     gio_mo: sanitizeText(String(b.gioMo || ''), 80) || null, noi_bat: !!b.noiBat, hien: b.hien !== false, da_kiem_tra: !!b.daKiemTra,
+    xa_phuong_id: Number(b.xaPhuongId) > 0 ? Number(b.xaPhuongId) : null,
   } };
 }
+
+const coXa = async (id) => { const [[x]] = await pool.query('SELECT id FROM xa_phuong WHERE id = ?', [id]); return !!x; };
+
+/* Phụ lục thống kê: xã/phường, kỳ báo cáo, 10 bảng, nhập/xuất Excel — xem bao-cao.js */
+router.use('/bao-cao', baoCaoRouter);
 
 /* ------------------------------------------------------------ TỔNG QUAN */
 router.get('/tong-quan', async (_req, res, next) => {
@@ -51,7 +56,17 @@ router.get('/tong-quan', async (_req, res, next) => {
     const [[a]] = await pool.query('SELECT COUNT(*) AS so, SUM(da_kiem_tra = 0) AS cho FROM dia_diem');
     const [[b]] = await pool.query('SELECT COALESCE(SUM(noi_dia + quoc_te), 0) AS k FROM luot_khach WHERE thang = ?', [thang]);
     const [[c]] = await pool.query('SELECT COUNT(*) AS so FROM danh_gia WHERE updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)');
-    res.json({ diaDiem: Number(a.so), choKiemTra: Number(a.cho || 0), khachThangNay: Number(b.k), danhGiaMoi: Number(c.so) });
+    /* Tiến độ chốt báo cáo của kỳ mới nhất đã bắt đầu. */
+    const [[ky]] = await pool.query('SELECT id, ten, han_nop, khoa FROM ky_bao_cao WHERE tu_ngay <= CURDATE() ORDER BY tu_ngay DESC, den_ngay DESC LIMIT 1');
+    let baoCao = null;
+    if (ky) {
+      const [[d]] = await pool.query(
+        `SELECT COUNT(*) AS so_xa, SUM(n.trang_thai = 'da-chot') AS da_chot FROM xa_phuong x
+           LEFT JOIN nop_bao_cao n ON n.xa_phuong_id = x.id AND n.ky_id = ? WHERE x.hien = 1`, [ky.id]);
+      baoCao = { kyId: ky.id, ky: ky.ten, hanNop: ky.han_nop, khoa: !!ky.khoa, soXa: Number(d.so_xa), daChot: Number(d.da_chot || 0) };
+    }
+    const [[dd]] = await pool.query('SELECT COUNT(*) AS so FROM dia_diem WHERE xa_phuong_id IS NULL');
+    res.json({ diaDiem: Number(a.so), choKiemTra: Number(a.cho || 0), khachThangNay: Number(b.k), danhGiaMoi: Number(c.so), baoCao, diaDiemChuaGanXa: Number(dd.so) });
   } catch (e) { next(e); }
 });
 
@@ -60,30 +75,32 @@ router.get('/dia-diem', async (_req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM dia_diem ORDER BY ten');
     res.json(rows.map((r) => ({ id: r.id, ten: r.ten, loai: r.loai, moTa: r.mo_ta, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
-      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon })));
+      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null })));
   } catch (e) { next(e); }
 });
-router.post('/dia-diem', CHI_HUY, async (req, res, next) => {
+router.post('/dia-diem', async (req, res, next) => {
   try {
     const { loi, du } = docDiaDiem(req.body || {}); if (loi) return res.status(400).json({ error: loi });
     const id = slug(du.ten) || 'diem-' + Date.now();
     const [[co]] = await pool.query('SELECT id FROM dia_diem WHERE id = ?', [id]);
     if (co) return res.status(409).json({ error: 'Đã có địa điểm cùng tên. Sửa địa điểm đó thay vì thêm mới.' });
+    if (du.xa_phuong_id && !(await coXa(du.xa_phuong_id))) return res.status(400).json({ error: 'Xã/phường không hợp lệ.' });
     await pool.query('INSERT INTO dia_diem SET ?', [{ id, ...du, nguon: 'Cán bộ nhập' }]);
     await ghiNhatKy(pool, req, { hanhDong: 'them_dia_diem', loaiDoiTuong: 'dia_diem', doiTuongId: id, chiTiet: { ten: du.ten } });
     xoaDemCongKhai(); res.status(201).json({ id });
   } catch (e) { next(e); }
 });
-router.put('/dia-diem/:id', CHI_HUY, async (req, res, next) => {
+router.put('/dia-diem/:id', async (req, res, next) => {
   try {
     const { loi, du } = docDiaDiem(req.body || {}); if (loi) return res.status(400).json({ error: loi });
+    if (du.xa_phuong_id && !(await coXa(du.xa_phuong_id))) return res.status(400).json({ error: 'Xã/phường không hợp lệ.' });
     const [kq] = await pool.query('UPDATE dia_diem SET ? WHERE id = ?', [du, String(req.params.id)]);
     if (!kq.affectedRows) return res.status(404).json({ error: 'Không tìm thấy địa điểm.' });
     await ghiNhatKy(pool, req, { hanhDong: 'sua_dia_diem', loaiDoiTuong: 'dia_diem', doiTuongId: req.params.id, chiTiet: { ten: du.ten } });
     xoaDemCongKhai(); res.json({ ok: true });
   } catch (e) { next(e); }
 });
-router.patch('/dia-diem/:id/hien', CHI_HUY, async (req, res, next) => {
+router.patch('/dia-diem/:id/hien', async (req, res, next) => {
   try {
     const hien = !!req.body?.hien;
     await pool.query('UPDATE dia_diem SET hien = ? WHERE id = ?', [hien, String(req.params.id)]);
@@ -132,7 +149,7 @@ router.post('/luot-khach/hang-loat', async (req, res, next) => {
 });
 
 /* ------------------------------------------------------------ ĐÁNH GIÁ */
-router.get('/danh-gia', CHI_HUY, async (_req, res, next) => {
+router.get('/danh-gia', async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT g.id, d.ten, g.sao, g.nhan_xet, g.ten_hien_thi, g.bi_an, g.updated_at
@@ -141,7 +158,7 @@ router.get('/danh-gia', CHI_HUY, async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 /* Ẩn chứ không xoá — đánh giá bị ẩn vẫn còn để đối chiếu nếu có khiếu nại. */
-router.patch('/danh-gia/:id/an', CHI_HUY, async (req, res, next) => {
+router.patch('/danh-gia/:id/an', async (req, res, next) => {
   try {
     const an = !!req.body?.an;
     await pool.query('UPDATE danh_gia SET bi_an = ? WHERE id = ?', [an, Number(req.params.id)]);
@@ -151,14 +168,14 @@ router.patch('/danh-gia/:id/an', CHI_HUY, async (req, res, next) => {
 });
 
 /* ------------------------------------------------------------ CÁN BỘ */
-router.get('/can-bo', authorize('admin'), async (_req, res, next) => {
+router.get('/can-bo', async (_req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT id, full_name, username, role, is_active, failed_attempts, locked_until, last_login FROM staff ORDER BY id');
     res.json(rows.map((r) => ({ id: r.id, hoTen: r.full_name, username: r.username, vaiTro: r.role, hoatDong: !!r.is_active,
       soLanSai: Number(r.failed_attempts || 0), tamKhoaDen: r.locked_until, dangNhapCuoi: r.last_login })));
   } catch (e) { next(e); }
 });
-router.patch('/can-bo/:id', authorize('admin'), async (req, res, next) => {
+router.patch('/can-bo/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     if (id === Number(req.staff.id)) return res.status(400).json({ error: 'Không tự khoá tài khoản của chính mình.' });
@@ -177,7 +194,7 @@ router.patch('/can-bo/:id', authorize('admin'), async (req, res, next) => {
 });
 
 /* ------------------------------------------------------------ NHẬT KÝ & XUẤT */
-router.get('/nhat-ky', CHI_HUY, async (_req, res, next) => {
+router.get('/nhat-ky', async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT l.created_at, l.action, l.target_id, l.details, l.ip_address, s.username
@@ -185,7 +202,7 @@ router.get('/nhat-ky', CHI_HUY, async (_req, res, next) => {
     res.json(rows.map((r) => ({ luc: r.created_at, hanhDong: r.action, doiTuong: r.target_id, chiTiet: r.details, ip: r.ip_address, canBo: r.username })));
   } catch (e) { next(e); }
 });
-router.get('/xuat', CHI_HUY, async (req, res, next) => {
+router.get('/xuat', async (req, res, next) => {
   try {
     const [dd] = await pool.query('SELECT * FROM dia_diem');
     const [lk] = await pool.query('SELECT dia_diem_id, thang, noi_dia, quoc_te FROM luot_khach');
