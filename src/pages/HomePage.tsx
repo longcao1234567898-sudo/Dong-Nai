@@ -17,7 +17,7 @@ const DauMuc = ({ tieuDe, moTa }: { tieuDe: string; moTa: string }) => (
   <div className="mb-5"><h2 className="text-2xl font-extrabold">{tieuDe}</h2><p className="mt-1 text-sm text-slate-500">{moTa}</p></div>);
 
 export default function HomePage() {
-  const { data: ds = [], isLoading, isError } = useQuery({ queryKey: ['dia-diem'], queryFn: layDiaDiem });
+  const { data: ds = [], isLoading, isError, error } = useQuery({ queryKey: ['dia-diem'], queryFn: layDiaDiem });
   const nam = String(new Date().getFullYear());
   const { data: tk } = useQuery({ queryKey: ['thong-ke', nam], queryFn: () => layThongKe(nam) });
   const [loai, setLoai] = useState<Loai | null>(null);
@@ -66,7 +66,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {isError && <p className="container-page py-10 text-center text-slate-500">Chưa tải được dữ liệu. Kiểm tra kết nối rồi tải lại trang.</p>}
+      {isError && <div className="container-page pt-10"><div className="mx-auto max-w-xl rounded-2xl bg-amber-50 px-5 py-4 text-center text-sm text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+        <b className="block">Chưa tải được dữ liệu điểm đến</b>{(error as Error)?.message}</div></div>}
 
       {/* ---------- Nổi bật ---------- */}
       <section className="hien-dan container-page pt-12">

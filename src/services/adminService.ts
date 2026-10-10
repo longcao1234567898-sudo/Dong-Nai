@@ -5,6 +5,8 @@
  */
 export const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) || '').trim().replace(/\/$/, '');
 const hasBackend = Boolean(API_URL) || import.meta.env.DEV;
+const laJson = (r: Response) => (r.headers.get('content-type') || '').includes('application/json');
+if (!API_URL && !import.meta.env.DEV) console.error('[cấu hình] Thiếu VITE_API_URL — giao diện không gọi được máy chủ. Khai trên Netlify rồi dựng lại.');
 
 export interface StaffInfo {
   id: number;
@@ -28,6 +30,7 @@ export async function login(username: string, password: string, captchaToken?: s
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password, captchaToken }), credentials: 'include',
   });
+  if (!laJson(res)) throw new LoginError('Chưa kết nối được máy chủ. Kiểm tra cấu hình VITE_API_URL.');
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const d = data as { error?: string; canCaptcha?: boolean };
@@ -40,7 +43,7 @@ export async function restoreSession(): Promise<StaffInfo | null> {
   if (!hasBackend) return null;
   try {
     const res = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' });
-    if (!res.ok) return null;
+    if (!res.ok || !laJson(res)) return null;
     const data = await res.json();
     accessToken = data.accessToken;
     return data.staff as StaffInfo;
@@ -60,6 +63,7 @@ export async function adminFetch<T>(path: string, options: RequestInit = {}, ret
     if (s) return adminFetch<T>(path, options, false);
     window.dispatchEvent(new Event('phien-het-han'));
   }
+  if (!laJson(res)) throw new Error('Máy chủ trả về sai định dạng. Kiểm tra VITE_API_URL và máy chủ trên Render.');
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string })?.error || 'Có lỗi xảy ra.');
   return data as T;

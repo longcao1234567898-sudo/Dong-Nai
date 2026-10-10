@@ -16,8 +16,9 @@ const truc = { fontSize: 12, fill: '#64748b' };
 
 export default function ThongKePage() {
   const [nam, setNam] = useState<string>();
-  const { data: tk, isLoading } = useQuery({ queryKey: ['thong-ke', nam || ''], queryFn: () => layThongKe(nam) });
+  const { data: tk, isLoading, error } = useQuery({ queryKey: ['thong-ke', nam || ''], queryFn: () => layThongKe(nam) });
   useHienDan([isLoading]);
+  if (error) return <div className="container-page py-20 text-center text-sm text-amber-800 dark:text-amber-200"><b className="block">Chưa tải được thống kê</b>{(error as Error).message}</div>;
   if (isLoading || !tk) return <div className="container-page py-20 text-center text-slate-500">Đang tải thống kê…</div>;
   const tongNd = tk.thang.reduce((s, t) => s + t.noiDia, 0), tongQt = tk.thang.reduce((s, t) => s + t.quocTe, 0);
   const nay = new Date();

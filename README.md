@@ -60,4 +60,3 @@ M��i thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là 
 cd server && npm test     # 15 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```
-"# Dong-Nai" 
