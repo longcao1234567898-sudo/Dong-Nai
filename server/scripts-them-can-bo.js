@@ -21,6 +21,9 @@
  *   node scripts-them-can-bo.js --khoa lan.tt
  *   node scripts-them-can-bo.js --mo-khoa lan.tt
  *
+ * TẮT XÁC THỰC HAI LỚP (cán bộ mất điện thoại):
+ *   node scripts-them-can-bo.js --tat-2fa lan.tt
+ *
  * MẬT KHẨU phải dài ít nhất 12 ký tự, có chữ thường, chữ HOA, chữ số và ký
  * tự đặc biệt. Ví dụ đạt: Chanh-Hiep#2026-Truc
  *
@@ -31,6 +34,7 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { pool } from './src/db.js';
+import { kiemMatKhau } from './src/lib/mat-khau.js';
 
 /* Trước đây tệp này nạp hàm báo lỗi từ './goi-y-loi-ket-noi.js' — tệp đó
    không có trong kho mã, nên lệnh tạo tài khoản sập ngay khi chạy. Gộp hàm
@@ -78,43 +82,6 @@ async function xemDanhSach() {
 }
 
 /**
- * KIỂM ĐỘ MẠNH MẬT KHẨU.
- *
- * ⚠️ Trước đây chỉ đòi 6 ký tự — quá yếu cho tài khoản XEM ĐƯỢC DANH TÍNH
- *    NGƯỜI TỐ GIÁC. Mật khẩu 6 ký tự toàn chữ thường có khoảng 300 triệu tổ
- *    hợp, máy thường dò hết trong vài phút.
- *
- *    Nay đòi tối thiểu 12 ký tự, đủ bốn loại ký tự. Không phải để làm khó cán
- *    bộ: 12 ký tự trộn bốn loại cho số tổ hợp lớn gấp hàng tỉ tỉ lần, dò không
- *    nổi trong đời người.
- *
- * @returns chuỗi mô tả lỗi, hoặc null nếu mật khẩu đạt.
- */
-function kiemMatKhau(mk, tenDangNhap) {
-  const thieu = [];
-  if (mk.length < 12) thieu.push(`dài ít nhất 12 ký tự (hiện ${mk.length})`);
-  if (!/[a-z]/.test(mk)) thieu.push('có chữ thường');
-  if (!/[A-Z]/.test(mk)) thieu.push('có chữ HOA');
-  if (!/[0-9]/.test(mk)) thieu.push('có chữ số');
-  if (!/[^A-Za-z0-9]/.test(mk)) thieu.push('có ký tự đặc biệt như @ # ! $');
-  if (thieu.length) return 'Mật khẩu cần: ' + thieu.join(', ') + '.';
-
-  /* Chứa chính tên đăng nhập thì kẻ dò đoán được ngay phần đó — tên đăng nhập
-     không phải bí mật, nó hiện trong nhật ký và danh sách phân công. */
-  if (tenDangNhap && mk.toLowerCase().includes(String(tenDangNhap).toLowerCase())) {
-    return 'Mật khẩu không được chứa tên đăng nhập.';
-  }
-
-  /* Những mật khẩu "đủ điều kiện" nhưng ai cũng nghĩ ra đầu tiên. */
-  const QUEN_THUOC = ['matkhau', 'password', 'congan', 'admin', '123456', 'qwerty', 'abc123'];
-  const thuong = mk.toLowerCase();
-  const trung = QUEN_THUOC.find((x) => thuong.includes(x));
-  if (trung) return `Mật khẩu chứa cụm quá quen thuộc "${trung}", dễ bị đoán. Chọn cụm khác.`;
-
-  return null;
-}
-
-/**
  * KHOÁ HOẶC MỞ KHOÁ tài khoản — việc riêng, phải gõ lệnh có chủ đích.
  *
  * Tách khỏi việc cấp mật khẩu vì hai việc này mang ý nghĩa khác hẳn nhau:
@@ -147,8 +114,23 @@ async function doiTrangThai(tenDangNhap, moKhoa) {
   process.exit(0);
 }
 
+/** Tắt xác thực hai lớp khi cán bộ mất điện thoại — sau đó cán bộ tự bật lại với điện thoại mới. */
+async function tatHaiLop(tenDangNhap) {
+  const [kq] = await pool.query('UPDATE staff SET totp_bat = FALSE, totp_bi_mat = NULL, totp_buoc_cuoi = NULL WHERE username = ?', [tenDangNhap]);
+  if (!kq.affectedRows) { console.error(`\n❌ Không có cán bộ nào tên đăng nhập "${tenDangNhap}".\n`); process.exit(1); }
+  await pool.query('DELETE FROM refresh_tokens WHERE staff_id = (SELECT id FROM staff WHERE username = ?)', [tenDangNhap]);
+  console.log(`\n✅ Đã tắt xác thực hai lớp của "${tenDangNhap}". Mọi phiên đăng nhập cũ đã bị thu hồi.`);
+  console.log('   Nhắc cán bộ đăng nhập lại rồi bật lại ở mục "Tài khoản của tôi".\n');
+  process.exit(0);
+}
+
 // ---------- Bắt đầu ----------
 const args = process.argv.slice(2);
+
+if (args[0] === '--tat-2fa') {
+  if (!args[1]) { console.error('\n❌ Thiếu tên đăng nhập. Ví dụ: node scripts-them-can-bo.js --tat-2fa lan.tt\n'); process.exit(1); }
+  await tatHaiLop(args[1]);
+}
 
 if (args[0] === '--danh-sach' || args[0] === '--list') {
   await xemDanhSach();

@@ -16,25 +16,28 @@ export interface StaffInfo {
 }
 export class LoginError extends Error {
   canCaptcha: boolean;
-  constructor(message: string, canCaptcha = false) {
+  /** Mật khẩu đúng, tài khoản đã bật xác thực hai lớp -> cần mã 6 số. */
+  canOtp: boolean;
+  constructor(message: string, canCaptcha = false, canOtp = false) {
     super(message);
     this.canCaptcha = canCaptcha;
+    this.canOtp = canOtp;
   }
 }
 
 let accessToken: string | null = null;
 
-export async function login(username: string, password: string, captchaToken?: string): Promise<StaffInfo> {
+export async function login(username: string, password: string, captchaToken?: string, maOtp?: string): Promise<StaffInfo> {
   if (!hasBackend) throw new Error('Chưa cấu hình máy chủ. Khai VITE_API_URL rồi dựng lại.');
   const res = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password, captchaToken }), credentials: 'include',
+    body: JSON.stringify({ username, password, captchaToken, maOtp }), credentials: 'include',
   });
   if (!laJson(res)) throw new LoginError('Chưa kết nối được máy chủ. Kiểm tra cấu hình VITE_API_URL.');
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const d = data as { error?: string; canCaptcha?: boolean };
-    throw new LoginError(d?.error || 'Đăng nhập thất bại.', Boolean(d?.canCaptcha));
+    const d = data as { error?: string; canCaptcha?: boolean; canOtp?: boolean };
+    throw new LoginError(d?.error || 'Đăng nhập thất bại.', Boolean(d?.canCaptcha), Boolean(d?.canOtp));
   }
   accessToken = data.accessToken;
   return data.staff as StaffInfo;

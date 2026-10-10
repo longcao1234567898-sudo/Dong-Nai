@@ -16,6 +16,8 @@ import { ghiNhatKy } from '../lib/helpers.js';
 import { sanitizeText } from '../lib/security.js';
 import { xoaDemCongKhai } from './cong-khai.js';
 import baoCaoRouter from './bao-cao.js';
+import taiKhoanRouter from './tai-khoan.js';
+import noiDungRouter from './noi-dung.js';
 
 const router = Router();
 const LOAI = ['thien-nhien', 'di-tich', 'vui-choi', 'luu-tru', 'am-thuc', 'dac-san'];
@@ -37,6 +39,7 @@ function docDiaDiem(b) {
     : b.web && !/^https?:\/\//i.test(String(b.web)) ? 'Trang web phải bắt đầu bằng http:// hoặc https://' : null;
   return { loi, du: {
     ten: sanitizeText(String(b.ten || ''), 120), loai: b.loai, mo_ta: sanitizeText(String(b.moTa || ''), 1500) || null,
+    ten_en: sanitizeText(String(b.tenEn || ''), 120) || null, mo_ta_en: sanitizeText(String(b.moTaEn || ''), 1500) || null,
     dia_chi: sanitizeText(String(b.diaChi || ''), 200) || null, lat: Math.round(lat * 1e7) / 1e7, lng: Math.round(lng * 1e7) / 1e7,
     sdt: String(b.sdt || '').replace(/[^0-9+ .()-]/g, '').slice(0, 20) || null, web: String(b.web || '').slice(0, 200) || null,
     gio_mo: sanitizeText(String(b.gioMo || ''), 80) || null, noi_bat: !!b.noiBat, hien: b.hien !== false, da_kiem_tra: !!b.daKiemTra,
@@ -48,6 +51,10 @@ const coXa = async (id) => { const [[x]] = await pool.query('SELECT id FROM xa_p
 
 /* Phụ lục thống kê: xã/phường, kỳ báo cáo, 10 bảng, nhập/xuất Excel — xem bao-cao.js */
 router.use('/bao-cao', baoCaoRouter);
+/* Tự đổi mật khẩu, bật/tắt xác thực hai lớp — xem tai-khoan.js */
+router.use('/tai-khoan', taiKhoanRouter);
+/* Lộ trình, ảnh địa điểm, tin tức, phản ánh — xem noi-dung.js */
+router.use('/', noiDungRouter);
 
 /* ------------------------------------------------------------ TỔNG QUAN */
 router.get('/tong-quan', async (_req, res, next) => {
@@ -66,7 +73,8 @@ router.get('/tong-quan', async (_req, res, next) => {
       baoCao = { kyId: ky.id, ky: ky.ten, hanNop: ky.han_nop, khoa: !!ky.khoa, soXa: Number(d.so_xa), daChot: Number(d.da_chot || 0) };
     }
     const [[dd]] = await pool.query('SELECT COUNT(*) AS so FROM dia_diem WHERE xa_phuong_id IS NULL');
-    res.json({ diaDiem: Number(a.so), choKiemTra: Number(a.cho || 0), khachThangNay: Number(b.k), danhGiaMoi: Number(c.so), baoCao, diaDiemChuaGanXa: Number(dd.so) });
+    const [[pa]] = await pool.query("SELECT COUNT(*) AS so FROM phan_anh WHERE trang_thai = 'moi'");
+    res.json({ diaDiem: Number(a.so), choKiemTra: Number(a.cho || 0), khachThangNay: Number(b.k), danhGiaMoi: Number(c.so), baoCao, diaDiemChuaGanXa: Number(dd.so), phanAnhMoi: Number(pa?.so || 0) });
   } catch (e) { next(e); }
 });
 
@@ -75,7 +83,7 @@ router.get('/dia-diem', async (_req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM dia_diem ORDER BY ten');
     res.json(rows.map((r) => ({ id: r.id, ten: r.ten, loai: r.loai, moTa: r.mo_ta, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
-      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null })));
+      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null, tenEn: r.ten_en ?? null, moTaEn: r.mo_ta_en ?? null })));
   } catch (e) { next(e); }
 });
 router.post('/dia-diem', async (req, res, next) => {
@@ -152,9 +160,11 @@ router.post('/luot-khach/hang-loat', async (req, res, next) => {
 router.get('/danh-gia', async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
-      `SELECT g.id, d.ten, g.sao, g.nhan_xet, g.ten_hien_thi, g.bi_an, g.updated_at
-         FROM danh_gia g JOIN dia_diem d ON d.id = g.dia_diem_id ORDER BY g.updated_at DESC LIMIT 100`);
-    res.json(rows.map((r) => ({ id: r.id, diaDiem: r.ten, sao: r.sao, nhanXet: r.nhan_xet, ten: r.ten_hien_thi, biAn: !!r.bi_an, luc: r.updated_at })));
+      `SELECT g.id, d.ten, g.sao, g.nhan_xet, g.ten_hien_thi, g.bi_an, g.updated_at, COUNT(b.ma_thiet_bi) AS so_bao
+         FROM danh_gia g JOIN dia_diem d ON d.id = g.dia_diem_id LEFT JOIN bao_danh_gia b ON b.danh_gia_id = g.id
+        GROUP BY g.id ORDER BY (g.bi_an = 0 AND COUNT(b.ma_thiet_bi) > 0) DESC, g.updated_at DESC LIMIT 200`);
+    /* Đánh giá bị người dùng báo sai phạm nổi lên đầu để cán bộ xem trước. */
+    res.json(rows.map((r) => ({ id: r.id, diaDiem: r.ten, sao: r.sao, nhanXet: r.nhan_xet, ten: r.ten_hien_thi, biAn: !!r.bi_an, luc: r.updated_at, soBao: Number(r.so_bao || 0) })));
   } catch (e) { next(e); }
 });
 /* Ẩn chứ không xoá — đánh giá bị ẩn vẫn còn để đối chiếu nếu có khiếu nại. */
@@ -170,16 +180,22 @@ router.patch('/danh-gia/:id/an', async (req, res, next) => {
 /* ------------------------------------------------------------ CÁN BỘ */
 router.get('/can-bo', async (_req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT id, full_name, username, role, is_active, failed_attempts, locked_until, last_login FROM staff ORDER BY id');
-    res.json(rows.map((r) => ({ id: r.id, hoTen: r.full_name, username: r.username, vaiTro: r.role, hoatDong: !!r.is_active,
-      soLanSai: Number(r.failed_attempts || 0), tamKhoaDen: r.locked_until, dangNhapCuoi: r.last_login })));
+    const [rows] = await pool.query('SELECT id, full_name, username, is_active, failed_attempts, locked_until, last_login, totp_bat FROM staff ORDER BY id');
+    res.json(rows.map((r) => ({ id: r.id, hoTen: r.full_name, username: r.username, hoatDong: !!r.is_active,
+      soLanSai: Number(r.failed_attempts || 0), tamKhoaDen: r.locked_until, dangNhapCuoi: r.last_login, haiLop: !!r.totp_bat })));
   } catch (e) { next(e); }
 });
 router.patch('/can-bo/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (id === Number(req.staff.id)) return res.status(400).json({ error: 'Không tự khoá tài khoản của chính mình.' });
-    if (req.body?.goTamKhoa) {
+    if (id === Number(req.staff.id)) return res.status(400).json({ error: 'Không tự đổi trạng thái tài khoản của chính mình — dùng mục "Tài khoản của tôi".' });
+    if (req.body?.tatHaiLop) {
+      /* Đồng nghiệp mất điện thoại: tắt hai lớp hộ để họ đăng nhập lại bằng mật khẩu,
+         thu hồi mọi phiên của họ, ghi nhật ký. Họ tự bật lại với điện thoại mới. */
+      await pool.query('UPDATE staff SET totp_bat = FALSE, totp_bi_mat = NULL, totp_buoc_cuoi = NULL WHERE id = ?', [id]);
+      await pool.query('DELETE FROM refresh_tokens WHERE staff_id = ?', [id]);
+      await ghiNhatKy(pool, req, { hanhDong: 'tat_hai_lop_ho', loaiDoiTuong: 'staff', doiTuongId: id });
+    } else if (req.body?.goTamKhoa) {
       await pool.query('UPDATE staff SET failed_attempts = 0, locked_until = NULL WHERE id = ?', [id]);
       await ghiNhatKy(pool, req, { hanhDong: 'go_tam_khoa', loaiDoiTuong: 'staff', doiTuongId: id });
     } else if (typeof req.body?.hoatDong === 'boolean') {

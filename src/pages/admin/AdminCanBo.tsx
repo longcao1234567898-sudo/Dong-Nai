@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { adminFetch } from '../../services/adminService';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { TieuDeQt, The, The_nho, nutVien } from '../../components/common/KhoiQt';
-interface CB { id: number; hoTen: string; username: string; vaiTro: string; hoatDong: boolean; soLanSai: number; tamKhoaDen: string | null; dangNhapCuoi: string | null }
+interface CB { id: number; hoTen: string; username: string; hoatDong: boolean; soLanSai: number; tamKhoaDen: string | null; dangNhapCuoi: string | null; haiLop: boolean }
 export default function AdminCanBo() {
   const qc = useQueryClient(); const { staff } = useAdminAuth();
   const { data: ds = [] } = useQuery({ queryKey: ['qt-can-bo'], queryFn: () => adminFetch<CB[]>('/can-bo') });
@@ -15,10 +15,11 @@ export default function AdminCanBo() {
       <tbody>{ds.map((c) => { const tamKhoa = c.tamKhoaDen && new Date(c.tamKhoaDen) > new Date(); return (
         <tr key={c.id} className="border-b border-slate-100 align-top dark:border-slate-800">
           <td className="space-x-1 py-2.5">{c.hoTen}<br /><code className="rounded bg-slate-100 px-1.5 text-xs dark:bg-slate-800">{c.username}</code>
-            {!c.hoatDong && <The_nho mau="vang">Đã khoá</The_nho>}{tamKhoa && <The_nho mau="vang">Tạm khoá do nhập sai</The_nho>}{c.soLanSai > 0 && <The_nho mau="xam">Sai {c.soLanSai} lần</The_nho>}</td>
+            {!c.hoatDong && <The_nho mau="vang">Đã khoá</The_nho>}{tamKhoa && <The_nho mau="vang">Tạm khoá do nhập sai</The_nho>}{c.soLanSai > 0 && <The_nho mau="xam">Sai {c.soLanSai} lần</The_nho>}{c.haiLop && <The_nho mau="xanh">Hai lớp</The_nho>}</td>
           <td>{c.dangNhapCuoi ? new Date(c.dangNhapCuoi).toLocaleString('vi-VN') : 'Chưa đăng nhập'}</td>
           <td className="whitespace-nowrap text-right">{c.id === staff?.id ? <small className="text-slate-400">Tài khoản của bạn</small> : <>
             <button type="button" className={nutVien} onClick={() => doi.mutate({ id: c.id, body: { hoatDong: !c.hoatDong } })}>{c.hoatDong ? 'Khoá' : 'Mở khoá'}</button>{' '}
-            {(c.soLanSai > 0 || tamKhoa) && <button type="button" className={nutVien} onClick={() => doi.mutate({ id: c.id, body: { goTamKhoa: true } })}>Gỡ tạm khoá</button>}</>}</td></tr>); })}</tbody></table></div></The>
+            {(c.soLanSai > 0 || tamKhoa) && <button type="button" className={nutVien} onClick={() => doi.mutate({ id: c.id, body: { goTamKhoa: true } })}>Gỡ tạm khoá</button>}{' '}
+            {c.haiLop && <button type="button" className={nutVien} onClick={() => window.confirm(`Tắt xác thực hai lớp của ${c.hoTen}? Chỉ làm khi người đó mất điện thoại. Việc này được ghi nhật ký.`) && doi.mutate({ id: c.id, body: { tatHaiLop: true } })}>Tắt hai lớp</button>}</>}</td></tr>); })}</tbody></table></div></The>
   </>);
 }

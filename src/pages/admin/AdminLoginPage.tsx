@@ -1,7 +1,7 @@
 /** Trang đăng nhập khu vực cán bộ */
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, User, Loader2 } from 'lucide-react';
+import { ShieldCheck, Lock, User, Loader2, Smartphone } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import Turnstile, { captchaEnabled } from '../../components/common/Turnstile';
 import { LoginError } from '../../services/adminService';
@@ -30,6 +30,10 @@ export default function AdminLoginPage() {
      React gỡ ô cũ dựng ô mới, người dùng tích lại lấy mã mới.
      ========================================================================== */
   const [canCaptcha, setCanCaptcha] = useState(false);
+  /* Xác thực hai lớp: mật khẩu đúng thì máy chủ báo canOtp -> hiện ô mã 6 số,
+     giữ nguyên tên và mật khẩu đã gõ, gửi lại kèm mã. */
+  const [canOtp, setCanOtp] = useState(false);
+  const [maOtp, setMaOtp] = useState('');
   const [captchaToken, setCaptchaToken] = useState('');
   const [khoaOXacMinh, setKhoaOXacMinh] = useState(0);
 
@@ -40,6 +44,10 @@ export default function AdminLoginPage() {
     }
     /* Chặn ngay tại giao diện cho rõ ràng, khỏi phải đi một vòng lên máy chủ
        rồi quay về với đúng câu nhắc mà người dùng đang nhìn thấy sẵn. */
+    if (canOtp && !/^\d{6}$/.test(maOtp.replace(/\s/g, ''))) {
+      setError('Nhập đủ 6 chữ số đang hiện trên ứng dụng xác thực.');
+      return;
+    }
     if (canCaptcha && captchaEnabled && !captchaToken) {
       setError('Bà con vui lòng tích vào ô xác minh "Tôi không phải là người máy" bên dưới.');
       return;
@@ -47,11 +55,14 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
     try {
-      await login(username.trim(), password, captchaToken || undefined);
+      await login(username.trim(), password, captchaToken || undefined, canOtp ? maOtp.replace(/\s/g, '') : undefined);
       navigate('/quan-tri');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Đăng nhập thất bại.');
+      /* Lần đầu máy chủ hỏi mã 6 số không phải lỗi — ô nhập mã đã tự giải thích, không hiện khung đỏ. */
+      const hoiMaLanDau = e instanceof LoginError && e.canOtp && !canOtp;
+      setError(hoiMaLanDau ? '' : e instanceof Error ? e.message : 'Đăng nhập thất bại.');
       if (e instanceof LoginError && e.canCaptcha) setCanCaptcha(true);
+      if (e instanceof LoginError && e.canOtp) { setCanOtp(true); setMaOtp(''); }
       /* Mã xác minh đã tiêu — dựng ô mới cho lần thử sau */
       setCaptchaToken('');
       setKhoaOXacMinh((n) => n + 1);
@@ -118,6 +129,24 @@ export default function AdminLoginPage() {
             autoComplete="current-password"
           />
         </div>
+
+        {canOtp && (<>
+          <label className="mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-300">Mã xác thực 6 số</label>
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-slate-300 px-3 focus-within:border-primary-500 dark:border-slate-700">
+            <Smartphone className="h-4 w-4 text-slate-400" />
+            <input
+              className="w-full bg-transparent py-2.5 text-lg tracking-[0.4em] outline-none"
+              value={maOtp}
+              onChange={(e) => setMaOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              autoFocus
+            />
+          </div>
+          <p className="mb-6 text-xs text-slate-500">Mở ứng dụng xác thực (Google Authenticator, Microsoft Authenticator…) trên điện thoại, nhập mã đang hiện. Mất điện thoại thì nhờ đồng nghiệp tắt hai lớp hộ ở mục Tài khoản cán bộ.</p>
+        </>)}
 
         {canCaptcha && (
           <div className="mb-6">

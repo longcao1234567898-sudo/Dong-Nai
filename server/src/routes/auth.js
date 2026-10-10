@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { pool } from '../db.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
+import { kiemMa } from '../lib/totp.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
   signAccessToken, generateRefreshToken, hashRefreshToken,
@@ -26,10 +27,15 @@ const router = Router();
    dạng và luôn khớp chi phí (cost) với hash thật trong database. */
 export const DUMMY_HASH = bcrypt.hashSync('khong-bao-gio-trung-mat-khau-that', 12);
 
-// Chống dò mật khẩu: tối đa 5 lần đăng nhập / 15 phút / IP
+/* Chống dò mật khẩu: tối đa 5 lần đăng nhập SAI / 15 phút / IP.
+   Chỉ đếm lần sai (skipSuccessfulRequests): trước đây đếm cả lần đúng, nên
+   một trụ sở xã nhiều cán bộ dùng chung một mạng (chung địa chỉ IP) bị khoá
+   cửa sau 5 người đăng nhập. Kẻ dò mật khẩu thì toàn đăng nhập sai — vẫn bị
+   chặn y như cũ. */
 const loginLimiter = rateLimit({
   windowMs: 15 * 60_000,
   max: 5,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ 15 phút.' },
@@ -98,7 +104,8 @@ router.post('/login', loginLimiter, async (req, res) => {
     try {
       const [rows] = await pool.query(
         `SELECT id, full_name, username, password_hash, role, is_active,
-                COALESCE(failed_attempts, 0) AS failed_attempts, locked_until
+                COALESCE(failed_attempts, 0) AS failed_attempts, locked_until,
+                totp_bat, totp_bi_mat, totp_buoc_cuoi
          FROM staff WHERE username = ?`,
         [String(username).trim()]
       );
@@ -155,6 +162,25 @@ router.post('/login', loginLimiter, async (req, res) => {
     if (!staff.is_active) {
       await ghiThatBai(staff.id, username, ip);
       return res.status(403).json({ error: 'Tài khoản đã bị khoá.' });
+    }
+
+    /* XÁC THỰC HAI LỚP — chỉ với tài khoản đã tự bật.
+       Mật khẩu đúng mà chưa gửi mã thì báo giao diện hiện ô nhập mã (canOtp),
+       KHÔNG tính là lần sai. Mã sai thì tính như mật khẩu sai: tăng bộ đếm,
+       đủ 3 lần bắt qua ô xác minh, cộng với giới hạn 5 lần/15 phút theo IP —
+       dò hết một triệu mã 6 số là không thể. */
+    if (staff.totp_bat) {
+      const ma = String(req.body?.maOtp || '').replace(/\s/g, '');
+      if (!ma) return res.status(401).json({ error: 'Nhập mã 6 số trên ứng dụng xác thực của điện thoại.', canOtp: true });
+      const kq = kiemMa(staff.totp_bi_mat, ma, { buocCuoi: staff.totp_buoc_cuoi });
+      if (!kq.ok) {
+        await ghiThatBai(staff.id, username, ip);
+        const soLanSai = soLanSaiHienTai + 1;
+        await pool.query('UPDATE staff SET failed_attempts = ? WHERE id = ?', [soLanSai, staff.id]);
+        return res.status(401).json({ error: 'Mã xác thực không đúng hoặc đã dùng rồi. Chờ mã mới trên điện thoại rồi nhập lại.',
+          canOtp: true, canCaptcha: soLanSai >= SO_LAN_SAI_BAT_CAPTCHA });
+      }
+      await pool.query('UPDATE staff SET totp_buoc_cuoi = ? WHERE id = ?', [kq.buoc, staff.id]);
     }
 
     // Đăng nhập đúng -> xoá bộ đếm sai

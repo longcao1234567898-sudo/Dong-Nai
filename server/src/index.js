@@ -56,7 +56,9 @@ app.use(errorHandler);
 /* Kiểm cấu trúc cơ sở dữ liệu lúc khởi động: mã mới chạy trên cơ sở dữ liệu
    cũ (quên chạy lại tệp SQL) thì báo rõ ngay, thay vì để từng trang báo lỗi
    khó hiểu. Chỉ cảnh báo, không chặn khởi động. */
-const CAN_CO = ['xa_phuong', 'ky_bao_cao', 'nop_bao_cao', 'khong_phat_sinh', 'lich_su_sua', 'bc_khach', 'bc_du_an', 'bc_luu_tru'];
+const CAN_CO = ['xa_phuong', 'ky_bao_cao', 'nop_bao_cao', 'khong_phat_sinh', 'lich_su_sua', 'bc_khach', 'bc_du_an', 'bc_luu_tru',
+  'bc_vu_viec', 'bc_phoi_hop', 'bc_van_dong', 'bc_luc_luong', 'bc_quan_so', 'bc_dan_cu', 'bc_vi_pham',
+  'lich_trinh', 'lich_trinh_diem', 'anh_dia_diem', 'phan_anh', 'tin_tuc', 'bao_danh_gia'];
 async function kiemCauTruc() {
   try {
     const [rows] = await pool.query('SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()');

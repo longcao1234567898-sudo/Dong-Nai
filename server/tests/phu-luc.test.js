@@ -199,3 +199,37 @@ test('bảng không tồn tại -> 404; tên bảng không bao giờ lấy từ 
   assert.equal((await goiApi('/bang/khach%3B%20DROP%20TABLE%20staff')).status, 404);
   assert.ok(!goi.some((g) => /DROP/i.test(g.sql)));
 });
+
+/* ======================= GIAI ĐOẠN 2 ======================= */
+test('bảng 7: nhóm nào đã nhập thì cộng lại phải bằng số lượng tổ; nhóm bỏ trống thì bỏ qua', () => {
+  const b = layBang('luc-luong');
+  assert.ok(docDong(b, { ten_to: 'An ninh', so_luong: 8, cv_pho_truong: 1, cv_to_truong: 1, cv_to_pho: 2, cv_can_bo: 4, td_dai_hoc: 8 }).du);
+  assert.match(docDong(b, { ten_to: 'X', so_luong: 5, cv_pho_truong: 1, cv_can_bo: 1 }).loi, /Chức vụ cộng lại được 2/);
+  assert.match(docDong(b, { ten_to: 'X', so_luong: 5, tuoi_duoi_30: 9 }).loi, /Độ tuổi/);
+});
+
+test('bảng 10 tự tổng hợp từ bảng 9: chỉ loại xuất nhập cảnh, lọc đúng khoảng ngày', async () => {
+  let cau;
+  const poolGia = { query: async (sql, ts) => { cau = { sql, ts }; return [[{ xa_phuong_id: 1, nam: 2026, quoc_tich: 'Nga', so_vi_pham: '15' }]]; } };
+  const ds = await layBang('vi-pham-quoc-tich').tinh(poolGia, { tu: '2026-01-01', den: '2026-06-30' });
+  assert.match(cau.sql, /loai = 'xuat-nhap-canh'/);
+  assert.deepEqual(cau.ts, ['2026-01-01', '2026-06-30']);
+  assert.equal(ds[0].so_vi_pham, 15);
+});
+
+test('xuất bảng 7: cột "Tổng quân số" gộp ô theo xã, có trong dòng tổng cộng', () => {
+  const b = dungBang(layBang('luc-luong'), { dsXa: [{ id: 1, ten: 'A', loai: 'xa' }, { id: 2, ten: 'B', loai: 'xa' }],
+    dong: [{ xa_phuong_id: 1, ky_id: 5, ten_to: 'An ninh', so_luong: 8 }], kyDs: [{ id: 5, ten: 'K' }], theoXa: { nhan: 'Tổng quân số', gt: new Map([[1, 58], [2, 12]]) } });
+  assert.equal(b.soGop, 2);
+  assert.deepEqual(b.nhom[0].gop, ['Xã A', 58]);
+  assert.equal(b.tong[0].o[0], 70);
+  assert.ok(b.cot.some((c) => c.nhom === 'Trình độ'), 'tiêu đề hai tầng theo nhóm');
+});
+
+test('cấu hình gửi giao diện không lộ hàm và tên bảng trong cơ sở dữ liệu', async () => {
+  const { BANG, cauHinhGiaoDien } = await import('../src/lib/phu-luc.js');
+  for (const b of BANG) {
+    const c = JSON.parse(JSON.stringify(cauHinhGiaoDien(b)));
+    assert.equal(c.bangDb, undefined); assert.equal(c.tinh, undefined); assert.equal(c.kiemTra, undefined);
+  }
+});
