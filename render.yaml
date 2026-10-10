@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: du-lich-dong-nai-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install --omit=dev
+    startCommand: node src/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - { key: DB_HOST, sync: false }
+      - { key: DB_PORT, sync: false }
+      - { key: DB_USER, sync: false }
+      - { key: DB_PASSWORD, sync: false }
+      - { key: DB_NAME, value: du_lich_dong_nai }
+      - { key: DB_SSL, sync: false }
+      - { key: JWT_SECRET, sync: false }
+      - { key: HASH_PEPPER, sync: false }
+      - { key: CORS_ORIGIN, sync: false }
+      - { key: TURNSTILE_SECRET_KEY, sync: false }

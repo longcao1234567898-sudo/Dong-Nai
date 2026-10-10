@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+[build.environment]
+  NODE_VERSION = "20"
+# Mọi đường dẫn trả về index.html để định tuyến phía giao diện chạy được khi tải lại trang
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

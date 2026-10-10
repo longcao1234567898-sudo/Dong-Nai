@@ -1,0 +1,13 @@
+DAY DU AN LEN MOT KHO GITHUB MOI
+
+1. Tren GitHub, bam New repository, dat ten du-lich-dong-nai, KHONG tick them README.
+2. Mo cua so lenh trong thu muc du-lich-dong-nai vua giai nen, chay lan luot:
+
+git init
+git add .
+git commit -m "Khoi tao du an Du lich Dong Nai" -m "Trang quang ba du lich thanh pho Dong Nai: ban do diem den tren nen OpenStreetMap, danh gia cua du khach theo 4 tieu chi, thong ke luot khach bang recharts, va khu quan tri cho can bo. Cung kien truc voi Diem Cham An Ninh: React + TypeScript + Vite, Node.js + Express, MySQL 8. Phan dang nhap can bo dung lai nguyen ban da kiem chung: bcrypt, JWT, dem sai theo tai khoan, sai 3 lan bat Cloudflare Turnstile, gioi han 5 lan trong 15 phut, khoa tai khoan co hieu luc ngay. Danh gia chong pha hoai: moi thiet bi mot bai cho moi diem, 10 lan moi gio moi IP, ma thiet bi va IP chi luu dang bam. 15 bai kiem thu may chu dat, TypeScript 0 loi."
+git branch -M main
+git remote add origin https://github.com/<ten-tai-khoan>/du-lich-dong-nai.git
+git push -u origin main
+
+3. Lam tiep theo README.md: chay SQL, tao khoa, tao tai khoan can bo, roi noi Render va Netlify.
