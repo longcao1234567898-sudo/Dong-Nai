@@ -4,15 +4,17 @@ import toast from 'react-hot-toast';
 import { adminFetch } from '../../services/adminService';
 import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../components/common/KhoiQt';
 import { LOAI } from '../../utils/hangSo';
+import { useCauHinh } from '../../utils/phuLuc';
 import type { Loai } from '../../utils/kieu';
 
 interface DD { id: string; ten: string; loai: Loai; moTa: string | null; diaChi: string | null; lat: number; lng: number; sdt: string | null; web: string | null;
-  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean }
-const TRONG = { ten: '', loai: 'thien-nhien' as Loai, moTa: '', diaChi: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
+  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null }
+const TRONG = { ten: '', loai: 'thien-nhien' as Loai, moTa: '', diaChi: '', xaPhuongId: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
 
 export default function AdminDiaDiem() {
   const qc = useQueryClient();
   const { data: ds = [] } = useQuery({ queryKey: ['qt-dia-diem'], queryFn: () => adminFetch<DD[]>('/dia-diem') });
+  const { data: ch } = useCauHinh();
   const [f, setF] = useState<typeof TRONG>(TRONG); const [suaId, setSuaId] = useState<string | null>(null); const [loi, setLoi] = useState('');
   const lamMoi = () => { qc.invalidateQueries({ queryKey: ['qt-dia-diem'] }); qc.invalidateQueries({ queryKey: ['dia-diem'] }); };
   const luu = useMutation({
@@ -22,7 +24,7 @@ export default function AdminDiaDiem() {
   });
   const anHien = useMutation({ mutationFn: (p: DD) => adminFetch(`/dia-diem/${p.id}/hien`, { method: 'PATCH', body: JSON.stringify({ hien: !p.hien }) }), onSuccess: lamMoi,
     onError: (e: Error) => toast.error(e.message) });
-  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng) });
+  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '' });
     window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const dat = (k: keyof typeof TRONG) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value }));
@@ -36,7 +38,10 @@ export default function AdminDiaDiem() {
           <label className={nhan}>Loại<select className={o} value={f.loai} onChange={dat('loai')}>{(Object.keys(LOAI) as Loai[]).map((k) => <option key={k} value={k}>{LOAI[k].ten}</option>)}</select></label>
           <label className={nhan}>Giờ mở cửa<input className={o} value={f.gioMo} onChange={dat('gioMo')} placeholder="7:00 – 17:00" /></label></div>
         <label className={nhan}>Giới thiệu<textarea className={o} rows={3} value={f.moTa} onChange={dat('moTa')} maxLength={1500} /></label>
-        <label className={nhan}>Địa chỉ<input className={o} value={f.diaChi} onChange={dat('diaChi')} maxLength={200} /></label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className={nhan}>Địa chỉ<input className={o} value={f.diaChi} onChange={dat('diaChi')} maxLength={200} /></label>
+          <label className={nhan}>Xã/phường<select className={o} value={f.xaPhuongId} onChange={dat('xaPhuongId')}>
+            <option value="">— Chưa chọn —</option>{ch?.xaPhuong.filter((x) => x.hien || String(x.id) === f.xaPhuongId).map((x) => <option key={x.id} value={x.id}>{x.ten}</option>)}</select></label></div>
         <div className="grid grid-cols-2 gap-3">
           <label className={nhan}>Vĩ độ<input className={o} inputMode="decimal" value={f.lat} onChange={dat('lat')} /></label>
           <label className={nhan}>Kinh độ<input className={o} inputMode="decimal" value={f.lng} onChange={dat('lng')} /></label>
@@ -52,7 +57,7 @@ export default function AdminDiaDiem() {
         <div className="overflow-x-auto"><table className="w-full text-[13.5px]"><thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800"><th className="py-2">Tên</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody>{ds.map((p) => <tr key={p.id} className="border-b border-slate-100 align-top dark:border-slate-800">
             <td className="py-2.5 pr-2">{p.ten}<br /><code className="rounded bg-slate-100 px-1.5 text-xs dark:bg-slate-800">{p.id}</code></td>
-            <td className="space-x-1 py-2.5">{p.hien ? <The_nho mau="xanh">Đang hiện</The_nho> : <The_nho mau="xam">Đang ẩn</The_nho>}{!p.daKiemTra && <The_nho mau="vang">Chờ kiểm tra</The_nho>}</td>
+            <td className="space-x-1 py-2.5">{p.hien ? <The_nho mau="xanh">Đang hiện</The_nho> : <The_nho mau="xam">Đang ẩn</The_nho>}{!p.daKiemTra && <The_nho mau="vang">Chờ kiểm tra</The_nho>}{!p.xaPhuongId && <The_nho mau="vang">Chưa gắn xã</The_nho>}</td>
             <td className="whitespace-nowrap py-2.5 text-right"><button type="button" className={nutVien} onClick={() => sua(p)}>Sửa</button>{' '}
               <button type="button" className={nutVien} onClick={() => anHien.mutate(p)}>{p.hien ? 'Ẩn' : 'Hiện'}</button></td></tr>)}</tbody></table></div>
       </The>

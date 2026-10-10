@@ -12,7 +12,16 @@
 --
 -- CHẠY: HeidiSQL -> dán toàn bộ -> F9. Tạo tài khoản cán bộ bằng lệnh
 --       node scripts-them-can-bo.js (xem README), KHÔNG có tài khoản mặc định.
+--
+-- CHẠY LẠI ĐƯỢC NHIỀU LẦN: mọi lệnh đều "nếu chưa có thì tạo", nên khi kho mã
+-- có phiên bản mới, cứ dán lại toàn bộ tệp này rồi F9 là cơ sở dữ liệu được
+-- nâng cấp tại chỗ — KHÔNG mất số liệu đã nhập.
 -- ============================================================================
+
+/* Khai bộ mã ngay đầu tệp: HeidiSQL tự dùng utf8mb4, nhưng nạp bằng công cụ
+   dòng lệnh (mysql < tệp.sql) thì mặc định latin1 -> chữ tiếng Việt vỡ thành
+   "thÃ¡ng" ngay trong cơ sở dữ liệu. */
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE DATABASE IF NOT EXISTS du_lich_dong_nai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE du_lich_dong_nai;
@@ -143,4 +152,184 @@ INSERT IGNORE INTO dia_diem (id, ten, loai, mo_ta, dia_chi, lat, lng, noi_bat, h
   ('soc-bom-bo', 'Sóc Bom Bo', 'di-tich', 'Sóc của đồng bào S\'tiêng, gắn với câu chuyện giã gạo nuôi quân thời kháng chiến được kể trong bài hát "Tiếng chày trên sóc Bom Bo". Có khu bảo tồn văn hoá S\'tiêng.', 'Xã Bom Bo, Thành phố Đồng Nai', 11.83879, 107.19418, 0, 1, 0, 'Toạ độ: OpenStreetMap. Mô tả: tổng hợp, chờ cán bộ xác nhận.'),
   ('ho-suoi-lam', 'Hồ Suối Lam', 'thien-nhien', 'Hồ nước giữa đồi rừng, điểm dã ngoại và thư giãn cuối tuần của người dân địa phương.', 'Xã Thuận Lợi, Thành phố Đồng Nai', 11.60501, 106.88466, 0, 1, 0, 'Toạ độ: OpenStreetMap. Mô tả: tổng hợp, chờ cán bộ xác nhận.');
 
-SELECT COUNT(*) AS so_dia_diem FROM dia_diem;
+
+-- ============================================================================
+-- GIAI ĐOẠN 1 — PHỤ LỤC THỐNG KÊ: XÃ/PHƯỜNG, KỲ BÁO CÁO, NỘP VÀ DUYỆT
+-- ============================================================================
+-- Phụ lục thống kê báo cáo theo XÃ/PHƯỜNG và theo KỲ (cả năm, 6 tháng...),
+-- không theo từng địa điểm. MỘT QUYỀN DUY NHẤT: cán bộ nào có tài khoản cũng
+-- nhập, sửa, chốt được số liệu của mọi xã/phường — mọi thao tác đều ghi nhật
+-- ký và lịch sử sửa nên vẫn truy được ai làm gì.
+--
+-- Thêm cột vào bảng đã có bằng "câu lệnh chuẩn bị sẵn" có kiểm tra trước:
+-- MySQL 8 không có ADD COLUMN IF NOT EXISTS, làm thế này thì chạy lại tệp bao
+-- nhiêu lần cũng không báo lỗi trùng cột.
+
+CREATE TABLE IF NOT EXISTS xa_phuong (
+  id          INT PRIMARY KEY AUTO_INCREMENT,
+  ten         VARCHAR(80) NOT NULL COMMENT 'Tên không kèm chữ Xã/Phường, ví dụ: Trấn Biên',
+  loai        ENUM('xa','phuong','dac-khu') NOT NULL DEFAULT 'xa',
+  hien        BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Thôi theo dõi thì ẩn chứ không xoá — số liệu cũ vẫn còn',
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ten (loai, ten)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dia_diem' AND COLUMN_NAME = 'xa_phuong_id');
+SET @lenh := IF(@co = 0, 'ALTER TABLE dia_diem ADD COLUMN xa_phuong_id INT NULL AFTER dia_chi, ADD CONSTRAINT fk_dia_diem_xa FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE SET NULL', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
+/* routes/auth.js ghi tên đăng nhập đã thử vào cột này mỗi lần đăng nhập sai,
+   nhưng bảng chưa từng có cột -> lệnh ghi lỗi và bị bỏ qua, nhật ký mất hết
+   dấu vết dò mật khẩu. Thêm cột để ghi được. */
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_activity_logs' AND COLUMN_NAME = 'attempted_username');
+SET @lenh := IF(@co = 0, 'ALTER TABLE staff_activity_logs ADD COLUMN attempted_username VARCHAR(50) NULL AFTER details', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
+/* Chỉ nạp những xã/phường đã có địa điểm du lịch. Danh sách đầy đủ các đơn vị
+   hành chính của thành phố, cán bộ tự thêm trên web (mục Xã/phường) theo văn
+   bản sắp xếp đơn vị hành chính chính thức — không đoán ở đây. */
+INSERT IGNORE INTO xa_phuong (ten, loai) VALUES
+  ('Trấn Biên', 'phuong'), ('Tân Phú', 'phuong'), ('An Viễn', 'xa'), ('Đại Phước', 'xa'), ('La Ngà', 'xa'),
+  ('Đak Lua', 'xa'), ('Bù Gia Mập', 'xa'), ('Bom Bo', 'xa'), ('Thuận Lợi', 'xa');
+
+/* Gắn địa điểm đã có với xã/phường theo địa chỉ. Núi Bà Rá, núi Chứa Chan, cù
+   lao Phố chưa ghi rõ xã/phường nên để trống chờ cán bộ chọn. */
+UPDATE dia_diem d JOIN xa_phuong x ON
+     (x.loai = 'phuong' AND x.ten = 'Trấn Biên' AND d.id IN ('van-mieu-tran-bien', 'den-tho-nguyen-huu-canh', 'khu-du-lich-buu-long'))
+  OR (x.loai = 'phuong' AND x.ten = 'Tân Phú' AND d.id = 'khu-du-lich-suoi-mo')
+  OR (x.loai = 'xa' AND x.ten = 'An Viễn' AND d.id = 'thac-giang-dien')
+  OR (x.loai = 'xa' AND x.ten = 'Đại Phước' AND d.id = 'khu-du-lich-bo-cap-vang')
+  OR (x.loai = 'xa' AND x.ten = 'La Ngà' AND d.id = 'ho-tri-an')
+  OR (x.loai = 'xa' AND x.ten = 'Đak Lua' AND d.id = 'vuon-quoc-gia-cat-tien')
+  OR (x.loai = 'xa' AND x.ten = 'Bù Gia Mập' AND d.id IN ('thac-dak-mai', 'vuon-quoc-gia-bu-gia-map'))
+  OR (x.loai = 'xa' AND x.ten = 'Bom Bo' AND d.id = 'soc-bom-bo')
+  OR (x.loai = 'xa' AND x.ten = 'Thuận Lợi' AND d.id = 'ho-suoi-lam')
+SET d.xa_phuong_id = x.id WHERE d.xa_phuong_id IS NULL;
+
+CREATE TABLE IF NOT EXISTS ky_bao_cao (
+  id          INT PRIMARY KEY AUTO_INCREMENT,
+  ten         VARCHAR(80) NOT NULL COMMENT 'Ví dụ: 6 tháng đầu năm 2026',
+  tu_ngay     DATE NOT NULL,
+  den_ngay    DATE NOT NULL,
+  han_nop     DATE NULL,
+  khoa        BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Đã khoá thì không ai sửa được số liệu của kỳ',
+  created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_khoang (tu_ngay, den_ngay),
+  CHECK (den_ngay >= tu_ngay)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO ky_bao_cao (ten, tu_ngay, den_ngay) VALUES
+  ('Năm 2025', '2025-01-01', '2025-12-31'),
+  ('6 tháng đầu năm 2026', '2026-01-01', '2026-06-30');
+
+/* Mỗi xã/phường có MỘT báo cáo cho mỗi kỳ: dang-nhap -> da-chot.
+   Đã chốt thì không ai sửa được số liệu kỳ đó của xã, muốn sửa phải "mở lại"
+   và ghi lý do — để bảng theo dõi biết chắc xã nào đã xong. */
+CREATE TABLE IF NOT EXISTS nop_bao_cao (
+  ky_id          INT NOT NULL,
+  xa_phuong_id   INT NOT NULL,
+  trang_thai     ENUM('dang-nhap','da-chot') NOT NULL DEFAULT 'dang-nhap',
+  nguoi_chot     INT NULL,
+  chot_luc       DATETIME NULL,
+  ly_do_mo_lai   VARCHAR(500) NULL COMMENT 'Lý do lần mở lại gần nhất',
+  updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (ky_id, xa_phuong_id),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_chot) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/* "Kỳ này không phát sinh" — phân biệt rõ với "chưa nhập". Bản phụ lục giấy
+   dùng lẫn "0", "Không" và ô trống cho cùng một ý, đọc không biết xã nào đã
+   báo cáo, xã nào bỏ sót. */
+CREATE TABLE IF NOT EXISTS khong_phat_sinh (
+  ky_id           INT NOT NULL,
+  xa_phuong_id    INT NOT NULL,
+  bang            VARCHAR(40) NOT NULL,
+  nguoi_danh_dau  INT NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (ky_id, xa_phuong_id, bang),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_danh_dau) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/* Lịch sử sửa của mọi bảng phụ lục: ai, lúc nào, giá trị cũ, giá trị mới.
+   Xoá cũng chỉ đánh dấu (cột xoa_luc ở từng bảng), khôi phục được. */
+CREATE TABLE IF NOT EXISTS lich_su_sua (
+  id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+  bang          VARCHAR(40) NOT NULL,
+  ban_ghi_id    INT NOT NULL,
+  xa_phuong_id  INT NULL,
+  ky_id         INT NULL,
+  staff_id      INT NULL,
+  hanh_dong     ENUM('them','sua','xoa','khoi-phuc','nhap-excel') NOT NULL,
+  cu            JSON NULL,
+  moi           JSON NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ban_ghi (bang, ban_ghi_id),
+  FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 1: HIỆN TRẠNG KHÁCH DU LỊCH
+-- Tổng số khách KHÔNG lưu: luôn tính bằng quốc tế + nội địa, nên không bao
+-- giờ lệch (bản phụ lục giấy đã có dòng cộng sai).
+CREATE TABLE IF NOT EXISTS bc_khach (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  ky_id         INT NOT NULL,
+  xa_phuong_id  INT NOT NULL,
+  quoc_te       INT UNSIGNED NOT NULL DEFAULT 0,
+  noi_dia       INT UNSIGNED NOT NULL DEFAULT 0,
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ky_xa (ky_id, xa_phuong_id),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 2: DỰ ÁN ĐẦU TƯ DU LỊCH
+-- Vốn lưu bằng SỐ, đơn vị tỷ đồng — bản giấy ghi lẫn "40 tỉ", "1.854,4 tỷ
+-- đồng", "359.9 tỷ" nên không cộng được tổng vốn.
+CREATE TABLE IF NOT EXISTS bc_du_an (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  xa_phuong_id  INT NOT NULL,
+  ten           VARCHAR(255) NOT NULL,
+  dia_chi       VARCHAR(255) NULL,
+  nha_dau_tu    VARCHAR(255) NULL,
+  quoc_gia      VARCHAR(60) NULL,
+  von_ty        DECIMAL(15,3) NULL COMMENT 'Tỷ đồng',
+  dien_tich_ha  DECIMAL(12,4) NULL,
+  trang_thai    VARCHAR(30) NULL,
+  ghi_chu       VARCHAR(500) NULL,
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_xa (xa_phuong_id, xoa_luc),
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id),
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 3: RESORT, KHU NGHỈ DƯỠNG
+CREATE TABLE IF NOT EXISTS bc_luu_tru (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  xa_phuong_id  INT NOT NULL,
+  ten           VARCHAR(255) NOT NULL,
+  dia_chi       VARCHAR(255) NULL,
+  chu_co_so     VARCHAR(120) NULL COMMENT 'Không bao giờ hiện cho người dân',
+  hang_sao      TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 = chưa xếp hạng',
+  cong_khai     BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Hiện tên, địa chỉ, hạng sao trên trang người dân',
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_xa (xa_phuong_id, xoa_luc),
+  CHECK (hang_sao <= 5),
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id),
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

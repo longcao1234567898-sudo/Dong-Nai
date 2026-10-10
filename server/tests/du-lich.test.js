@@ -107,10 +107,10 @@ test('tài khoản đã khoá dùng vé còn hạn -> 401 ngay', async () => {
   assert.equal(r.status, 401);
 });
 
-test('cán bộ (handler) không được thêm địa điểm -> 403', async () => {
+test('một quyền duy nhất: tài khoản nào đăng nhập cũng thêm được địa điểm', async () => {
   xoaDemTrangThai();
-  const r = await goiApi('/api/quan-tri/dia-diem', { method: 'POST', token: ve(3, 'handler'), body: { ten: 'X', loai: 'di-tich', lat: 11, lng: 107 } });
-  assert.equal(r.status, 403);
+  const r = await goiApi('/api/quan-tri/dia-diem', { method: 'POST', token: ve(3, 'handler'), body: { ten: 'Thác X', loai: 'thien-nhien', lat: 11, lng: 107 } });
+  assert.equal(r.status, 201);
 });
 
 test('đảo ngược vĩ độ và kinh độ -> 400 kèm lời nhắc', async () => {
@@ -130,9 +130,9 @@ test('nhập lượt khách sai định dạng tháng -> 400', async () => {
   assert.equal(r.status, 400);
 });
 
-test('chỉ quản trị viên xem được danh sách cán bộ', async () => {
-  assert.equal((await goiApi('/api/quan-tri/can-bo', { token: ve(2, 'manager') })).status, 403);
-  assert.equal((await goiApi('/api/quan-tri/can-bo', { token: ve(1, 'admin') })).status, 200);
+test('một quyền duy nhất: mọi tài khoản xem được danh sách cán bộ, chưa đăng nhập thì không', async () => {
+  assert.equal((await goiApi('/api/quan-tri/can-bo', { token: ve(3, 'handler') })).status, 200);
+  assert.equal((await goiApi('/api/quan-tri/can-bo')).status, 401);
 });
 
 test('không tự khoá được tài khoản của chính mình', async () => {

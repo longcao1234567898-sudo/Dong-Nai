@@ -18,6 +18,10 @@ const AdminLuotKhach = lazy(() => import('./pages/admin/AdminLuotKhach'));
 const AdminDanhGia = lazy(() => import('./pages/admin/AdminDanhGia'));
 const AdminCanBo = lazy(() => import('./pages/admin/AdminCanBo'));
 const AdminNhatKy = lazy(() => import('./pages/admin/AdminNhatKy'));
+const AdminBaoCao = lazy(() => import('./pages/admin/AdminBaoCao'));
+const AdminBang = lazy(() => import('./pages/admin/AdminBang'));
+const AdminThongKe = lazy(() => import('./pages/admin/AdminThongKe'));
+const AdminXaPhuong = lazy(() => import('./pages/admin/AdminXaPhuong'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } } });
 
@@ -30,11 +34,6 @@ function CanDangNhap() {
   const { staff, loading } = useAdminAuth();
   if (loading) return <div className="py-20 text-center text-slate-500">Đang kiểm tra phiên đăng nhập...</div>;
   return staff ? <AdminLayout /> : <Navigate to="/dang-nhap" replace />;
-}
-/** Chặn theo vai trò ngay ở giao diện — máy chủ vẫn kiểm lại từng yêu cầu. */
-function ChoVaiTro({ vt, children }: { vt: string[]; children: JSX.Element }) {
-  const { staff } = useAdminAuth();
-  return staff && vt.includes(staff.role) ? children : <Navigate to="/quan-tri" replace />;
 }
 
 export default function App() {
@@ -50,10 +49,14 @@ export default function App() {
               <Route path="/quan-tri" element={<CanDangNhap />}>
                 <Route index element={<AdminTongQuan />} />
                 <Route path="luot-khach" element={<AdminLuotKhach />} />
-                <Route path="dia-diem" element={<ChoVaiTro vt={['admin', 'manager']}><AdminDiaDiem /></ChoVaiTro>} />
-                <Route path="danh-gia" element={<ChoVaiTro vt={['admin', 'manager']}><AdminDanhGia /></ChoVaiTro>} />
-                <Route path="nhat-ky" element={<ChoVaiTro vt={['admin', 'manager']}><AdminNhatKy /></ChoVaiTro>} />
-                <Route path="can-bo" element={<ChoVaiTro vt={['admin']}><AdminCanBo /></ChoVaiTro>} />
+                <Route path="dia-diem" element={<AdminDiaDiem />} />
+                <Route path="danh-gia" element={<AdminDanhGia />} />
+                <Route path="nhat-ky" element={<AdminNhatKy />} />
+                <Route path="can-bo" element={<AdminCanBo />} />
+                <Route path="bao-cao" element={<AdminBaoCao />} />
+                <Route path="bang/:bang" element={<AdminBang />} />
+                <Route path="thong-ke" element={<AdminThongKe />} />
+                <Route path="xa-phuong" element={<AdminXaPhuong />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

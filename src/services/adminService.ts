@@ -8,11 +8,11 @@ const hasBackend = Boolean(API_URL) || import.meta.env.DEV;
 const laJson = (r: Response) => (r.headers.get('content-type') || '').includes('application/json');
 if (!API_URL && !import.meta.env.DEV) console.error('[cấu hình] Thiếu VITE_API_URL — giao diện không gọi được máy chủ. Khai trên Netlify rồi dựng lại.');
 
+/* Một quyền duy nhất: mọi tài khoản cán bộ làm được tất cả, không còn vai trò. */
 export interface StaffInfo {
   id: number;
   name: string;
   username: string;
-  role: 'admin' | 'manager' | 'handler';
 }
 export class LoginError extends Error {
   canCaptcha: boolean;
@@ -74,4 +74,23 @@ export async function taiTepXuat(): Promise<void> {
   const url = URL.createObjectURL(new Blob([JSON.stringify(du, null, 2)], { type: 'application/json' }));
   const a = document.createElement('a'); a.href = url; a.download = 'du-lieu-du-lich-dong-nai.json'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Tải một tệp do máy chủ dựng (Excel, Word) — cần vé đăng nhập nên phải gọi bằng fetch rồi lưu. */
+export async function adminTaiXuong(path: string, tenMacDinh: string, retry = true): Promise<void> {
+  const res = await fetch(`${API_URL}/api/quan-tri${path}`, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  if (res.status === 401 && retry && await restoreSession()) return adminTaiXuong(path, tenMacDinh, false);
+  if (!res.ok) {
+    const d = laJson(res) ? await res.json().catch(() => ({})) : {};
+    throw new Error((d as { error?: string })?.error || 'Không tải được tệp.');
+  }
+  const ten = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') || '')?.[1] || tenMacDinh;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a'); a.href = url; a.download = ten; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Gửi một tệp lên máy chủ (thân yêu cầu là chính tệp đó). */
+export function adminTaiLen<T>(path: string, tep: File): Promise<T> {
+  return adminFetch<T>(path, { method: 'POST', body: tep, headers: { 'Content-Type': tep.type || 'application/octet-stream' } });
 }

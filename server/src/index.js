@@ -36,7 +36,9 @@ app.use(cors({
   origin(origin, cb) { if (!origin || choPhep.includes(origin)) return cb(null, true); cb(new Error('CORS không cho phép địa chỉ này')); },
   credentials: true,
 }));
-app.use(express.json({ limit: '200kb' }));   // không nhận tệp, gói nhỏ là đủ
+/* Dữ liệu dạng JSON chỉ cần gói nhỏ. Tệp Excel tải lên đi đường riêng
+   (express.raw ở routes/bao-cao.js) với giới hạn riêng 5 MB. */
+app.use(express.json({ limit: '200kb' }));
 app.use(cookieParser());
 
 app.get('/api/health', async (_req, res) => {
@@ -51,7 +53,21 @@ app.use('/api/quan-tri', requireAuth, quanTriRouter);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Không tìm thấy.' }));
 app.use(errorHandler);
 
+/* Kiểm cấu trúc cơ sở dữ liệu lúc khởi động: mã mới chạy trên cơ sở dữ liệu
+   cũ (quên chạy lại tệp SQL) thì báo rõ ngay, thay vì để từng trang báo lỗi
+   khó hiểu. Chỉ cảnh báo, không chặn khởi động. */
+const CAN_CO = ['xa_phuong', 'ky_bao_cao', 'nop_bao_cao', 'khong_phat_sinh', 'lich_su_sua', 'bc_khach', 'bc_du_an', 'bc_luu_tru'];
+async function kiemCauTruc() {
+  try {
+    const [rows] = await pool.query('SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()');
+    const co = new Set(rows.map((r) => r.t ?? r.TABLE_NAME));
+    const thieu = CAN_CO.filter((t) => !co.has(t));
+    if (thieu.length) console.warn(`⚠️  Cơ sở dữ liệu thiếu bảng: ${thieu.join(', ')}.\n   → Dán lại toàn bộ database/du_lich_dong_nai.sql vào HeidiSQL rồi F9 (chạy lại không mất số liệu).`);
+  } catch (e) { console.warn('⚠️  Chưa kiểm được cấu trúc cơ sở dữ liệu:', e.message); }
+}
+
 app.listen(PORT, () => {
   console.log(`🌿 Du lịch Đồng Nai — máy chủ chạy tại cổng ${PORT}`);
   if (!turnstileEnabled()) console.warn('⚠️  Chưa khai TURNSTILE_SECRET_KEY: ô xác minh chống người máy đang tắt.');
+  kiemCauTruc();
 });

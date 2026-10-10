@@ -10,7 +10,6 @@ export const LOAI: Record<Loai, { ten: string; mau: string }> = {
 };
 export const TIEU_CHI: [keyof TieuChi, string][] = [['canhQuan', 'Cảnh quan'], ['dichVu', 'Dịch vụ'], ['veSinh', 'Vệ sinh'], ['giaCa', 'Giá cả']];
 export const DI_CUNG: Record<string, string> = { 'gia-dinh': 'Gia đình', 'ban-be': 'Bạn bè', 'cap-doi': 'Cặp đôi', 'mot-minh': 'Một mình' };
-export const VAI_TRO: Record<string, string> = { admin: 'Quản trị viên', manager: 'Chỉ huy', handler: 'Cán bộ' };
 
 /* Lịch trình gợi ý — biên soạn sẵn theo cụm điểm gần nhau. */
 export const LICH_TRINH = [

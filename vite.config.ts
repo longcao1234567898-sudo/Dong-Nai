@@ -3,8 +3,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  /* Cổng 5173 khớp danh sách CORS mặc định của máy chủ (server/src/index.js). */
-  server: { port: 5173, open: true },
+  /* Cổng 5173 khớp danh sách CORS mặc định của máy chủ (server/src/index.js).
+     Chạy trên máy: chuyển /api sang máy chủ cổng 4000, nên để trống
+     VITE_API_URL là gọi được ngay (README hướng dẫn vậy, trước đây thiếu dòng này). */
+  server: { port: 5173, open: true, proxy: { '/api': 'http://localhost:4000' } },
   build: {
     sourcemap: false,
     rollupOptions: {

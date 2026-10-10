@@ -1,27 +1,18 @@
 /**
  * THÊM CÁN BỘ MỚI (hoặc đổi mật khẩu cán bộ đã có).
  *
- * Làm TẤT CẢ trong một lệnh: tạo tài khoản + đặt mật khẩu + phân quyền.
- * Không cần chạy SQL thủ công.
+ * MỘT QUYỀN DUY NHẤT: mọi tài khoản đều làm được tất cả các việc trên trang
+ * quản trị, không phân vai trò. Tạo tài khoản chỉ làm được bằng lệnh này trên
+ * máy chủ — chiếm được một phiên đăng nhập cũng không tự tạo được tài khoản.
  *
  * ===================== CÁCH DÙNG =====================
  *
  *   cd server
- *   node scripts-them-can-bo.js <tên_đăng_nhập> <mật_khẩu> "<Họ và tên>" [vai_trò] [nhóm]
+ *   node scripts-them-can-bo.js <tên_đăng_nhập> <mật_khẩu> "<Họ và tên>"
  *
  * VÍ DỤ:
- *   node scripts-them-can-bo.js hung.nv Tuong-Binh#2026Hiep "Nguyễn Văn Hùng" manager
+ *   node scripts-them-can-bo.js hung.nv Tuong-Binh#2026Hiep "Nguyễn Văn Hùng"
  *   node scripts-them-can-bo.js lan.tt Chanh-Hiep#2026-Truc "Trần Thị Lan"
- *   node scripts-them-can-bo.js tuan.lm Dinh-Hoa#2026-Pho3 "Lê Minh Tuấn"
- *
- * VAI TRÒ (không ghi thì mặc định là handler):
- *   admin    — Toàn quyền, xem nhật ký
- *   manager  — Phân công, xem nhật ký
- *   handler  — Chỉ xử lý ý kiến được giao
- *
- * NHÓM PHỤ TRÁCH (không ghi = phụ trách tất cả):
- *   1 = Tố giác tin báo    2 = Khiếu nại, tố cáo
- *   3 = Phản ánh, kiến nghị 4 = Đề xuất, thắc mắc
  *
  * XEM DANH SÁCH CÁN BỘ HIỆN CÓ:
  *   node scripts-them-can-bo.js --danh-sach
@@ -40,22 +31,28 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { pool } from './src/db.js';
-import { inLoiKetNoi } from './goi-y-loi-ket-noi.js';
 
-const ROLES = ['admin', 'manager', 'handler'];
+/* Trước đây tệp này nạp hàm báo lỗi từ './goi-y-loi-ket-noi.js' — tệp đó
+   không có trong kho mã, nên lệnh tạo tài khoản sập ngay khi chạy. Gộp hàm
+   vào đây cho tự đủ. */
+function inLoiKetNoi(err) {
+  console.error(`\n❌ Không làm được: ${err.message}`);
+  if (['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT'].includes(err.code)) console.error('   → Không nối được cơ sở dữ liệu. Chạy: node scripts-kiem-ket-noi.js');
+  else if (err.code === 'ER_ACCESS_DENIED_ERROR') console.error('   → Sai DB_USER hoặc DB_PASSWORD trong server/.env.');
+  else if (err.code === 'ER_BAD_DB_ERROR' || err.code === 'ER_NO_SUCH_TABLE') console.error('   → Chưa tạo cơ sở dữ liệu. Chạy database/du_lich_dong_nai.sql trước.');
+  console.error('');
+}
 
 function huongDan() {
   console.log(`
 =================== THÊM CÁN BỘ MỚI ===================
 
-  node scripts-them-can-bo.js <tên_đăng_nhập> <mật_khẩu> "<Họ và tên>" [vai_trò] [nhóm]
+  node scripts-them-can-bo.js <tên_đăng_nhập> <mật_khẩu> "<Họ và tên>"
 
 VÍ DỤ:
-  node scripts-them-can-bo.js hung.nv Tuong-Binh#2026Hiep "Nguyễn Văn Hùng" manager
   node scripts-them-can-bo.js lan.tt Chanh-Hiep#2026-Truc "Trần Thị Lan"
 
-VAI TRÒ:  admin | manager | handler   (mặc định: handler)
-NHÓM:     1=Tố giác  2=Khiếu nại  3=Phản ánh  4=Đề xuất  (không ghi = tất cả)
+Mọi tài khoản cùng một quyền: làm được tất cả các việc trên trang quản trị.
 
 XEM DANH SÁCH:
   node scripts-them-can-bo.js --danh-sach
@@ -65,7 +62,7 @@ XEM DANH SÁCH:
 
 async function xemDanhSach() {
   const [rows] = await pool.query(
-    `SELECT s.id, s.full_name, s.username, s.role, s.is_active
+    `SELECT s.id, s.full_name, s.username, s.is_active
      FROM staff s
      ORDER BY s.id`
   );
@@ -73,7 +70,7 @@ async function xemDanhSach() {
   for (const r of rows) {
     const trangThai = r.is_active ? '✅' : '🔒 (đã khoá)';
     console.log(`  [${r.id}] ${r.full_name}`);
-    console.log(`      Đăng nhập: ${r.username}  ·  Vai trò: ${r.role}  ${trangThai}`);
+    console.log(`      Đăng nhập: ${r.username}  ${trangThai}`);
     console.log('');
   }
   console.log(`Tổng: ${rows.length} cán bộ\n`);
@@ -164,7 +161,7 @@ if (args[0] === '--khoa' || args[0] === '--mo-khoa') {
   await doiTrangThai(args[1], args[0] === '--mo-khoa');
 }
 
-const [username, password, fullName, role = 'handler'] = args;
+const [username, password, fullName] = args;
 
 if (!username || !password || !fullName) {
   console.error('\n❌ THIẾU THÔNG TIN!');
@@ -176,11 +173,6 @@ const loiMatKhau = kiemMatKhau(password, username);
 if (loiMatKhau) {
   console.error(`\n❌ ${loiMatKhau}\n`);
   console.error('   Ví dụ mật khẩu đạt: Chanh-Hiep#2026-Truc\n');
-  process.exit(1);
-}
-
-if (!ROLES.includes(role)) {
-  console.error(`\n❌ Vai trò "${role}" không hợp lệ. Chỉ được dùng: ${ROLES.join(' | ')}\n`);
   process.exit(1);
 }
 
@@ -203,9 +195,9 @@ try {
        lệnh --mo-khoa riêng, tức là phải CÓ CHỦ ĐÍCH. */
     await pool.query(
       `UPDATE staff
-       SET password_hash = ?, full_name = ?, role = ?
+       SET password_hash = ?, full_name = ?
        WHERE username = ?`,
-      [hash, fullName, role, username]
+      [hash, fullName, username]
     );
 
     /* Cấp mật khẩu mới thì thu hồi các phiên đăng nhập cũ. Lý do hay gặp nhất
@@ -225,8 +217,8 @@ try {
     // Chưa có -> thêm mới
     await pool.query(
       `INSERT INTO staff (full_name, username, password_hash, role, is_active)
-       VALUES (?,?,?,?, TRUE)`,
-      [fullName, username, hash, role]
+       VALUES (?,?,?,'admin', TRUE)`,
+      [fullName, username, hash]
     );
     console.log(`\n✅ ĐÃ THÊM cán bộ mới thành công!`);
   }
@@ -239,7 +231,6 @@ try {
      vào nhật ký của Render, và vào ảnh chụp màn hình ai đó gửi nhờ hỏi lỗi.
      Người chạy lệnh đã tự gõ mật khẩu nên không cần xem lại. */
   console.log(`  Mật khẩu:    (đã đặt — không hiển thị để tránh lộ)`);
-  console.log(`  Vai trò:     ${role}`);
   console.log('--------------------------------------');
   console.log('\n👉 Vào web, bấm "Đăng nhập cán bộ" ở cuối trang để thử.\n');
 
