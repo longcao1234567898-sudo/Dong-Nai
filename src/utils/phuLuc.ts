@@ -5,10 +5,12 @@ import { adminFetch } from '../services/adminService';
 export type KieuO = 'chu' | 'so' | 'nguyen' | 'chon' | 'ngay' | 'nam' | 'co' | 'tinh';
 export interface Truong {
   k: string; nhan: string; kieu: KieuO; max?: number; batBuoc?: boolean; chinh?: boolean; tong?: boolean;
-  chon?: [string | number, string][]; cong?: string[]; dong?: number; m2?: boolean; khongXuat?: boolean; danhDau?: boolean; goiY?: string;
+  chon?: [string | number, string][]; cong?: string[]; dong?: number; m2?: boolean; khongXuat?: boolean; danhDau?: boolean; goiY?: string[]; nhom?: string;
 }
 export interface BangPL {
-  key: string; so: number; ten: string; moTa: string; theoKy: boolean; motDongMoiXa?: boolean; khoaTrung?: string; dan?: boolean; truong: Truong[];
+  key: string; so: number | string; ten: string; moTa: string; theoKy: boolean; motDongMoiXa?: boolean; khoaTrung?: string; truong: Truong[];
+  /** dan: máy tự tổng hợp, chỉ xem. mat: thông tin nhạy cảm, mỗi lần xem đều ghi nhật ký. */
+  dan?: boolean; mat?: boolean;
 }
 export interface XaPhuong { id: number; ten: string; tenRieng: string; loai: string; hien: boolean }
 export interface KyBC { id: number; ten: string; tuNgay: string; denNgay: string; hanNop: string | null; khoa: boolean }

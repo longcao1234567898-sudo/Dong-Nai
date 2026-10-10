@@ -26,15 +26,19 @@ const SO = ['so', 'nguyen', 'tinh'];
  * @param kyDs          [kỳ chính, kỳ so sánh?] — chỉ dùng với bảng theo kỳ
  * @param khongPhatSinh Set các khoá "kyId:xaId" đã xác nhận không phát sinh
  */
-export function dungBang(bang, { dsXa, dong, kyDs = [], khongPhatSinh = new Set(), phuDe = '' }) {
+export function dungBang(bang, { dsXa, dong, kyDs = [], khongPhatSinh = new Set(), phuDe = '', theoXa = null }) {
   const nhieuKy = bang.theoKy && kyDs.length > 1;
   const truong = bang.truong.filter((t) => !t.khongXuat);
+  /* Cột gộp ô theo xã: luôn có "Xã/phường", có thể thêm một cột lấy từ bảng
+     khác (theoXa = { nhan, gt: Map xaId -> số }), ví dụ "Tổng quân số" bảng 7. */
   const cot = [{ nhan: 'Xã/phường', rong: 22 }];
+  if (theoXa) cot.push({ nhan: theoXa.nhan, rong: 11, so: true });
+  const soGop = cot.length;
   if (nhieuKy) cot.push({ nhan: 'Kỳ', rong: 18 });
   else if (!bang.motDongMoiXa) cot.push({ nhan: 'STT', rong: 6, giua: true });
   for (const t of truong) {
     if (t.danhDau) for (const [, n] of t.chon) cot.push({ nhan: n.replace(/^Đạt tiêu chuẩn /, ''), nhom: t.nhan, rong: 9, giua: true });
-    else cot.push({ nhan: t.nhan, rong: SO.includes(t.kieu) ? 15 : t.kieu === 'chu' && (t.max || 0) > 200 ? 34 : 22, so: SO.includes(t.kieu) });
+    else cot.push({ nhan: t.nhan, nhom: t.nhom, rong: SO.includes(t.kieu) ? (t.nhom ? 10 : 15) : t.kieu === 'chu' && (t.max || 0) > 200 ? 34 : 22, so: SO.includes(t.kieu) });
   }
   /* Ô số giữ nguyên kiểu số: Excel cộng, lọc được; Word tự định dạng 250.000. */
   const gt = (t, v) => (SO.includes(t.kieu) ? (v === null || v === undefined || v === '' ? '' : Number(v)) : hienGiaTri(t, v));
@@ -49,10 +53,10 @@ export function dungBang(bang, { dsXa, dong, kyDs = [], khongPhatSinh = new Set(
     for (const ky of kyCanXet) {
       const cua = dong.filter((r) => r.xa_phuong_id === x.id && (!bang.theoKy || r.ky_id === ky?.id));
       if (cua.length) cua.forEach((r, i) => ds.push({ o: oCuaDong(r, coDau ? (nhieuKy ? ky.ten : String(i + 1)) : null) }));
-      else ds.push({ dau: nhieuKy ? ky.ten : null, ghiChu: ky && khongPhatSinh.has(`${ky.id}:${x.id}`) ? 'Không phát sinh' : 'Chưa có số liệu' });
+      else ds.push({ dau: nhieuKy ? ky.ten : null, ghiChu: bang.dan ? 'Không có' : ky && khongPhatSinh.has(`${ky.id}:${x.id}`) ? 'Không phát sinh' : 'Chưa có số liệu' });
       if (!bang.theoKy) break;
     }
-    nhom.push({ xa: tenXa(x), dong: ds });
+    nhom.push({ gop: [tenXa(x), ...(theoXa ? [theoXa.gt.has(x.id) ? theoXa.gt.get(x.id) : ''] : [])], dong: ds });
   }
 
   /* Dòng tổng cộng: mỗi kỳ một dòng — cộng lẫn hai kỳ khác độ dài là vô nghĩa. */
@@ -62,10 +66,11 @@ export function dungBang(bang, { dsXa, dong, kyDs = [], khongPhatSinh = new Set(
       const cua = dong.filter((r) => dsXa.some((x) => x.id === r.xa_phuong_id) && (!ky || r.ky_id === ky.id));
       const o = truong.flatMap((t) => (t.danhDau ? t.chon.map(([g]) => cua.filter((r) => String(r[t.k]) === String(g)).length || '')
         : [t.tong ? Math.round(cua.reduce((s, r) => s + Number(r[t.k] || 0), 0) * 1e4) / 1e4 : '']));
-      tong.push({ nhan: nhieuKy ? `Tổng cộng — ${ky.ten}` : 'Tổng cộng', o: coDau ? ['', ...o] : o });
+      const gop = theoXa ? [dsXa.reduce((a, x) => a + Number(theoXa.gt.get(x.id) || 0), 0)] : [];
+      tong.push({ nhan: nhieuKy ? `Tổng cộng — ${ky.ten}` : 'Tổng cộng', o: [...gop, ...(coDau ? [''] : []), ...o] });
     }
   }
-  return { so: bang.so, tieuDe: bang.tieuDeXuat || bang.ten, phuDe, cot, nhom, tong };
+  return { so: bang.so, tieuDe: bang.tieuDeXuat || bang.ten, phuDe, cot, soGop, nhom, tong };
 }
 
 /* ============================================================== EXCEL */
@@ -123,22 +128,22 @@ export async function xuatExcel(dsBang, meta) {
     ws.getRow(1).height = 34;
     ws.mergeCells(2, 1, 2, n); ws.getCell(2, 1).value = b.phuDe; ws.getCell(2, 1).font = { italic: true };
     let r = veTieuDeCot(ws, b.cot, 4);
+    const k = b.soGop;
     for (const g of b.nhom) {
       const dau = r;
       for (const d of g.dong) {
         if (d.ghiChu) {
-          let c = 2;
-          if (d.dau) { ws.getCell(r, 2).value = d.dau; c = 3; }
+          let c = k + 1;
+          if (d.dau) { ws.getCell(r, c).value = d.dau; c++; }
           if (c <= n) { ws.mergeCells(r, c, r, n); ws.getCell(r, c).value = d.ghiChu; ws.getCell(r, c).font = { italic: true, color: { argb: 'FF64748B' } }; }
-        } else d.o.forEach((v, i) => ghiO(ws.getCell(r, i + 2), v));
+        } else d.o.forEach((v, i) => ghiO(ws.getCell(r, i + 1 + k), v));
         r++;
       }
-      if (r - 1 > dau) ws.mergeCells(dau, 1, r - 1, 1);
-      ws.getCell(dau, 1).value = g.xa;
+      g.gop.forEach((v, i) => { if (r - 1 > dau) ws.mergeCells(dau, i + 1, r - 1, i + 1); ghiO(ws.getCell(dau, i + 1), v); });
       for (let i = dau; i < r; i++) {
         for (let c = 1; c <= n; c++) {
           const o = ws.getCell(i, c); o.border = VIEN;
-          o.alignment = { vertical: c === 1 ? 'middle' : 'top', wrapText: true, horizontal: b.cot[c - 1].so ? 'right' : b.cot[c - 1].giua ? 'center' : 'left' };
+          o.alignment = { vertical: c <= k ? 'middle' : 'top', wrapText: true, horizontal: b.cot[c - 1].so ? 'right' : b.cot[c - 1].giua ? 'center' : 'left' };
         }
       }
     }
@@ -183,14 +188,14 @@ function bangWord(b) {
   }
   const dong = [new TableRow({ tableHeader: true, children: tang1 })];
   if (haiTang) dong.push(new TableRow({ tableHeader: true, children: tang2 }));
-  const n = b.cot.length;
+  const n = b.cot.length, k = b.soGop;
   for (const g of b.nhom) {
     g.dong.forEach((d, i) => {
-      const cells = i === 0 ? [o(g.xa, { doc: g.dong.length })] : [];
+      const cells = i === 0 ? g.gop.map((v, j) => o(v, { doc: g.dong.length, phai: b.cot[j].so })) : [];
       if (d.ghiChu) {
         if (d.dau) cells.push(o(d.dau));
-        cells.push(o(d.ghiChu, { nghieng: true, ngang: n - 1 - (d.dau ? 1 : 0) }));
-      } else d.o.forEach((v, j) => cells.push(o(v, { phai: b.cot[j + 1].so, giua: b.cot[j + 1].giua })));
+        cells.push(o(d.ghiChu, { nghieng: true, ngang: n - k - (d.dau ? 1 : 0) }));
+      } else d.o.forEach((v, j) => cells.push(o(v, { phai: b.cot[j + k].so, giua: b.cot[j + k].giua })));
       dong.push(new TableRow({ cantSplit: true, children: cells }));
     });
   }

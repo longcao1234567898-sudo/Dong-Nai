@@ -13,11 +13,18 @@
  * con. Có bản sao lưu thì dựng lại trong mươi phút; không có thì mất hẳn.
  *
  * Không cần cài mysqldump — script tự đọc và ghi bằng thư viện sẵn có.
+ *
+ * MÃ HOÁ: khai KHOA_SAO_LUU trong server/.env (ít nhất 16 ký tự) thì tệp ra
+ * là .sql.mahoa (AES-256-GCM), không còn bản chữ thường. Mở lại bằng:
+ *   node scripts-giai-ma-sao-luu.js sao-luu/<tệp>.sql.mahoa
+ * Cơ sở dữ liệu có bảng nhạy cảm (vụ việc, quân số, tôn giáo) và bản băm mật
+ * khẩu cán bộ — NÊN bật mã hoá trước khi chép bản sao lưu ra USB, Drive.
  */
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { pool } from './src/db.js';
+import { maHoa, kiemKhoa } from './src/lib/ma-hoa-sao-luu.js';
 
 const THU_MUC = 'sao-luu';
 
@@ -174,9 +181,20 @@ try {
   ghi('-- Hết bản sao lưu.');
 
   await new Promise((res) => out.end(res));
-  const kb = (fs.statSync(duongDan).size / 1024).toFixed(0);
+  let tepRa = duongDan;
+  if (process.env.KHOA_SAO_LUU) {
+    const loi = kiemKhoa(process.env.KHOA_SAO_LUU);
+    if (loi) { fs.unlinkSync(duongDan); throw new Error(loi); }
+    tepRa = duongDan + '.mahoa';
+    fs.writeFileSync(tepRa, maHoa(fs.readFileSync(duongDan), process.env.KHOA_SAO_LUU));
+    fs.unlinkSync(duongDan);   // không để lại bản chữ thường
+    console.log('\n🔒 Đã mã hoá bằng KHOA_SAO_LUU (AES-256-GCM).');
+  } else {
+    console.log('\n⚠️ Bản sao lưu CHƯA mã hoá. Khai KHOA_SAO_LUU trong server/.env để mã hoá.');
+  }
+  const kb = (fs.statSync(tepRa).size / 1024).toFixed(0);
   console.log(`\n✅ XONG sau ${((Date.now() - bd) / 1000).toFixed(1)} giây`);
-  console.log(`   Tệp: ${path.resolve(duongDan)}`);
+  console.log(`   Tệp: ${path.resolve(tepRa)}`);
   console.log(`   Dung lượng: ${kb} KB`);
   console.log('\n⚠️ Chép tệp này ra chỗ khác (USB, Google Drive) — để cùng một');
   console.log('   máy thì hỏng máy là mất cả bản gốc lẫn bản sao.\n');

@@ -31,6 +31,7 @@ npm run dev
 ```
 node scripts-them-can-bo.js lan.tt Suoi-Mo#2026-Ta "Trần Thị Lan"
 node scripts-them-can-bo.js --danh-sach
+node scripts-them-can-bo.js --tat-2fa lan.tt     # cán bộ mất điện thoại
 ```
 
 **Một quyền duy nhất:** mọi tài khoản cán bộ làm được tất cả — không phân quản trị viên, chỉ huy, cán bộ; không giới hạn theo xã. Bù lại, mọi thao tác đều ghi nhật ký (ai, lúc nào, từ IP nào) và mọi thay đổi số liệu phụ lục đều lưu lịch sử giá trị cũ → mới.
@@ -66,7 +67,22 @@ Báo cáo theo **xã/phường** và theo **kỳ** (cả năm, 6 tháng…), đ�
 | Bảng 1, 2, 3… | Nhập, sửa, xoá (khôi phục được), xem lịch sử từng dòng, tải tệp mẫu Excel, nhập từ Excel |
 | Xã/phường | Thêm nhiều xã/phường một lần (dán danh sách), đổi tên, ẩn |
 
-Các bảng hiện có: 1. Hiện trạng khách du lịch · 2. Dự án đầu tư du lịch · 3. Resort, khu nghỉ dưỡng.
+Các bảng hiện có:
+
+| Bảng | Nội dung | Loại |
+|---|---|---|
+| 1 | Hiện trạng khách du lịch (quốc tế, nội địa; tổng máy tự cộng) | theo kỳ |
+| 2 | Dự án đầu tư du lịch (vốn tỷ đồng, diện tích, tình trạng) | danh mục |
+| 3 | Resort, khu nghỉ dưỡng (hạng sao) | danh mục |
+| 4 | Vụ việc phức tạp về an ninh, trật tự 🔒 | danh mục |
+| 5 | Văn bản phối hợp lực lượng | danh mục |
+| 6 | Vận động quần chúng, mô hình phong trào toàn dân | theo kỳ |
+| 7 / 7a | Đội ngũ cán bộ công an xã (theo tổ; máy kiểm chức vụ, trình độ, chuyên môn, độ tuổi cộng lại đúng số lượng) / Tổng quân số 🔒 | theo kỳ |
+| 8 | Dân cư, dân tộc, tôn giáo 🔒 | theo kỳ |
+| 9 | Vi phạm pháp luật của khách nước ngoài (mỗi vụ một dòng, có quốc tịch) 🔒 | danh mục có ngày |
+| 10 | Vi phạm xuất nhập cảnh theo quốc tịch — **máy tự tổng hợp từ bảng 9**, không nhập lại 🔒 | tự tính |
+
+🔒 = thông tin nhạy cảm: không đường dẫn công khai nào đọc tới; mỗi lần cán bộ xem hay xuất đều ghi nhật ký; tệp xuất ghi "có thông tin nhạy cảm, không phát tán". Dòng chữ này chỉ là lời nhắc — đóng dấu mật theo quy định là việc của cơ quan, hệ thống không tự phân loại bí mật nhà nước. **Trước khi nhập số liệu thật của các bảng 🔒 lên máy chủ thuê ngoài (Render, Aiven…), xin ý kiến bộ phận phụ trách bảo mật của đơn vị.**
 
 **Máy kiểm tra thay người.** Tổng số khách luôn do máy cộng (bản giấy từng cộng sai). Ô số đọc được mọi kiểu ghi: `250.000`, `1.854,4 tỷ đồng`, `0,513 tỉ`, `9450 lượt`, `16.305,40m2` (tự đổi ra ha); còn chữ giải thích như `Tổng mức đầu tư 49 tỷ đồng.` thì báo lỗi và chỉ sang cột ghi chú. STT do máy đánh khi xuất nên không bao giờ trùng. Xã không có dòng nào ghi rõ "Không phát sinh" (đã xác nhận) hay "Chưa có số liệu" — không còn lẫn "0", "Không", ô trống.
 
@@ -76,6 +92,13 @@ Các bảng hiện có: 1. Hiện trạng khách du lịch · 2. Dự án đầu
 
 **Thêm cột hay thêm bảng:** khai trong `server/src/lib/phu-luc.js` (một chỗ duy nhất — biểu mẫu, kiểm tra, tệp mẫu, tệp xuất tự theo) và thêm cột/bảng tương ứng trong `database/du_lich_dong_nai.sql`.
 
+## Bảo mật tài khoản
+
+- **Xác thực hai lớp (tự nguyện):** mỗi cán bộ tự bật ở mục *Tài khoản của tôi* — quét mã QR bằng Google Authenticator hoặc Microsoft Authenticator. Từ đó đăng nhập cần cả mật khẩu và mã 6 số; mã đã dùng không dùng lại được. Mất điện thoại: đồng nghiệp bấm *Tắt hai lớp* ở mục Tài khoản cán bộ (ghi nhật ký), hoặc chạy `node scripts-them-can-bo.js --tat-2fa <tên>`.
+- **Tự đổi mật khẩu** ở *Tài khoản của tôi*; đổi xong mọi phiên ở máy khác bị đăng xuất.
+- **Chống dò mật khẩu:** tối đa 5 lần đăng nhập **sai** mỗi 15 phút mỗi địa chỉ IP (lần đúng không bị đếm, nên nhiều cán bộ dùng chung mạng trụ sở không bị chặn nhau); sai 3 lần bắt qua ô xác minh.
+- **Sao lưu mã hoá:** khai `KHOA_SAO_LUU` trong `server/.env` thì `node scripts-sao-luu.js` ra tệp `.sql.mahoa` (AES-256-GCM). Mở lại: `node scripts-giai-ma-sao-luu.js sao-luu/<tệp>.sql.mahoa`. Ghi khoá ra giấy cất riêng — mất khoá là không mở được.
+
 ## Bảo vệ đánh giá khỏi phá hoại
 
 Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là sửa bài cũ. Mỗi địa chỉ IP gửi tối đa 10 lần mỗi giờ. Khi khai khoá Turnstile thì mọi lần gửi phải qua ô xác minh. Mã thiết bị và IP chỉ lưu dạng băm có `HASH_PEPPER`. Cán bộ ẩn được đánh giá vi phạm — ẩn chứ không xoá, để còn đối chiếu khi có khiếu nại.
@@ -83,6 +106,6 @@ Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là
 ## Kiểm thử
 
 ```
-cd server && npm test     # 35 bài, không cần MySQL
+cd server && npm test     # 45 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```

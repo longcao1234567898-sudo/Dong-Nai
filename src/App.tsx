@@ -22,6 +22,7 @@ const AdminBaoCao = lazy(() => import('./pages/admin/AdminBaoCao'));
 const AdminBang = lazy(() => import('./pages/admin/AdminBang'));
 const AdminThongKe = lazy(() => import('./pages/admin/AdminThongKe'));
 const AdminXaPhuong = lazy(() => import('./pages/admin/AdminXaPhuong'));
+const AdminTaiKhoan = lazy(() => import('./pages/admin/AdminTaiKhoan'));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } } });
 
@@ -57,6 +58,7 @@ export default function App() {
                 <Route path="bang/:bang" element={<AdminBang />} />
                 <Route path="thong-ke" element={<AdminThongKe />} />
                 <Route path="xa-phuong" element={<AdminXaPhuong />} />
+                <Route path="tai-khoan" element={<AdminTaiKhoan />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

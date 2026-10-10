@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Plus, Download, Upload, History, X, Lock, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Plus, Download, Upload, History, X, Lock, CheckCircle2, AlertTriangle, Loader2, EyeOff, Calculator } from 'lucide-react';
 import { adminFetch, adminTaiXuong, adminTaiLen } from '../../services/adminService';
 import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../components/common/KhoiQt';
 import { useCauHinh, hienO, nhoChon, ngayVn, type BangPL, type Truong, type Dong } from '../../utils/phuLuc';
@@ -30,7 +30,8 @@ function ONhap({ t, gt, onDoi }: { t: Truong; gt: unknown; onDoi: (v: unknown) =
   if (t.kieu === 'chu' && t.dong) return <label className={nhan}>{nhanO}<textarea className={o} rows={t.dong} maxLength={t.max} value={String(gt ?? '')} onChange={(e) => onDoi(e.target.value)} /></label>;
   return (
     <label className={nhan}>{nhanO}
-      <input className={o} value={String(gt ?? '')} onChange={(e) => onDoi(e.target.value)} maxLength={t.max || 40}
+      {t.goiY && <datalist id={'goi-y-' + t.k}>{t.goiY.map((g) => <option key={g} value={g} />)}</datalist>}
+      <input className={o} value={String(gt ?? '')} onChange={(e) => onDoi(e.target.value)} maxLength={t.max || 40} list={t.goiY ? 'goi-y-' + t.k : undefined}
         type={t.kieu === 'ngay' ? 'date' : 'text'} inputMode={t.kieu === 'so' ? 'decimal' : t.kieu === 'nguyen' || t.kieu === 'nam' ? 'numeric' : undefined}
         placeholder={t.kieu === 'so' ? (t.m2 ? 'Ví dụ 50,47 (ghi m2 thì tự đổi ra ha)' : 'Ví dụ 1.854,4') : t.kieu === 'nguyen' ? 'Ví dụ 250.000' : t.kieu === 'nam' ? 'Ví dụ 2026' : undefined} /></label>);
 }
@@ -120,7 +121,10 @@ export default function AdminBang() {
 
   const ky = ch?.ky.find((k) => k.id === kyId) || null;
   const canKy = !!cfg?.theoKy;
-  const qs = new URLSearchParams({ ...(canKy && kyId ? { ky: String(kyId) } : {}), ...(xaLoc ? { xa: String(xaLoc) } : {}), ...(daXoa ? { daXoa: '1' } : {}) }).toString();
+  /* Bảng máy tự tổng hợp (bảng 10): chọn kỳ chỉ để lọc theo khoảng ngày của kỳ, "tất cả" là mọi thời gian. */
+  const [dmTatCa, setDmTatCa] = useState(false);
+  const locKy = canKy || (!!cfg?.dan && !dmTatCa);
+  const qs = new URLSearchParams({ ...(locKy && kyId ? { ky: String(kyId) } : {}), ...(xaLoc ? { xa: String(xaLoc) } : {}), ...(daXoa ? { daXoa: '1' } : {}) }).toString();
   const { data: ds = [], isLoading } = useQuery({ queryKey: ['qt-bang', key, qs], enabled: !!cfg && (!canKy || !!kyId),
     queryFn: () => adminFetch<Dong[]>(`/bao-cao/bang/${key}?${qs}`) });
   const { data: nop } = useQuery({ queryKey: ['qt-nop', kyId], enabled: !!kyId && !!cfg && !cfg.dan,
@@ -162,21 +166,27 @@ export default function AdminBang() {
 
   return (<>
     <TieuDeQt tieuDe={`Bảng ${cfg.so}. ${cfg.ten}`} moTa={cfg.moTa} />
+    {cfg.mat && <div className="mb-3 flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2.5 text-sm text-white dark:bg-slate-700">
+      <EyeOff className="h-4 w-4 shrink-0" />Thông tin nhạy cảm — việc xem và xuất bảng này đều được ghi nhật ký kèm tên cán bộ. Không chụp màn hình, không gửi qua mạng xã hội.</div>}
     <The className="mb-4">
       <div className="flex flex-wrap items-end gap-3">
+        {cfg.dan && <label className="w-full text-sm font-semibold sm:w-auto">Khoảng thời gian<select className={o + ' sm:min-w-[220px]'} value={dmTatCa ? 0 : kyId ?? ''}
+          onChange={(e) => { const v = Number(e.target.value); setDmTatCa(!v); if (v) setKyId(v); }}>
+          <option value={0}>Mọi thời gian</option>{ch.ky.map((k) => <option key={k.id} value={k.id}>{k.ten}</option>)}</select></label>}
         {canKy && <label className="w-full text-sm font-semibold sm:w-auto">Kỳ báo cáo<select className={o + ' sm:min-w-[220px]'} value={kyId ?? ''} onChange={(e) => { setKyId(Number(e.target.value)); nhoChon('ky', e.target.value); setSua(null); }}>
           {ch.ky.map((k) => <option key={k.id} value={k.id}>{k.ten}{k.khoa ? ' (đã khoá)' : ''}</option>)}</select></label>}
         <label className="w-full text-sm font-semibold sm:w-auto">Xã/phường<select className={o + ' sm:min-w-[200px]'} value={xaLoc} onChange={(e) => { setXaLoc(Number(e.target.value)); nhoChon('xa', e.target.value === '0' ? null : e.target.value); }}>
           <option value={0}>Tất cả</option>{ch.xaPhuong.filter((x) => x.hien).map((x) => <option key={x.id} value={x.id}>{x.ten}</option>)}</select></label>
         <label className="min-w-[180px] flex-1 text-sm font-semibold">Tìm<input className={o} type="search" value={tuKhoa} onChange={(e) => setTuKhoa(e.target.value)} placeholder="Tên, địa chỉ, quốc gia…" /></label>
       </div>
+      {cfg.dan ? <p className="mt-3 flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300"><Calculator className="h-4 w-4" />Bảng này máy tự tổng hợp — không nhập tay. Muốn sửa số liệu, sửa ở bảng gốc.</p> :
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" className={nutChinh} disabled={khoa || daChot || daXoa} onClick={() => moForm()}><Plus className="h-4 w-4" />Thêm dòng</button>
         <button type="button" className={nutVien + ' min-h-[44px] gap-1.5 px-3 text-sm'} onClick={() => adminTaiXuong(`/bao-cao/bang/${key}/mau${kyId ? `?ky=${kyId}` : ''}`, `mau-bang-${cfg.so}.xlsx`).catch((e: Error) => toast.error(e.message))}>
           <Download className="h-4 w-4" />Tải tệp mẫu Excel</button>
         <button type="button" className={nutVien + ' min-h-[44px] gap-1.5 px-3 text-sm'} disabled={khoa} onClick={() => { setMoNhap((m) => !m); setSua(null); }}><Upload className="h-4 w-4" />Nhập từ Excel</button>
         <label className="ml-auto flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary-600" checked={daXoa} onChange={(e) => setDaXoa(e.target.checked)} />Xem dòng đã xoá</label>
-      </div>
+      </div>}
       {khoa && <div className={vangHop + ' mt-3 flex items-center gap-2'}><Lock className="h-4 w-4 shrink-0" />Kỳ "{ky?.ten}" đã khoá — chỉ xem, không sửa được. Mở khoá ở mục <Link className="font-bold underline" to="/quan-tri/bao-cao">Báo cáo kỳ</Link>.</div>}
       {!khoa && daChot && <div className={vangHop + ' mt-3 flex items-center gap-2'}><CheckCircle2 className="h-4 w-4 shrink-0" />{nopXa?.ten} đã chốt báo cáo kỳ này. Muốn sửa, bấm "Mở lại" ở mục <Link className="font-bold underline" to="/quan-tri/bao-cao">Báo cáo kỳ</Link>.</div>}
       {canKy && xaLoc > 0 && !khoa && !daChot && !ds.length && !daXoa && (
@@ -193,10 +203,16 @@ export default function AdminBang() {
       <div className="grid gap-x-4 sm:grid-cols-2">
         <label className={nhan}>Xã/phường <span className="text-red-600">*</span><select className={o} value={sua.xa} disabled={!!sua.id && canKy} onChange={(e) => setSua({ ...sua, xa: Number(e.target.value) })}>
           <option value={0}>— Chọn xã/phường —</option>{ch.xaPhuong.filter((x) => x.hien || x.id === sua.xa).map((x) => <option key={x.id} value={x.id}>{x.ten}</option>)}</select></label>
-        {cfg.truong.filter((t) => t.kieu !== 'tinh').map((t) => (
+        {cfg.truong.filter((t) => t.kieu !== 'tinh' && !t.nhom).map((t) => (
           <div key={t.k} className={t.dong || (t.kieu === 'chu' && (t.max || 0) > 200) ? 'sm:col-span-2' : ''}>
             <ONhap t={t} gt={sua.gt[t.k]} onDoi={(v) => setSua({ ...sua, gt: { ...sua.gt, [t.k]: v } })} /></div>))}
       </div>
+      {/* Trường có nhóm (bảng 6, 7): gom theo nhóm như tiêu đề hai tầng của mẫu giấy. */}
+      {[...new Set(cfg.truong.filter((t) => t.nhom).map((t) => t.nhom!))].map((nhom) => (
+        <fieldset key={nhom} className="mt-4 rounded-xl border border-slate-200 px-3 pb-3 dark:border-slate-700"><legend className="px-1 text-sm font-bold">{nhom}</legend>
+          <div className="grid grid-cols-2 gap-x-3 sm:grid-cols-4">{cfg.truong.filter((t) => t.nhom === nhom).map((t) => (
+            <div key={t.k} className={t.kieu === 'chu' ? 'col-span-2' : ''}><ONhap t={t} gt={sua.gt[t.k]} onDoi={(v) => setSua({ ...sua, gt: { ...sua.gt, [t.k]: v } })} /></div>))}</div>
+        </fieldset>))}
       {loiForm && <div className={loiHop}>{loiForm}</div>}
       <div className="mt-4 flex gap-2"><button type="button" className={nutChinh} disabled={luu.isPending || !sua.xa} onClick={() => luu.mutate()}>{luu.isPending ? 'Đang lưu…' : 'Lưu'}</button>
         <button type="button" className={nutVien + ' min-h-[44px] px-4 text-sm'} onClick={() => { setSua(null); setLoiForm(''); }}>Huỷ</button></div>
@@ -208,26 +224,26 @@ export default function AdminBang() {
       <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-[13.5px]">
         <thead><tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800">
           {!xaLoc && <th className="py-2 pr-2">Xã/phường</th>}{cotHien.map((t) => <th key={t.k} className={`py-2 pr-2 ${['so', 'nguyen', 'tinh'].includes(t.kieu) ? 'text-right' : ''}`}>{t.nhan}</th>)}
-          <th className="pr-2">Cập nhật</th><th></th></tr></thead>
+          {!cfg.dan && <><th className="pr-2">Cập nhật</th><th></th></>}</tr></thead>
         <tbody>
           {isLoading && <tr><td colSpan={9} className="py-6 text-center text-slate-500">Đang tải…</td></tr>}
           {loc.map((r) => <tr key={r.id} className="border-b border-slate-100 align-top dark:border-slate-800">
             {!xaLoc && <td className="py-2.5 pr-2">{tenXa(r.xa_phuong_id)}</td>}
             {cotHien.map((t) => <td key={t.k} className={`py-2.5 pr-2 ${['so', 'nguyen', 'tinh'].includes(t.kieu) ? 'text-right tabular-nums' : ''} ${t.kieu === 'tinh' ? 'font-bold' : ''}`}>{hienO(t, r[t.k])}</td>)}
-            <td className="whitespace-nowrap py-2.5 pr-2 text-xs text-slate-500">{r.nguoi_sua || '—'}<br />{ngayVn(String(r.xoa_luc || r.updated_at))}</td>
-            <td className="whitespace-nowrap py-2.5 text-right">
+            {!cfg.dan && <td className="whitespace-nowrap py-2.5 pr-2 text-xs text-slate-500">{r.nguoi_sua || '—'}<br />{ngayVn(String(r.xoa_luc || r.updated_at))}</td>}
+            {!cfg.dan && <td className="whitespace-nowrap py-2.5 text-right">
               {!daXoa && <button type="button" className={nutVien} disabled={khoa || (canKy && nop?.ds.find((n) => n.xaPhuongId === r.xa_phuong_id)?.trangThai === 'da-chot')} onClick={() => moForm(r)}>Sửa</button>}{' '}
               <button type="button" className={nutVien} onClick={() => setXemLs(r.id)} aria-label="Lịch sử"><History className="h-3.5 w-3.5" /></button>{' '}
-              <button type="button" className={nutVien} disabled={khoa} onClick={() => (daXoa || window.confirm('Xoá dòng này? Dòng xoá vẫn khôi phục được.')) && xoa.mutate(r)}>{daXoa ? 'Khôi phục' : 'Xoá'}</button></td>
+              <button type="button" className={nutVien} disabled={khoa} onClick={() => (daXoa || window.confirm('Xoá dòng này? Dòng xoá vẫn khôi phục được.')) && xoa.mutate(r)}>{daXoa ? 'Khôi phục' : 'Xoá'}</button></td>}
           </tr>)}
-          {!isLoading && !loc.length && <tr><td colSpan={9} className="py-6 text-center text-slate-500">{daXoa ? 'Không có dòng nào đã xoá.' : 'Chưa có dòng nào. Bấm "Thêm dòng" hoặc nhập từ Excel.'}</td></tr>}
+          {!isLoading && !loc.length && <tr><td colSpan={9} className="py-6 text-center text-slate-500">{daXoa ? 'Không có dòng nào đã xoá.' : cfg.dan ? 'Không có số liệu trong khoảng thời gian này.' : 'Chưa có dòng nào. Bấm "Thêm dòng" hoặc nhập từ Excel.'}</td></tr>}
           {!daXoa && tong.length > 0 && loc.length > 1 && <tr className="bg-slate-50 font-bold dark:bg-slate-800/50">
             {!xaLoc && <td className="py-2.5 pr-2">Tổng cộng</td>}{cotHien.map((t, i) => <td key={t.k} className="py-2.5 pr-2 text-right tabular-nums">
               {t.tong ? hienO(t, loc.reduce((s, r) => s + Number(r[t.k] || 0), 0)) : (xaLoc && i === 0 ? 'Tổng cộng' : '')}</td>)}<td colSpan={2}></td></tr>}
         </tbody></table></div>
     </The>
     {xemLs !== null && <LichSu cfg={cfg} id={xemLs} onDong={() => setXemLs(null)} />}
-    {!canKy && <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500"><AlertTriangle className="h-3.5 w-3.5" />Đây là danh mục sống: sửa lúc nào cũng được, mọi thay đổi đều lưu lịch sử.</p>}
+    {!canKy && !cfg.dan && <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500"><AlertTriangle className="h-3.5 w-3.5" />Đây là danh mục sống: sửa lúc nào cũng được, mọi thay đổi đều lưu lịch sử.</p>}
   </>);
 }
 

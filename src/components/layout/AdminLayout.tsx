@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, MapPin, Activity, Star, Users, FileText, Home, LogOut, ClipboardCheck, Table2, BarChart3, Building2 } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, MapPin, Activity, Star, Users, FileText, Home, LogOut, ClipboardCheck, Table2, BarChart3, Building2, EyeOff, UserCog } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { useCauHinh } from '../../utils/phuLuc';
 
@@ -21,8 +21,10 @@ export default function AdminLayout() {
     { nhom: 'Phụ lục thống kê', ds: [
       { to: '/quan-tri/bao-cao', ten: 'Báo cáo kỳ', ic: ClipboardCheck },
       { to: '/quan-tri/thong-ke', ten: 'Thống kê', ic: BarChart3 },
-      ...(ch?.bang || []).map((b) => ({ to: `/quan-tri/bang/${b.key}`, ten: `${b.so}. ${b.ten}`, ic: Table2 })) ] },
+      /* Bảng nhạy cảm mang biểu tượng con mắt gạch chéo: xem là bị ghi nhật ký. */
+      ...(ch?.bang || []).map((b) => ({ to: `/quan-tri/bang/${b.key}`, ten: `${b.so}. ${b.ten}`, ic: b.mat ? EyeOff : Table2 })) ] },
     { nhom: 'Hệ thống', ds: [
+      { to: '/quan-tri/tai-khoan', ten: 'Tài khoản của tôi', ic: UserCog },
       { to: '/quan-tri/xa-phuong', ten: 'Xã/phường', ic: Building2 },
       { to: '/quan-tri/can-bo', ten: 'Tài khoản cán bộ', ic: Users },
       { to: '/quan-tri/nhat-ky', ten: 'Nhật ký', ic: FileText } ] },
@@ -45,12 +47,12 @@ export default function AdminLayout() {
         </div>
       </div>
       <nav className="mb-5 flex gap-1.5 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-soft dark:bg-slate-900 lg:hidden" aria-label="Mục quản trị">
-        {muc.flatMap((n) => n.ds).map((m) => <NavLink key={m.to} to={m.to} end={m.end} className={(a) => lop(a) + ' shrink-0 whitespace-nowrap'}><m.ic className="h-4 w-4" />{m.ten}</NavLink>)}
+        {muc.flatMap((n) => n.ds).map((m) => <NavLink key={m.to} to={m.to} end={m.end} className={(a) => lop(a) + ' shrink-0 whitespace-nowrap'}><m.ic className="h-4 w-4 shrink-0" />{m.ten}</NavLink>)}
       </nav>
       <div className="flex gap-5">
         <aside className="hidden w-60 shrink-0 lg:block"><div className="sticky top-24 space-y-5">
           {muc.map((n) => <div key={n.nhom}><p className="mb-1.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500">{n.nhom}</p>
-            <div className="space-y-0.5">{n.ds.map((m) => <NavLink key={m.to} to={m.to} end={m.end} className={lop}><m.ic className="h-4 w-4" />{m.ten}</NavLink>)}</div></div>)}
+            <div className="space-y-0.5">{n.ds.map((m) => <NavLink key={m.to} to={m.to} end={m.end} className={lop}><m.ic className="h-4 w-4 shrink-0" />{m.ten}</NavLink>)}</div></div>)}
         </div></aside>
         <div className="min-w-0 flex-1"><Outlet /></div>
       </div>

@@ -16,6 +16,7 @@ import { ghiNhatKy } from '../lib/helpers.js';
 import { sanitizeText } from '../lib/security.js';
 import { xoaDemCongKhai } from './cong-khai.js';
 import baoCaoRouter from './bao-cao.js';
+import taiKhoanRouter from './tai-khoan.js';
 
 const router = Router();
 const LOAI = ['thien-nhien', 'di-tich', 'vui-choi', 'luu-tru', 'am-thuc', 'dac-san'];
@@ -48,6 +49,8 @@ const coXa = async (id) => { const [[x]] = await pool.query('SELECT id FROM xa_p
 
 /* Phụ lục thống kê: xã/phường, kỳ báo cáo, 10 bảng, nhập/xuất Excel — xem bao-cao.js */
 router.use('/bao-cao', baoCaoRouter);
+/* Tự đổi mật khẩu, bật/tắt xác thực hai lớp — xem tai-khoan.js */
+router.use('/tai-khoan', taiKhoanRouter);
 
 /* ------------------------------------------------------------ TỔNG QUAN */
 router.get('/tong-quan', async (_req, res, next) => {
@@ -170,16 +173,22 @@ router.patch('/danh-gia/:id/an', async (req, res, next) => {
 /* ------------------------------------------------------------ CÁN BỘ */
 router.get('/can-bo', async (_req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT id, full_name, username, role, is_active, failed_attempts, locked_until, last_login FROM staff ORDER BY id');
-    res.json(rows.map((r) => ({ id: r.id, hoTen: r.full_name, username: r.username, vaiTro: r.role, hoatDong: !!r.is_active,
-      soLanSai: Number(r.failed_attempts || 0), tamKhoaDen: r.locked_until, dangNhapCuoi: r.last_login })));
+    const [rows] = await pool.query('SELECT id, full_name, username, is_active, failed_attempts, locked_until, last_login, totp_bat FROM staff ORDER BY id');
+    res.json(rows.map((r) => ({ id: r.id, hoTen: r.full_name, username: r.username, hoatDong: !!r.is_active,
+      soLanSai: Number(r.failed_attempts || 0), tamKhoaDen: r.locked_until, dangNhapCuoi: r.last_login, haiLop: !!r.totp_bat })));
   } catch (e) { next(e); }
 });
 router.patch('/can-bo/:id', async (req, res, next) => {
   try {
     const id = Number(req.params.id);
-    if (id === Number(req.staff.id)) return res.status(400).json({ error: 'Không tự khoá tài khoản của chính mình.' });
-    if (req.body?.goTamKhoa) {
+    if (id === Number(req.staff.id)) return res.status(400).json({ error: 'Không tự đổi trạng thái tài khoản của chính mình — dùng mục "Tài khoản của tôi".' });
+    if (req.body?.tatHaiLop) {
+      /* Đồng nghiệp mất điện thoại: tắt hai lớp hộ để họ đăng nhập lại bằng mật khẩu,
+         thu hồi mọi phiên của họ, ghi nhật ký. Họ tự bật lại với điện thoại mới. */
+      await pool.query('UPDATE staff SET totp_bat = FALSE, totp_bi_mat = NULL, totp_buoc_cuoi = NULL WHERE id = ?', [id]);
+      await pool.query('DELETE FROM refresh_tokens WHERE staff_id = ?', [id]);
+      await ghiNhatKy(pool, req, { hanhDong: 'tat_hai_lop_ho', loaiDoiTuong: 'staff', doiTuongId: id });
+    } else if (req.body?.goTamKhoa) {
       await pool.query('UPDATE staff SET failed_attempts = 0, locked_until = NULL WHERE id = ?', [id]);
       await ghiNhatKy(pool, req, { hanhDong: 'go_tam_khoa', loaiDoiTuong: 'staff', doiTuongId: id });
     } else if (typeof req.body?.hoatDong === 'boolean') {

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
-import { AlertTriangle, Download } from 'lucide-react';
+import { AlertTriangle, Download, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminFetch, adminTaiXuong } from '../../services/adminService';
 import { TieuDeQt, The, o, nutVien } from '../../components/common/KhoiQt';
@@ -16,6 +16,11 @@ interface TK {
   duAn: { theoTrangThai: { trangThai: string; so: number; von: number }[]; theoQuocGia: { quocGia: string; so: number; von: number }[] };
   luuTru: { hang: string; so: number }[];
   nop: { soXa: number; daChot: number };
+  vuViec: { ketQua: string; so: number }[];
+  viPham: { theoLoai: { loai: string; so: number }[]; theoQuocTich: { quocTich: string; so: number }[] };
+  vanDong: { soLuot: number; soNguoi: number; soMoHinh: number };
+  lucLuong: { tongQuanSo: number; soCanBoCacTo: number; trinhDo: { trinhDo: string; so: number }[] };
+  danCu: { danSo: number; coSoTonGiao: number; tinDo: number };
   canhBao: string[];
 }
 
@@ -123,9 +128,9 @@ export default function AdminThongKe() {
             <Bar dataKey="von" name="Vốn (tỷ đồng)" fill={m.mot} radius={[0, 4, 4, 0]} maxBarSize={26} /></BarChart></Khung>
 
         <Khung tieuDe="Resort, khu nghỉ dưỡng theo hạng" moTa="Số cơ sở ở mỗi hạng sao." cao={240}>
-          <BarChart data={tk.luuTru} margin={{ left: 4, right: 34 }}>
-            <CartesianGrid vertical={false} stroke={m.luoi} /><XAxis dataKey="hang" tick={{ ...truc, fontSize: 11 }} interval={0} /><YAxis allowDecimals={false} tick={truc} width={36} />
-            <Tooltip {...goiY} /><Bar dataKey="so" name="Số cơ sở" fill={m.mot} radius={[4, 4, 0, 0]} maxBarSize={40} /></BarChart></Khung>
+          <BarChart data={tk.luuTru} layout="vertical" margin={{ left: 8, right: 16 }}>
+            <CartesianGrid horizontal={false} stroke={m.luoi} /><XAxis type="number" allowDecimals={false} tick={truc} /><YAxis type="category" dataKey="hang" tick={truc} width={110} interval={0} />
+            <Tooltip {...goiY} /><Bar dataKey="so" name="Số cơ sở" fill={m.mot} radius={[0, 4, 4, 0]} maxBarSize={22} /></BarChart></Khung>
 
         <The className="!p-4"><h2 className="text-[15px] font-bold">Bảng số khách theo xã/phường</h2><p className="mb-2 text-xs text-slate-500">Cùng số liệu với biểu đồ, dạng bảng.</p>
           <div className="max-h-[300px] overflow-auto"><table className="w-full text-[13px] tabular-nums"><thead className="sticky top-0 bg-white dark:bg-slate-900"><tr className="border-b border-slate-200 text-left text-xs text-slate-500 dark:border-slate-800">
@@ -135,6 +140,39 @@ export default function AdminThongKe() {
               <td className="text-right font-bold">{x.quocTe === null ? '—' : so(Number(x.quocTe) + Number(x.noiDia))}</td>
               {tk.kySoSanh && <td className="text-right">{x.ssQuocTe === null ? '—' : so(Number(x.ssQuocTe) + Number(x.ssNoiDia))}</td>}</tr>)}
               {!tk.khach.theoXa.length && <tr><td colSpan={5} className="py-4 text-center text-slate-500">Chưa có số liệu.</td></tr>}</tbody></table></div></The>
+      </div>
+
+      {/* ---------- An ninh, trật tự (bảng 4–10): thông tin nhạy cảm ---------- */}
+      <h2 className="mb-1 mt-8 flex items-center gap-2 text-lg font-extrabold"><EyeOff className="h-5 w-5" />An ninh, trật tự trong hoạt động du lịch</h2>
+      <p className="mb-3 text-sm text-slate-500">Từ bảng 4 đến bảng 10 — thông tin nhạy cảm, việc xem trang này đã được ghi nhật ký.</p>
+      <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {[
+          [so(tk.lucLuong.tongQuanSo), 'tổng quân số công an các xã', `${so(tk.lucLuong.soCanBoCacTo)} cán bộ trong các tổ (bảng 7)`],
+          [so(tk.vanDong.soLuot), 'lượt vận động quần chúng', `${so(tk.vanDong.soNguoi)} người · ${so(tk.vanDong.soMoHinh)} mô hình`],
+          [so(tk.viPham.theoLoai.reduce((a, r) => a + r.so, 0)), 'lượt vi phạm của khách nước ngoài', `trong kỳ ${tk.ky.ten}`],
+          [so(tk.danCu.danSo), 'dân số các xã đã báo cáo', `${so(tk.danCu.coSoTonGiao)} cơ sở tôn giáo · ${so(tk.danCu.tinDo)} tín đồ`],
+        ].map(([gt, nhan, phu], i) => (
+          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900">
+            <b className="block text-2xl font-extrabold tabular-nums">{gt}</b><small className="text-xs text-slate-500">{nhan}</small>
+            <small className="mt-0.5 block text-xs font-semibold text-slate-600 dark:text-slate-300">{phu}</small></div>))}
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Khung tieuDe="Vụ việc an ninh, trật tự theo kết quả giải quyết" moTa="Mọi vụ việc trong danh mục bảng 4." cao={200} trong={!tk.vuViec.some((r) => r.so) && 'Chưa có vụ việc.'}>
+          <BarChart data={tk.vuViec} layout="vertical" margin={{ left: 8, right: 16 }}>
+            <CartesianGrid horizontal={false} stroke={m.luoi} /><XAxis type="number" allowDecimals={false} tick={truc} /><YAxis type="category" dataKey="ketQua" tick={truc} width={130} />
+            <Tooltip {...goiY} /><Bar dataKey="so" name="Số vụ việc" fill={m.mot} radius={[0, 4, 4, 0]} maxBarSize={24} /></BarChart></Khung>
+        <Khung tieuDe="Vi phạm của khách nước ngoài theo loại" moTa={`Số lượt, trong kỳ ${tk.ky.ten}.`} cao={200} trong={!tk.viPham.theoLoai.some((r) => r.so) && 'Không có vi phạm trong kỳ.'}>
+          <BarChart data={tk.viPham.theoLoai.map((r) => ({ ...r, loai: r.loai.replace(/ \(.*\)$/, '') }))} layout="vertical" margin={{ left: 8, right: 16 }}>
+            <CartesianGrid horizontal={false} stroke={m.luoi} /><XAxis type="number" allowDecimals={false} tick={truc} /><YAxis type="category" dataKey="loai" tick={truc} width={150} />
+            <Tooltip {...goiY} /><Bar dataKey="so" name="Số lượt" fill={m.mot} radius={[0, 4, 4, 0]} maxBarSize={24} /></BarChart></Khung>
+        <Khung tieuDe="Vi phạm theo quốc tịch" moTa={`Mọi loại vi phạm, trong kỳ ${tk.ky.ten}.`} cao={caoNgang(tk.viPham.theoQuocTich.length)} trong={!tk.viPham.theoQuocTich.length && 'Không có vi phạm trong kỳ.'}>
+          <BarChart data={tk.viPham.theoQuocTich} layout="vertical" margin={{ left: 8, right: 16 }}>
+            <CartesianGrid horizontal={false} stroke={m.luoi} /><XAxis type="number" allowDecimals={false} tick={truc} /><YAxis type="category" dataKey="quocTich" tick={truc} width={100} />
+            <Tooltip {...goiY} /><Bar dataKey="so" name="Số lượt" fill={m.mot} radius={[0, 4, 4, 0]} maxBarSize={22} /></BarChart></Khung>
+        <Khung tieuDe="Trình độ cán bộ các tổ" moTa={`Bảng 7, kỳ ${tk.ky.ten}.`} cao={220} trong={!tk.lucLuong.trinhDo.some((r) => r.so) && 'Chưa nhập trình độ.'}>
+          <BarChart data={tk.lucLuong.trinhDo} margin={{ right: 8 }}>
+            <CartesianGrid vertical={false} stroke={m.luoi} /><XAxis dataKey="trinhDo" tick={{ ...truc, fontSize: 11 }} interval={0} /><YAxis allowDecimals={false} tick={truc} width={36} />
+            <Tooltip {...goiY} /><Bar dataKey="so" name="Số cán bộ" fill={m.mot} radius={[4, 4, 0, 0]} maxBarSize={40} /></BarChart></Khung>
       </div>
     </>}
   </>);

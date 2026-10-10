@@ -332,4 +332,157 @@ CREATE TABLE IF NOT EXISTS bc_luu_tru (
   FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+
+-- ============================================================================
+-- GIAI ĐOẠN 2 — BẢNG 4 ĐẾN 10 CỦA PHỤ LỤC, XÁC THỰC HAI LỚP
+-- ============================================================================
+-- Các bảng 4, 7, 8, 9, 10 là thông tin nhạy cảm (vụ việc an ninh, quân số,
+-- tôn giáo, vi phạm của người nước ngoài): KHÔNG có đường dẫn công khai nào
+-- đọc tới, mỗi lần cán bộ xem hay xuất đều ghi nhật ký.
+
+-- ------------------------------------------- BẢNG 4: VỤ VIỆC PHỨC TẠP VỀ ANTT
+CREATE TABLE IF NOT EXISTS bc_vu_viec (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  xa_phuong_id  INT NOT NULL,
+  ten           VARCHAR(255) NOT NULL,
+  nam           SMALLINT NULL COMMENT 'Năm phát sinh',
+  dien_bien     TEXT NULL,
+  huong_xu_ly   TEXT NULL,
+  ket_qua       VARCHAR(30) NULL COMMENT 'da-xu-ly | dang-xu-ly | phuc-tap',
+  ghi_chu       VARCHAR(500) NULL,
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_xa (xa_phuong_id, xoa_luc),
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id),
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 5: VĂN BẢN PHỐI HỢP LỰC LƯỢNG
+CREATE TABLE IF NOT EXISTS bc_phoi_hop (
+  id             INT PRIMARY KEY AUTO_INCREMENT,
+  xa_phuong_id   INT NOT NULL,
+  ten_van_ban    VARCHAR(500) NOT NULL,
+  ngay_ban_hanh  DATE NULL,
+  tinh_trang     VARCHAR(30) NULL COMMENT 'da-ban-hanh | dang-trinh',
+  cac_ben        TEXT NULL,
+  noi_dung       TEXT NULL,
+  nguoi_sua      INT NULL,
+  xoa_luc        DATETIME NULL,
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_xa (xa_phuong_id, xoa_luc),
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id),
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 6: VẬN ĐỘNG QUẦN CHÚNG, MÔ HÌNH
+CREATE TABLE IF NOT EXISTS bc_van_dong (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  ky_id         INT NOT NULL,
+  xa_phuong_id  INT NOT NULL,
+  ten_mo_hinh   VARCHAR(255) NOT NULL COMMENT 'Mô hình hoặc nội dung vận động',
+  so_luot       INT UNSIGNED NULL,
+  so_nguoi      INT UNSIGNED NULL,
+  so_luong      INT UNSIGNED NULL COMMENT 'Số lượng mô hình',
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ky_xa (ky_id, xa_phuong_id, xoa_luc),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 7: ĐỘI NGŨ CÁN BỘ CÔNG AN XÃ
+-- Mỗi tổ một dòng. Máy kiểm: chức vụ, trình độ, chuyên môn, độ tuổi — nhóm
+-- nào đã nhập thì cộng lại phải bằng số lượng của tổ.
+CREATE TABLE IF NOT EXISTS bc_luc_luong (
+  id              INT PRIMARY KEY AUTO_INCREMENT,
+  ky_id           INT NOT NULL,
+  xa_phuong_id    INT NOT NULL,
+  ten_to          VARCHAR(120) NOT NULL,
+  so_luong        INT UNSIGNED NOT NULL DEFAULT 0,
+  cv_pho_truong   INT UNSIGNED NULL, cv_to_truong INT UNSIGNED NULL, cv_to_pho INT UNSIGNED NULL, cv_can_bo INT UNSIGNED NULL,
+  td_tien_si      INT UNSIGNED NULL, td_thac_si INT UNSIGNED NULL, td_dai_hoc INT UNSIGNED NULL, td_cao_dang INT UNSIGNED NULL, td_trung_cap INT UNSIGNED NULL,
+  cm_an_ninh      INT UNSIGNED NULL, cm_canh_sat INT UNSIGNED NULL,
+  tuoi_duoi_30    INT UNSIGNED NULL, tuoi_30_40 INT UNSIGNED NULL, tuoi_tren_40 INT UNSIGNED NULL,
+  nguoi_sua       INT NULL,
+  xoa_luc         DATETIME NULL,
+  created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ky_xa (ky_id, xa_phuong_id, xoa_luc),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+/* Tổng quân số công an của xã: một số cho mỗi xã mỗi kỳ, khác tổng các tổ
+   (không phải ai cũng thuộc tổ phụ trách du lịch). */
+CREATE TABLE IF NOT EXISTS bc_quan_so (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  ky_id         INT NOT NULL,
+  xa_phuong_id  INT NOT NULL,
+  tong_quan_so  INT UNSIGNED NOT NULL DEFAULT 0,
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ky_xa (ky_id, xa_phuong_id),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 8: DÂN CƯ, DÂN TỘC, TÔN GIÁO
+CREATE TABLE IF NOT EXISTS bc_dan_cu (
+  id               INT PRIMARY KEY AUTO_INCREMENT,
+  ky_id            INT NOT NULL,
+  xa_phuong_id     INT NOT NULL,
+  so_to_thon       INT UNSIGNED NULL,
+  dan_so           INT UNSIGNED NULL,
+  so_dan_toc       INT UNSIGNED NULL,
+  co_so_ton_giao   INT UNSIGNED NULL,
+  chuc_sac         INT UNSIGNED NULL,
+  tin_do           INT UNSIGNED NULL,
+  ghi_chu          VARCHAR(500) NULL,
+  nguoi_sua        INT NULL,
+  xoa_luc          DATETIME NULL,
+  created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_ky_xa (ky_id, xa_phuong_id),
+  FOREIGN KEY (ky_id) REFERENCES ky_bao_cao(id) ON DELETE CASCADE,
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- BẢNG 9: VI PHẠM CỦA KHÁCH NƯỚC NGOÀI
+-- Mỗi vụ một dòng, CÓ QUỐC TỊCH -> bảng 10 (theo quốc tịch) do máy tự tổng
+-- hợp từ đây, không nhập hai lần, không bao giờ lệch nhau.
+CREATE TABLE IF NOT EXISTS bc_vi_pham (
+  id            INT PRIMARY KEY AUTO_INCREMENT,
+  xa_phuong_id  INT NOT NULL,
+  ngay          DATE NOT NULL,
+  loai          VARCHAR(30) NOT NULL COMMENT 'hinh-su | xuat-nhap-canh | trat-tu | khac',
+  quoc_tich     VARCHAR(60) NOT NULL,
+  so_luot       INT UNSIGNED NOT NULL DEFAULT 1,
+  noi_dung      VARCHAR(1000) NULL,
+  nguoi_sua     INT NULL,
+  xoa_luc       DATETIME NULL,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_xa_ngay (xa_phuong_id, ngay, xoa_luc),
+  FOREIGN KEY (xa_phuong_id) REFERENCES xa_phuong(id),
+  FOREIGN KEY (nguoi_sua) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------- XÁC THỰC HAI LỚP (TỰ NGUYỆN)
+-- Cán bộ tự bật trong "Tài khoản của tôi": sau mật khẩu phải nhập mã 6 số
+-- trên điện thoại (Google Authenticator, Microsoft Authenticator...).
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff' AND COLUMN_NAME = 'totp_bi_mat');
+SET @lenh := IF(@co = 0, 'ALTER TABLE staff ADD COLUMN totp_bi_mat VARCHAR(64) NULL, ADD COLUMN totp_bat BOOLEAN NOT NULL DEFAULT FALSE, ADD COLUMN totp_buoc_cuoi BIGINT NULL COMMENT ''Chặn dùng lại mã vừa dùng''', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

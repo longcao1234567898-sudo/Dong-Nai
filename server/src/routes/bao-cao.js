@@ -16,7 +16,7 @@ import express, { Router } from 'express';
 import { pool } from '../db.js';
 import { ghiNhatKy } from '../lib/helpers.js';
 import { sanitizeText } from '../lib/security.js';
-import { BANG, layBang, cauHinhGiaoDien, docDong, raDong, tenXa, tachTenXa, chuanHoa, hienGiaTri, docNgay, TRANG_THAI_DU_AN } from '../lib/phu-luc.js';
+import { BANG, layBang, cauHinhGiaoDien, docDong, raDong, tenXa, tachTenXa, chuanHoa, hienGiaTri, docNgay, TRANG_THAI_DU_AN, KET_QUA_VU_VIEC, LOAI_VI_PHAM } from '../lib/phu-luc.js';
 import { docTepExcel, taoTepMau, LoiNhap } from '../lib/excel-nhap.js';
 import { dungBang, xuatExcel, xuatWord } from '../lib/xuat-phu-luc.js';
 
@@ -62,6 +62,18 @@ function khacNhau(bang, cuRow, moi) {
     if (String(cu[t.k] ?? '') !== String(moi[t.k] ?? '')) { a[t.k] = cu[t.k]; b[t.k] = moi[t.k]; }
   }
   return Object.keys(b).length ? { cu: a, moi: b } : null;
+}
+
+/* Bảng nhạy cảm (mat): ghi nhật ký mỗi lần xem. Trang tự tải lại nhiều lần
+   khi đang mở, nên mỗi cán bộ mỗi bảng chỉ ghi một lần trong 10 phút —
+   đủ để biết ai đã xem, không làm nhật ký ngập dòng trùng. */
+const daGhiXem = new Map();
+async function ghiXemNhayCam(req, bang) {
+  if (!bang.mat) return;
+  const khoa = `${req.staff.id}:${bang.key}`, luc = Date.now();
+  if (luc - (daGhiXem.get(khoa) || 0) < 10 * 60_000) return;
+  daGhiXem.set(khoa, luc);
+  await ghiNhatKy(pool, req, { hanhDong: 'xem_du_lieu_nhay_cam', loaiDoiTuong: bang.key, chiTiet: { bang: bang.so } });
 }
 
 const timBang = (req, res) => {
@@ -239,7 +251,12 @@ router.put('/khong-phat-sinh', async (req, res, next) => {
 router.get('/bang/:bang', async (req, res, next) => {
   try {
     const bang = timBang(req, res); if (!bang) return;
-    if (bang.dan) return res.json(await bang.tinh(pool, req.query));
+    await ghiXemNhayCam(req, bang);
+    if (bang.dan) {
+      const ky = Number(req.query.ky) ? await layKy(req.query.ky) : null;
+      const dong = await bang.tinh(pool, ky ? { tu: ky.tu_ngay, den: ky.den_ngay } : {});
+      return res.json(Number(req.query.xa) ? dong.filter((r) => r.xa_phuong_id === Number(req.query.xa)) : dong);
+    }
     const dk = [req.query.daXoa === '1' ? 't.xoa_luc IS NOT NULL' : 't.xoa_luc IS NULL'], ts = [];
     if (bang.theoKy) {
       if (!Number(req.query.ky)) return res.status(400).json({ error: 'Chọn kỳ báo cáo.' });
@@ -465,24 +482,34 @@ export async function gomPhuLuc({ ky, kySoSanh, xaId, tu, den, dsKey }) {
   const kyDs = [ky, kySoSanh].filter(Boolean);
   const [kpsRows] = await pool.query(`SELECT ky_id, xa_phuong_id, bang FROM khong_phat_sinh WHERE ky_id IN (${kyDs.map(() => '?').join(',')})`, kyDs.map((k) => k.id));
   const ketQua = [];
-  for (const bang of BANG.filter((b) => !dsKey || dsKey.includes(b.key))) {
+  const ngay = (v) => hienGiaTri({ kieu: 'ngay' }, v);
+  for (const bang of BANG.filter((b) => !b.anXuat && (!dsKey || dsKey.includes(b.key)))) {
+    /* Kỳ so sánh chỉ áp cho bảng có soSanh (bảng khách); bảng khác chỉ lấy kỳ chính. */
+    const kyBang = bang.theoKy && bang.soSanh ? kyDs : [ky];
     let dong;
     if (bang.dan) dong = await bang.tinh(pool, { tu, den });
     else {
       const dk = ['xoa_luc IS NULL'], ts = [];
-      if (bang.theoKy) { dk.push(`ky_id IN (${kyDs.map(() => '?').join(',')})`); ts.push(...kyDs.map((k) => k.id)); }
+      if (bang.theoKy) { dk.push(`ky_id IN (${kyBang.map(() => '?').join(',')})`); ts.push(...kyBang.map((k) => k.id)); }
       if (bang.locNgay && tu) { dk.push(`(${bang.locNgay} IS NULL OR ${bang.locNgay} >= ?)`); ts.push(tu); }
-      if (bang.locNgay && den) { dk.push(`(${bang.locNgay} IS NULL OR ${bang.locNgay} <= ?)`); ts.push(den); }
+      const cuoi = bang.locNgay || bang.locDen;
+      if (cuoi && den) { dk.push(`(${cuoi} IS NULL OR ${cuoi} <= ?)`); ts.push(den); }
       if (bang.locNam && den) { dk.push(`(${bang.locNam} IS NULL OR ${bang.locNam} <= ?)`); ts.push(Number(String(den).slice(0, 4))); }
       const [rows] = await pool.query(`SELECT * FROM ${bang.bangDb} WHERE ${dk.join(' AND ')} ORDER BY xa_phuong_id, id`, ts);
       dong = rows.map((r) => raDong(bang, r));
     }
+    let theoXa = null;
+    if (bang.kemTheoXa) {
+      const nguon = layBang(bang.kemTheoXa.bang);
+      const [rows] = await pool.query(`SELECT xa_phuong_id, ${bang.kemTheoXa.truong} AS gt FROM ${nguon.bangDb} WHERE xoa_luc IS NULL AND ky_id = ?`, [ky.id]);
+      theoXa = { nhan: bang.kemTheoXa.nhan, gt: new Map(rows.map((r) => [r.xa_phuong_id, Number(r.gt)])) };
+    }
     const coSo = new Set(dong.map((r) => r.xa_phuong_id));
     const dsXa = dsXaTatCa.filter((x) => (xaId ? x.id === xaId : x.hien || coSo.has(x.id)));
     const kps = new Set(kpsRows.filter((k) => k.bang === bang.key).map((k) => `${k.ky_id}:${k.xa_phuong_id}`));
-    const phuDe = bang.theoKy ? `Kỳ: ${kyDs.map((k) => k.ten).join(' và ')}`
-      : bang.locNgay || bang.dan ? `Từ ${hienGiaTri({ kieu: 'ngay' }, tu)} đến ${hienGiaTri({ kieu: 'ngay' }, den)}` : `Tính đến ${hienGiaTri({ kieu: 'ngay' }, den)}`;
-    ketQua.push(dungBang(bang, { dsXa, dong, kyDs: bang.theoKy ? kyDs : [ky], khongPhatSinh: kps, phuDe }));
+    const phuDe = bang.theoKy ? `Kỳ: ${kyBang.map((k) => k.ten).join(' và ')}`
+      : bang.locNgay ? `Từ ${ngay(tu)} đến ${ngay(den)}` : `Tính đến ${ngay(den)}`;
+    ketQua.push({ ...dungBang(bang, { dsXa, dong, kyDs: kyBang, khongPhatSinh: kps, phuDe, theoXa }), mat: !!bang.mat });
   }
   return ketQua;
 }
@@ -496,13 +523,18 @@ router.get('/xuat', async (req, res, next) => {
     const dsKey = req.query.bang ? String(req.query.bang).split(',').filter((k) => layBang(k)) : null;
     const xaId = Number(req.query.xa) || null;
     const dsBang = await gomPhuLuc({ ky, kySoSanh, xaId, tu, den, dsKey });
+    if (!dsBang.length) return res.status(400).json({ error: 'Chọn ít nhất một bảng để xuất.' });
     const p = (n) => String(n).padStart(2, '0'), d = new Date();
+    const coMat = dsBang.some((b) => b.mat);
+    /* Mức độ chỉ là lời nhắc trên tệp. Việc đóng dấu mật theo quy định là của
+       cơ quan — hệ thống không tự phân loại bí mật nhà nước. */
     const meta = { kyTen: ky.ten + (kySoSanh ? ` (so sánh: ${kySoSanh.ten})` : ''), nguoiXuat: req.staff.name || req.staff.username,
-      luc: `${p(d.getHours())}:${p(d.getMinutes())} ngày ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`, mucDo: 'TÀI LIỆU NỘI BỘ' };
+      luc: `${p(d.getHours())}:${p(d.getMinutes())} ngày ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`,
+      mucDo: coMat ? 'TÀI LIỆU NỘI BỘ — CÓ THÔNG TIN NHẠY CẢM, KHÔNG PHÁT TÁN' : 'TÀI LIỆU NỘI BỘ' };
     const word = req.query.dinhDang === 'docx';
     const buf = word ? await xuatWord(dsBang, meta) : await xuatExcel(dsBang, meta);
     await ghiNhatKy(pool, req, { hanhDong: 'xuat_phu_luc', loaiDoiTuong: 'ky_bao_cao', doiTuongId: ky.id,
-      chiTiet: { dinhDang: word ? 'docx' : 'xlsx', bang: dsBang.map((b) => b.so), xa: xaId } });
+      chiTiet: { dinhDang: word ? 'docx' : 'xlsx', bang: dsBang.map((b) => b.so), xa: xaId, nhayCam: coMat } });
     res.setHeader('Content-Type', word ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="phu-luc-thong-ke-ky-${ky.id}.${word ? 'docx' : 'xlsx'}"`);
     res.send(buf);
@@ -551,6 +583,21 @@ router.get('/thong-ke', async (req, res, next) => {
     const tamNgung = duAnTT.filter((r) => ['tam-ngung', 'thu-hoi', 'cham-trien-khai'].includes(r.trang_thai)).reduce((s, r) => s + Number(r.so), 0);
     if (tamNgung) canhBao.push(`${tamNgung} dự án đang tạm ngưng, chậm triển khai hoặc có chủ trương thu hồi.`);
 
+    /* Bảng 4–9: có thông tin nhạy cảm nên việc xem thống kê cũng ghi nhật ký. */
+    await ghiXemNhayCam(req, { mat: true, key: 'thong-ke', so: 'thống kê' });
+    const [vuViec] = await pool.query(`SELECT ket_qua, COUNT(*) AS so FROM bc_vu_viec WHERE xoa_luc IS NULL GROUP BY ket_qua`);
+    const [vpLoai] = await pool.query(`SELECT loai, SUM(so_luot) AS so FROM bc_vi_pham WHERE xoa_luc IS NULL AND ngay BETWEEN ? AND ? GROUP BY loai`, [ky.tu_ngay, ky.den_ngay]);
+    const [vpQt] = await pool.query(
+      `SELECT MIN(TRIM(quoc_tich)) AS qt, SUM(so_luot) AS so FROM bc_vi_pham WHERE xoa_luc IS NULL AND ngay BETWEEN ? AND ? GROUP BY TRIM(quoc_tich) ORDER BY so DESC LIMIT 10`, [ky.tu_ngay, ky.den_ngay]);
+    const [[vd]] = await pool.query(`SELECT COALESCE(SUM(so_luot), 0) AS luot, COALESCE(SUM(so_nguoi), 0) AS nguoi, COALESCE(SUM(so_luong), 0) AS mo_hinh FROM bc_van_dong WHERE xoa_luc IS NULL AND ky_id = ?`, [ky.id]);
+    const [[ll]] = await pool.query(
+      `SELECT COALESCE(SUM(so_luong), 0) AS so, COALESCE(SUM(td_tien_si), 0) AS ts, COALESCE(SUM(td_thac_si), 0) AS ths, COALESCE(SUM(td_dai_hoc), 0) AS dh,
+              COALESCE(SUM(td_cao_dang), 0) AS cd, COALESCE(SUM(td_trung_cap), 0) AS tc FROM bc_luc_luong WHERE xoa_luc IS NULL AND ky_id = ?`, [ky.id]);
+    const [[qs]] = await pool.query(`SELECT COALESCE(SUM(tong_quan_so), 0) AS so FROM bc_quan_so WHERE xoa_luc IS NULL AND ky_id = ?`, [ky.id]);
+    const [[dc]] = await pool.query(`SELECT COALESCE(SUM(dan_so), 0) AS dan_so, COALESCE(SUM(co_so_ton_giao), 0) AS co_so, COALESCE(SUM(tin_do), 0) AS tin_do FROM bc_dan_cu WHERE xoa_luc IS NULL AND ky_id = ?`, [ky.id]);
+    const phucTap = Number(vuViec.find((r) => r.ket_qua === 'phuc-tap')?.so || 0);
+    if (phucTap) canhBao.push(`${phucTap} vụ việc về an ninh, trật tự đang diễn biến phức tạp.`);
+
     res.json({
       ky: raKy(ky), kySoSanh: ss ? raKy(ss) : null,
       khach: { quocTe: cong(ky.id, 'quoc_te'), noiDia: cong(ky.id, 'noi_dia'), ssQuocTe: ss ? cong(ss.id, 'quoc_te') : null, ssNoiDia: ss ? cong(ss.id, 'noi_dia') : null, theoXa: khachTheoXa },
@@ -561,6 +608,13 @@ router.get('/thong-ke', async (req, res, next) => {
       },
       luuTru: [5, 4, 3, 2, 1, 0].map((h) => ({ hang: h ? `${h} sao` : 'Chưa xếp hạng', so: Number(luuTru.find((r) => Number(r.hang_sao) === h)?.so || 0) })),
       nop: { soXa, daChot },
+      vuViec: KET_QUA_VU_VIEC.map(([k, n]) => ({ ketQua: n, so: Number(vuViec.find((r) => r.ket_qua === k)?.so || 0) })),
+      viPham: { theoLoai: LOAI_VI_PHAM.map(([k, n]) => ({ loai: n, so: Number(vpLoai.find((r) => r.loai === k)?.so || 0) })),
+        theoQuocTich: vpQt.map((r) => ({ quocTich: r.qt, so: Number(r.so) })) },
+      vanDong: { soLuot: Number(vd.luot), soNguoi: Number(vd.nguoi), soMoHinh: Number(vd.mo_hinh) },
+      lucLuong: { tongQuanSo: Number(qs.so), soCanBoCacTo: Number(ll.so),
+        trinhDo: [['Tiến sĩ', ll.ts], ['Thạc sĩ', ll.ths], ['Đại học', ll.dh], ['Cao đẳng', ll.cd], ['Trung cấp', ll.tc]].map(([t, v]) => ({ trinhDo: t, so: Number(v) })) },
+      danCu: { danSo: Number(dc.dan_so), coSoTonGiao: Number(dc.co_so), tinDo: Number(dc.tin_do) },
       canhBao,
     });
   } catch (e) { next(e); }
