@@ -28,13 +28,19 @@ async function goi<T>(path: string, init: RequestInit = {}): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const loiCauHinh = (data as { canXacMinh?: boolean })?.canXacMinh ? xuLyCanXacMinh() : null;
-    throw new Error(loiCauHinh || (data as { error?: string })?.error || 'Có lỗi xảy ra.');
+    const e = new Error(loiCauHinh || (data as { error?: string })?.error || 'Có lỗi xảy ra.') as LoiApi;
+    e.trangThai = res.status;
+    throw e;
   }
   return data as T;
 }
-/** Cổng vào: đổi mã Turnstile lấy vé 12 giờ. */
+/** Lỗi máy chủ trả về kèm mã trạng thái HTTP (không có = không tới được máy chủ). */
+export type LoiApi = Error & { trangThai?: number };
+/** Cổng vào: đổi mã Turnstile lấy vé 12 giờ. Chờ tối đa 90 giây: máy chủ Render gói miễn phí
+    ngủ khi vắng khách, lần gọi đầu phải đợi nó khởi động (thường 30–60 giây). */
 export async function doiVeXacMinh(token: string): Promise<void> {
-  const d = await goi<{ ve: string | null; hetHan?: number; tat?: boolean }>('/xac-minh', { method: 'POST', body: JSON.stringify({ token }) });
+  const d = await goi<{ ve: string | null; hetHan?: number; tat?: boolean }>('/xac-minh',
+    { method: 'POST', body: JSON.stringify({ token }), signal: AbortSignal.timeout(90_000) });
   luuVe(d.ve || VE_TAT, d.hetHan || Date.now() + 12 * 3_600_000);
 }
 export const layDiaDiem = async () => { const d = await goi<DiaDiem[]>('/dia-diem'); if (!Array.isArray(d)) throw new Error('Dữ liệu địa điểm sai định dạng.'); return d; };
