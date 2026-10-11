@@ -30,7 +30,7 @@ const soChang = (i: number, n: number, tre: number) => L.divIcon({ className: ''
   html: `<span class="so-chang${i === 0 ? ' dau' : i === n - 1 ? ' cuoi' : ''}" style="--tre:${Math.round(tre)}ms">${i + 1}</span>` });
 
 /** Di chuyển khung nhìn khi chọn điểm hoặc tuyến; vẽ tuyến sau khi bay tới. */
-function DieuKhien({ tam, khoaTuyen, tuyen, choKeo }: { tam: [number, number] | null; khoaTuyen: string; tuyen: React.RefObject<L.Polyline>; choKeo: boolean }) {
+function DieuKhien({ tam, lia, khoaTuyen, tuyen, choKeo }: { tam: [number, number] | null; lia: [number, number] | null; khoaTuyen: string; tuyen: React.RefObject<L.Polyline>; choKeo: boolean }) {
   const map = useMap();
   /* Phụ thuộc vào CHUỖI khoá chứ không vào mảng toạ độ: mảng tạo mới mỗi lần
      vẽ, phụ thuộc vào mảng thì bản đồ bay lại liên tục mỗi khi trang cập nhật. */
@@ -56,6 +56,11 @@ function DieuKhien({ tam, khoaTuyen, tuyen, choKeo }: { tam: [number, number] | 
   useEffect(() => {
     if (tam) map.flyTo(tam, Math.max(map.getZoom(), 11), { duration: giamChuyenDong() ? 0 : 0.6 });
   }, [map, tam]);
+  /* Lia tới (giữ nguyên mức phóng): dùng khi kể chuyện theo cuộn ở trang lộ trình. */
+  const khoaLia = lia ? lia.join(',') : '';
+  useEffect(() => { if (lia) map.panTo(lia, { animate: !giamChuyenDong(), duration: 0.5 }); },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [map, khoaLia]);
   useEffect(() => { if (choKeo) map.dragging.enable(); else map.dragging.disable(); }, [map, choKeo]);
   return null;
 }
@@ -65,8 +70,8 @@ function NutToanCanh() {
     className="kinh absolute right-3 top-3 z-[1000] grid h-10 w-10 place-items-center rounded-xl shadow-sh-2"><Maximize2 className="h-[18px] w-[18px]" /></button>;
 }
 
-export default function BanDo({ ds, tuyen = [], tam = null, chon = null, onChon, thap = false, cao }: {
-  ds: DiaDiem[]; tuyen?: DiaDiem[]; tam?: [number, number] | null; chon?: string | null; onChon: (id: string) => void; thap?: boolean; cao?: string;
+export default function BanDo({ ds, tuyen = [], tam = null, lia = null, chon = null, onChon, thap = false, cao }: {
+  ds: DiaDiem[]; tuyen?: DiaDiem[]; tam?: [number, number] | null; lia?: [number, number] | null; chon?: string | null; onChon: (id: string) => void; thap?: boolean; cao?: string;
 }) {
   const { chon: dich, t } = useNN();
   const duong = useRef<L.Polyline>(null);
@@ -93,7 +98,7 @@ export default function BanDo({ ds, tuyen = [], tam = null, chon = null, onChon,
         ))}
         {toaTuyen.length > 1 && <Polyline key={toaTuyen.join(';')} ref={duong} positions={toaTuyen} className="tuyen" pathOptions={{ color: '#D4552F', weight: 4, opacity: 0.95 }} />}
         {toaTuyen.map((toa, i) => <Marker key={'c' + toaTuyen.join(';') + i} position={toa} icon={soChang(i, toaTuyen.length, tre[i])} interactive={false} keyboard={false} zIndexOffset={1000} />)}
-        <DieuKhien tam={tam} khoaTuyen={toaTuyen.map((x) => x.join(',')).join(';')} tuyen={duong} choKeo={choKeo} />
+        <DieuKhien tam={tam} lia={lia} khoaTuyen={toaTuyen.map((x) => x.join(',')).join(';')} tuyen={duong} choKeo={choKeo} />
         <NutToanCanh />
       </MapContainer>
       {!choKeo && <button type="button" onClick={() => setChoKeo(true)}

@@ -35,6 +35,12 @@ export default {
         },
         secondary: { 50: '#EEF3F1', 100: '#DCE6E2', 400: '#5B8A7E', 500: '#123C35', 600: '#0F302A', 700: '#0B241F' },
         accent: { 100: '#FBF1DC', 500: '#EABF67', 600: '#9A6B12' },
+        /* Xám trung tính ngả xanh rừng thay cho xám xanh dương mặc định: khu quản trị và các
+           chỗ còn dùng slate-* tự khớp bảng màu, kể cả chế độ tối. 500 = chữ phụ (5.6:1 trên trắng). */
+        slate: {
+          50: '#F7F5EF', 100: '#EFEBE1', 200: '#DDD8CC', 300: '#BDB7A8', 400: '#8C9893', 500: '#5B6B66',
+          600: '#4A5854', 700: '#34413D', 800: '#1F3A33', 900: '#18302A', 950: '#0E1F1B',
+        },
       },
       fontFamily: {
         // Be Vietnam Pro: dấu hai tầng (Ố, Ộ, Ữ) đầy đủ. Newsreader: serif biên tập, có bộ tiếng Việt.

@@ -46,3 +46,19 @@ export function TieuDeKhoi({ tieuDe, moTa, phai, toi = false }: { tieuDe: string
       {phai}
     </div>);
 }
+
+/** Đầu trang con: tiêu đề serif trên nền đường đồng mức, có lối quay lại và nút phụ bên phải. */
+export function DauTrang({ tieuDe, moTa, phai, quayLai, children }: { tieuDe: ReactNode; moTa?: ReactNode; phai?: ReactNode; quayLai?: ReactNode; children?: ReactNode }) {
+  return (
+    <header className="nen-dong-muc border-b border-line/60 pb-10 pt-12 sm:pb-14 sm:pt-16">
+      <div className="container-page">
+        {quayLai && <div className="mb-4 text-sm font-semibold">{quayLai}</div>}
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+          <div className="max-w-3xl"><h1 className="tieu-de-muc">{tieuDe}</h1>
+            {moTa && <p className="mt-3 text-[17px] leading-relaxed text-muted">{moTa}</p>}</div>
+          {phai}
+        </div>
+        {children}
+      </div>
+    </header>);
+}

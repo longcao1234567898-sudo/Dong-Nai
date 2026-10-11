@@ -165,18 +165,19 @@ h1, h2, h3, h4, h5, h6 { line-height: 1.45; }
   transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0);
   transform-style: preserve-3d;
   transition: transform .6s var(--ease-expo), box-shadow .6s var(--ease-expo);
-  will-change: transform;
 }
-.fx-the.dang-nghieng { transition: transform .12s linear, box-shadow .6s var(--ease-expo); }
+.fx-the.dang-nghieng { transition: transform .12s linear, box-shadow .6s var(--ease-expo); will-change: transform; }
 .fx-the::after {
   content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
   background: radial-gradient(520px circle at var(--gx, 50%) var(--gy, 0%), rgb(255 250 235 / .26), transparent 45%);
   opacity: 0; transition: opacity .5s var(--ease-out);
 }
 .fx-the.dang-nghieng::after { opacity: 1; }
-/* Lớp nổi trong thẻ: tách khỏi mặt thẻ theo trục Z. */
-.fx-noi { transform: translateZ(36px); }
-.fx-noi-it { transform: translateZ(18px); }
+/* Lớp nổi trong thẻ: chỉ tách khỏi mặt thẻ theo trục Z khi đang nghiêng. Lúc đứng yên
+   không đẩy Z — chữ bị phóng theo phối cảnh sẽ nhoè. */
+.fx-noi, .fx-noi-it { transition: transform .6s var(--ease-expo); }
+.fx-the.dang-nghieng .fx-noi { transform: translateZ(36px); }
+.fx-the.dang-nghieng .fx-noi-it { transform: translateZ(18px); }
 
 /* Ảnh trong khung trôi ngược chiều cuộn: khung là cửa sổ, ảnh nằm sâu phía sau. */
 @supports (animation-timeline: view()) {
@@ -268,7 +269,7 @@ h1, h2, h3, h4, h5, h6 { line-height: 1.45; }
 .ghim-3d.trong-chu { pointer-events: none; }
 .ghim-3d.nhan-trai { flex-direction: row-reverse; translate: calc(-100% + 12px) 0; padding: 2px 2px 2px 6px; }
 .ghim-3d.nhan-trai .ghim-3d-ten { transform: translateX(4px); }
-.ghim-3d.trong-chu .ghim-3d-ten { opacity: 0; }
+.ghim-3d.trong-chu .ghim-3d-ten, .ghim-3d.an-ten .ghim-3d-ten { opacity: 0; }
 .ghim-3d:hover .ghim-3d-cham { transform: scale(1.3); }
 
 /* Khung ảnh: ảnh hiện dần khi có; khung chờ có đường đồng mức; nhãn nói rõ ảnh minh hoạ. */

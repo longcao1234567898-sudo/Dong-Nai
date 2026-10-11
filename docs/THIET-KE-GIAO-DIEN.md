@@ -4,6 +4,22 @@ Phạm vi: trang chủ (6 khối A–F) và hệ thống thiết kế dùng chun
 
 Mã nguồn hiện có: React 18 + TypeScript + Vite + Tailwind 3 + react-query + react-leaflet (nền OpenStreetMap) + lucide-react. Song ngữ qua `useNN()` (`t`, `chon`). Đọc mục [Ràng buộc dữ liệu](#ràng-buộc-dữ-liệu-đọc-trước-khi-dựng) trước khi dựng: trang này là trang của cơ quan nhà nước, **mọi con số, ảnh, đánh giá trên trang phải lần ra được nguồn thật**.
 
+## Đã dựng: bản 3D (thay đổi so với bản thiết kế ban đầu)
+
+Theo yêu cầu "bớt phẳng, bớt nhựa, có chiều sâu 3D", bản dựng đổi mấy chỗ dưới đây. Các mục 1–10 phía sau vẫn đúng, trừ những chỗ ghi ở đây.
+
+| Chỗ | Bản thiết kế | Bản đã dựng | Lý do |
+|---|---|---|---|
+| Hero | Ảnh chụp toàn khung | **Cảnh 3D (three.js)**: địa hình minh hoạ thành phố lúc rạng sáng, nhìn từ Biên Hoà lên phía bắc. Núi Bà Rá, Chứa Chan, hồ Trị An, Thác Mơ, Suối Lam, sông Đồng Nai, sông Bé đặt theo toạ độ thật (đường sông gần đúng); 15 ghim đúng toạ độ. Cuộn trang thì máy quay bay về phía bắc, rê chuột thì cảnh lệch nhẹ. | Chưa có ảnh thật; cảnh 3D là thứ không "nhựa" mà vẫn trung thực. Có dòng "Địa hình minh hoạ, không theo tỉ lệ". |
+| Ảnh thẻ chưa có ảnh thật | Khung chờ có đường đồng mức | **Ảnh nhìn từ trên cao do chính cảnh 3D chụp** tại toạ độ của điểm / theo tuyến của lộ trình (đường san hô bám mặt đất), có nhãn "Địa hình minh hoạ". Vào thẳng trang con thì cảnh 3D dựng ẩn để chụp rồi gỡ (`ChupDiaHinh.tsx`). | Thẻ có hình thật sự khác nhau, có chiều sâu. Ảnh cán bộ tải lên luôn được ưu tiên. |
+| Hiện khi cuộn | Trượt lên 24px | Khối **đứng dậy từ mặt phẳng nghiêng** (perspective + rotateX), khung bản đồ nghiêng mạnh hơn rồi phẳng hẳn để thao tác. | Chiều sâu thay cho trượt phẳng. |
+| Thẻ | Phóng ảnh khi rê chuột | **Nghiêng theo chuột + vệt sáng chạy theo**, lớp chữ tách khỏi mặt ảnh theo trục Z khi đang nghiêng (đứng yên thì không, tránh chữ nhoè). Một bộ lắng nghe cho cả trang (`utils/hieuUng.ts`). | Vật thể dưới ánh đèn, không phải mảng màu phẳng. |
+| Nền | Ivory phẳng | Hạt giấy rất nhẹ + đường đồng mức (sinh bằng `scripts/tao-nen-dong-muc.py`, dùng làm mặt nạ nên đổi màu theo token), trôi chậm hơn nội dung khi cuộn; mảng tối có vùng sáng ấm như nắng sớm. | |
+| Đổi bộ lọc / đổi lộ trình | Motion for React | **View Transitions** của trình duyệt (`chuyenCanh`); trình duyệt chưa hỗ trợ thì đổi ngay. Không thêm thư viện chuyển động. | Gói nhẹ hơn. |
+| Khu cán bộ | Không đổi | Thang `primary`, `slate` ánh xạ về bảng màu mới; thanh đầu nền rừng đêm; trang đăng nhập đặt trên cảnh 3D chạy chậm. | Hai khu cùng một giọng. |
+
+Hiệu năng cảnh 3D: gói three.js tải sau (~140 kB nén), lưới địa hình dựng ở luồng phụ, khuất màn hình hoặc tab ẩn thì dừng; khi người xem không tương tác thì máy khoẻ vẽ 30 hình/giây, máy yếu dừng hẳn. Máy không có WebGL: nền rạng sáng tĩnh bằng CSS. Bật "giảm chuyển động": vẽ đúng một khung, không bay, không nghiêng.
+
 Mục lục
 
 1. [Art direction](#1-art-direction)

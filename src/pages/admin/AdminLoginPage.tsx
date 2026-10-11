@@ -1,10 +1,14 @@
 /** Trang đăng nhập khu vực cán bộ */
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Lock, User, Loader2, Smartphone } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import Turnstile, { captchaEnabled } from '../../components/common/Turnstile';
 import { LoginError } from '../../services/adminService';
+
+/* Nền: cùng cảnh địa hình 3D với trang chủ, chế độ nền (không ghim, trôi rất chậm). */
+const Canh3D = lazy(() => import('../../components/trang-chu/Canh3D'));
+const coWebGL = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { return false; } };
 
 export default function AdminLoginPage() {
   const { login, staff, loading: dangKhoiPhucPhien } = useAdminAuth();
@@ -13,6 +17,9 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [webgl] = useState(coWebGL);
+  const [nenSanSang, setNenSanSang] = useState(false);
+  const [nenLoi, setNenLoi] = useState(false);
 
   /* ==========================================================================
      Ô XÁC MINH CHỈ HIỆN KHI MÁY CHỦ YÊU CẦU
@@ -85,16 +92,18 @@ export default function AdminLoginPage() {
   if (staff) return <Navigate to="/quan-tri" replace />;
 
   return (
-    <div className="container-page flex items-center justify-center py-12 sm:py-20">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-soft dark:bg-slate-900">
+    <div className="relative isolate flex min-h-[calc(100svh-4rem)] items-center justify-center overflow-hidden bg-[#0C2925] px-4 py-12 sm:py-20">
+      <div className="hero-nen absolute inset-0" aria-hidden="true" />
+      {webgl && !nenLoi && <div className={`absolute inset-0 transition-opacity duration-[1400ms] ${nenSanSang ? 'opacity-100' : 'opacity-0'}`}>
+        <Suspense fallback={null}><Canh3D cheDo="nen" onSanSang={() => setNenSanSang(true)} onLoi={() => setNenLoi(true)} /></Suspense></div>}
+      <div className="absolute inset-0 bg-[#0C2925]/30" aria-hidden="true" />
+      <div className="hop-thoai relative w-full max-w-md rounded-[24px] bg-paper p-8 text-ink shadow-sh-3">
         <div className="mb-6 text-center">
-          <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-600 text-white">
-            <ShieldCheck className="h-8 w-8" />
+          <span className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-forest text-[#F7F5EF]">
+            <ShieldCheck className="h-7 w-7" />
           </span>
-          <h1 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">Khu vực cán bộ</h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Du lịch Đồng Nai — Thành phố Đồng Nai
-          </p>
+          <h1 className="tieu-de-vua">Khu vực cán bộ</h1>
+          <p className="mt-1 text-sm text-muted">Du lịch Đồng Nai, thành phố Đồng Nai</p>
         </div>
 
         {error && (
@@ -171,7 +180,7 @@ export default function AdminLoginPage() {
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 py-3 font-bold text-white shadow-soft transition-opacity hover:opacity-95 disabled:opacity-60"
+          className="nut nut-chinh w-full"
         >
           {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Đang đăng nhập...</> : 'Đăng nhập'}
         </button>

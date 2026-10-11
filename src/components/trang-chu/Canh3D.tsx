@@ -94,7 +94,7 @@ function cotMoc(p: Vector3, to = 1) {
 const viTriDat = (lat: number, lng: number, noi = 0) => { const p = raCanh(lat, lng); return new Vector3(p.x, Math.max(doCaoRaY(doCao(lat, lng).cao), doCaoRaY(MUC_NUOC)) + noi, p.z); };
 
 export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSanSang, onLoi, onChon }: {
-  ghim?: Ghim3D[]; cheDo?: 'hero' | 'nen'; chup?: YeuCauChup; vungChu?: React.RefObject<HTMLElement>;
+  ghim?: Ghim3D[]; cheDo?: 'hero' | 'nen' | 'chup'; chup?: YeuCauChup; vungChu?: React.RefObject<HTMLElement>;
   onSanSang?: () => void; onLoi?: () => void; onChon?: (id: string) => void;
 }) {
   const khung = useRef<HTMLDivElement>(null);
@@ -164,7 +164,7 @@ export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSan
     /* Mặt nước chung cho sông và hồ: phẳng, gợn nhẹ, phản chiếu màu trời. */
     const gon = taoGonSong();
     const nuoc = new Mesh(new PlaneGeometry(30, 34), new MeshStandardMaterial({
-      color: new Color('#2C6B6C'), roughness: 0.3, metalness: 0, envMapIntensity: 0.6,
+      color: new Color('#2D7576'), roughness: 0.3, metalness: 0, envMapIntensity: 0.45,
       normalMap: gon as Texture | null, normalScale: new Vector2(0.05, 0.05),
     }));
     nuoc.rotation.x = -Math.PI / 2; nuoc.position.set(0, doCaoRaY(MUC_NUOC), -1); nuoc.receiveShadow = !nhe;
@@ -199,6 +199,7 @@ export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSan
     const capNhatGhim = () => {
       const lop = lopGhim.current; if (!lop) return;
       const ds = lop.children, vt = diemGhim.current;
+      const daDat: [number, number, number][] = [];   // [x, y, rộng] các tên đã hiện, để tên sau không đè lên
       /* Ghim rơi vào vùng chữ (tiêu đề, ô tìm kiếm) thì mờ đi, giấu tên — không đè lên chữ. */
       const goc = vo.getBoundingClientRect(), chu = goiLai.current.vungChu?.current?.getBoundingClientRect();
       for (let i = 0; i < vt.length && i < ds.length; i++) {
@@ -213,6 +214,11 @@ export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSan
         el.classList.toggle('trong-chu', trongChu);
         el.classList.toggle('nhan-trai', ((tam.x + 1) / 2) * rong > rong - 230);   // sát mép phải: tên nằm bên trái chấm
         el.style.opacity = String(trongChu ? mo * 0.25 : mo);
+        /* Hai điểm sát nhau (Văn miếu và Bửu Long cách ~1 km): tên sau đè tên trước thì giấu tên sau. */
+        const ten = el.lastElementChild as HTMLElement | null, w = ten?.offsetWidth || 0;
+        const de = mo > 0.05 && !trongChu && daDat.some(([x, y, r]) => Math.abs(y - sy) < 20 && sx < x + r + 16 && sx + w + 16 > x);
+        el.classList.toggle('an-ten', de);
+        if (mo > 0.05 && !trongChu && !de && el.classList.contains('noi-bat')) daDat.push([sx, sy, w]);
         el.style.visibility = mo > 0.05 ? 'visible' : 'hidden';
       }
     };
@@ -228,36 +234,44 @@ export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSan
         const khoa = 'diem:' + d.id; if (coAnhCanh(khoa) || daCo.has(khoa)) continue;
         /* Mỗi điểm một hướng nhìn (từ mã điểm) để các thẻ không giống hệt nhau; luôn nhìn từ phía nam lên. */
         const goc = (([...d.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) - 3) * 0.16;
-        hang.push({ khoa, them: () => cotMoc(viTriDat(d.lat, d.lng), 1.7), dat: () => {
+        hang.push({ khoa, them: () => cotMoc(viTriDat(d.lat, d.lng), 2.6), dat: () => {
           const p = viTriDat(d.lat, d.lng);
-          mayChup.position.set(p.x + Math.sin(goc) * 2.1, p.y + 1.05, p.z + Math.cos(goc) * 2.1); mayChup.lookAt(p.x, p.y + 0.05, p.z - 0.3); return p; } });
+          /* Nhìn rộng cả vùng quanh điểm như bưu ảnh chụp từ máy bay (sương làm xa mờ dần), không dí sát
+             vào một sườn dốc — lưới địa hình 1 km/ô, nhìn gần sẽ lộ mặt gãy. */
+          mayChup.position.set(p.x + Math.sin(goc) * 4.4, Math.max(p.y, 0.3) + 2.1, p.z + Math.cos(goc) * 4.4);
+          mayChup.lookAt(p.x, p.y, p.z - 0.6); return p; } });
       }
       for (const t of yc.tuyen) {
         const khoa = 'tuyen:' + t.id; if (coAnhCanh(khoa) || daCo.has(khoa) || t.diem.length < 2) continue;
         const ds = t.diem.map((d) => viTriDat(d.lat, d.lng));
         const tam = ds.reduce((a, b) => a.add(b), new Vector3()).multiplyScalar(1 / ds.length);
-        const rongNhat = Math.max(...ds.map((p) => Math.hypot(p.x - tam.x, p.z - tam.z)), 0.25);
+        const rongNhat = Math.max(...ds.map((p) => Math.hypot(p.x - tam.x, p.z - tam.z)), 0.4);
+        /* Khoảng lùi đủ để thấy trọn tuyến; cỡ đường và ghim tỉ lệ theo khoảng lùi để lúc nào trông cũng mảnh như nhau. */
+        const lui = { x: rongNhat * 0.3, y: rongNhat * 1.7 + 0.5, z: rongNhat * 2.3 + 0.7 };
+        const to = Math.hypot(lui.x, lui.y, lui.z) * 0.45;
         hang.push({ khoa, them: () => {
-          const g = new Group(); const to = Math.min(Math.max(rongNhat * 1.4, 1), 4);
+          const g = new Group();
           /* Đường san hô bám mặt đất nối các điểm dừng theo đúng thứ tự. */
           const diemDuong: Vector3[] = [];
           t.diem.forEach((d, i) => { if (!i) return; const a = t.diem[i - 1];
-            for (let k = 0; k <= 24; k++) { const f = k / 24; diemDuong.push(viTriDat(a.lat + (d.lat - a.lat) * f, a.lng + (d.lng - a.lng) * f, 0.03 * to)); } });
-          g.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(diemDuong), diemDuong.length * 2, 0.011 * to, 6), mocMauSanHo()));
-          ds.forEach((p) => g.add(cotMoc(p, to)));
+            for (let k = 0; k <= 24; k++) { const f = k / 24; diemDuong.push(viTriDat(a.lat + (d.lat - a.lat) * f, a.lng + (d.lng - a.lng) * f, 0.02 * to)); } });
+          g.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(diemDuong), diemDuong.length * 2, 0.006 * to, 6), mocMauSanHo()));
+          ds.forEach((p) => g.add(cotMoc(p, to * 0.7)));
           return g; }, dat: () => {
-          mayChup.position.set(tam.x + rongNhat * 0.25, tam.y + rongNhat * 1.25 + 0.45, tam.z + rongNhat * 1.6 + 0.6);
+          mayChup.position.set(tam.x + lui.x, tam.y + lui.y, tam.z + lui.z);
           mayChup.lookAt(tam.x, tam.y, tam.z - rongNhat * 0.1); return tam; } });
       }
     };
     const veMotAnh = () => {
       const viec = hang.shift(); if (!viec) return;
       const goc = renderer.getDrawingBufferSize(new Vector2());
-      const W = Math.min(640, Math.floor(goc.x)), H = Math.min(Math.round(W / 1.5), Math.floor(goc.y));
+      const W = Math.min(960, Math.floor(goc.x)), H = Math.min(Math.round(W / 1.5), Math.floor(goc.y));
       if (W < 120 || H < 80) return;
       mayChup.aspect = W / H; mayChup.updateProjectionMatrix();
       const them = viec.them(); canh.add(them);
       const dich = viec.dat();
+      const suong = canh.fog as Fog; const [gan, xa] = [suong.near, suong.far];
+      suong.near = 4.5; suong.far = 15;   // ảnh chụp gần hơn cảnh chính: kéo sương lại cho có chiều sâu
       troi.position.copy(mayChup.position);
       nang.position.copy(dich).addScaledVector(HUONG_MAT_TROI, 30); nang.target.position.copy(dich);
       const ti = renderer.getPixelRatio();
@@ -265,6 +279,7 @@ export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSan
       renderer.setViewport(0, 0, W / ti, H / ti); renderer.setScissor(0, 0, W / ti, H / ti);
       renderer.render(canh, mayChup);
       renderer.setScissorTest(false); renderer.setViewport(0, 0, rong, cao);
+      suong.near = gan; suong.far = xa;
       canh.remove(them);
       them.traverse((x) => { if (x instanceof Mesh) { x.geometry.dispose(); (x.material as MeshBasicMaterial).dispose(); } });
       const ra = document.createElement('canvas'); ra.width = W; ra.height = H;
@@ -276,7 +291,7 @@ export default function Canh3D({ ghim = [], cheDo = 'hero', chup, vungChu, onSan
       khungHinh = 0;
       if (hang.length && (++demKhung % 2 === 0 || !hienTren)) veMotAnh();
       const t = (luc - batDauLuc) / 1000;
-      const vao = giam || cheDo === 'nen' ? 1 : em(t / 2.6);
+      const vao = giam || cheDo !== 'hero' ? 1 : em(t / 2.6);
       /* Rảnh (không cuộn, không rê chuột, đã qua cảnh mở đầu): máy khoẻ vẽ 30 hình/giây
          cho mặt nước gợn; máy yếu dừng hẳn tới lần tương tác sau — đỡ tốn pin. */
       const ranh = vao >= 1 && luc - lanTuongTac > 2500 && !hang.length;

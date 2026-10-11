@@ -37,7 +37,7 @@ export default function AdminLayout() {
     isActive ? 'bg-primary-600 text-white shadow-soft' : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-800'}`;
   return (
     <section className="container-page py-5">
-      <div className="mb-5 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-800 via-primary-700 to-primary-600 shadow-soft">
+      <div className="nen-toi nen-dong-muc mb-5 overflow-hidden rounded-[20px] shadow-sh-2">
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="flex items-center gap-3 text-white">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/15 ring-1 ring-white/25"><ShieldCheck className="h-5 w-5" /></span>

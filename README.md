@@ -110,7 +110,9 @@ Các bảng hiện có:
 
 **Cán bộ quản lý** ở nhóm *Người dân* trong khu quản trị: Phản ánh (xử lý, giao về xã, ghi kết quả xử lý nội bộ — bắt buộc khi đóng phản ánh; số hiệu 8 ký tự để cán bộ đối chiếu), Lộ trình, Tin tức – cảnh báo. Ảnh địa điểm thêm ở mục Địa điểm → Sửa: tối đa 8 ảnh mỗi điểm, ảnh tự thu nhỏ trên trình duyệt (cạnh dài 1600px) trước khi tải lên, lưu trong cơ sở dữ liệu (Render không có ổ đĩa lưu tệp lâu dài). Đánh giá bị du khách bấm *Báo vi phạm* nổi lên đầu mục Đánh giá.
 
-**Giao diện mới (chưa dựng):** bản thiết kế chuyển giao cho người dựng giao diện ở [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md): định hướng thị giác, bảng màu đã đo tương phản, bố cục từng khối, chuyển động, token CSS, checklist nghiệm thu, quy tắc ảnh và dữ liệu minh hoạ.
+**Giao diện:** trang chủ mở bằng cảnh 3D địa hình Đồng Nai (three.js, địa hình minh hoạ, các điểm đúng toạ độ thật); thẻ chưa có ảnh dùng ảnh nhìn từ trên cao do cảnh 3D chụp, có nhãn "Địa hình minh hoạ". Thiết kế và các quyết định: [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md). Xem thử bố cục khi có đánh giá: chạy `npm run dev` rồi mở `/?minh-hoa=1` (dữ liệu minh hoạ chỉ có ở máy phát triển, không vào bản build).
+
+**Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch cho địa điểm và cột phương tiện cho lộ trình. Thiếu cột thì máy chủ báo ngay lúc khởi động.
 
 ## Bảo mật tài khoản
 
@@ -126,6 +128,6 @@ Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là
 ## Kiểm thử
 
 ```
-cd server && npm test     # 54 bài, không cần MySQL
+cd server && npm test     # 56 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```

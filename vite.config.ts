@@ -9,6 +9,8 @@ export default defineConfig({
   server: { port: 5173, open: true, proxy: { '/api': 'http://localhost:4000' } },
   build: {
     sourcemap: false,
+    /* Gói cảnh 3D (three.js, ~140 kB nén) chỉ tải sau khi trang chủ đã hiện chữ, không chặn lần vẽ đầu. */
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         /* Tách thư viện lớn thành gói riêng: bản đồ và biểu đồ chỉ tải khi cần. */

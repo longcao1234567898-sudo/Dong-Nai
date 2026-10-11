@@ -4,15 +4,16 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Cart
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, AreaChart, Area } from 'recharts';
 import { layThongKe } from '../services/api';
 import DemSo from '../components/du-lich/DemSo';
+import { DauTrang } from '../components/du-lich/GiaoDien';
 import { TIEU_CHI, so } from '../utils/hangSo';
 import { useNN } from '../i18n/NgonNgu';
 
 const Khung = ({ tieuDe, moTa, rong = false, children }: { tieuDe: string; moTa: string; rong?: boolean; children: React.ReactElement }) => (
-  <div className={`hien-dan rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900 ${rong ? 'md:col-span-2' : ''}`}>
-    <h2 className="text-[15px] font-bold">{tieuDe}</h2><p className="mb-2 text-xs text-slate-500">{moTa}</p>
+  <div className={`hien-dan the p-5 ${rong ? 'md:col-span-2' : ''}`}>
+    <h2 className="text-[17px] font-semibold">{tieuDe}</h2><p className="mb-3 text-[13px] text-muted">{moTa}</p>
     <div className="h-[270px]"><ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer></div>
   </div>);
-const truc = { fontSize: 12, fill: '#64748b' };
+const truc = { fontSize: 12, fill: '#5B6B66' };
 
 const CHU: Record<string, [string, string]> = {
   tieuDe: ['Khách đến và đánh giá', 'Visitors and reviews'], moTa: ['Số liệu lượt khách do cán bộ nhập; đánh giá do du khách gửi.', 'Visitor numbers are entered by officials; reviews come from visitors.'],
@@ -32,23 +33,22 @@ export default function ThongKePage() {
   const c = (k: string) => CHU[k][nn === 'en' ? 1 : 0];
   const [nam, setNam] = useState<string>();
   const { data: tk, isLoading, error } = useQuery({ queryKey: ['thong-ke', nam || ''], queryFn: () => layThongKe(nam) });
-  if (error) return <div className="container-page py-20 text-center text-sm text-amber-800 dark:text-amber-200"><b className="block">{c('chuaTai')}</b>{(error as Error).message}</div>;
-  if (isLoading || !tk) return <div className="container-page py-20 text-center text-slate-500">{c('dangTai')}</div>;
+  if (error) return <div className="container-page py-20 text-center text-[15px]"><b className="block">{c('chuaTai')}</b>{(error as Error).message}</div>;
+  if (isLoading || !tk) return <div className="container-page py-20 text-center text-muted">{c('dangTai')}</div>;
   const tongNd = tk.thang.reduce((s, t) => s + t.noiDia, 0), tongQt = tk.thang.reduce((s, t) => s + t.quocTe, 0);
   const nay = new Date();
   const th12 = Array.from({ length: 12 }, (_, i) => { const d = new Date(nay.getFullYear(), nay.getMonth() - 11 + i, 1);
     const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; return { ten: `${d.getMonth() + 1}/${String(d.getFullYear()).slice(2)}`, so: tk.danhGiaTheoThang.find((x) => x.thang === k)?.so || 0 }; });
   return (
-    <section className="animate-page container-page py-8">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="text-2xl font-extrabold">{c('tieuDe')}</h1><p className="text-sm text-slate-500">{c('moTa')}</p></div>
-        <label className="text-sm text-slate-500">{c('nam')} <select value={tk.nam} onChange={(e) => setNam(e.target.value)} className="ml-1 rounded-xl border border-slate-300 bg-white px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900">
-          {tk.nams.map((n) => <option key={n}>{n}</option>)}</select></label>
-      </div>
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="animate-page">
+      <DauTrang tieuDe={c('tieuDe')} moTa={c('moTa')}
+        phai={<label className="flex items-center gap-2 text-sm font-semibold text-ink-2">{c('nam')} <select value={tk.nam} onChange={(e) => setNam(e.target.value)} className="o-nhap w-auto py-2">
+          {tk.nams.map((n) => <option key={n}>{n}</option>)}</select></label>} />
+    <section className="container-page py-12">
+      <div className="mb-5 grid grid-cols-2 gap-4 md:grid-cols-4">
         {[[<DemSo key="a" gt={tongNd + tongQt} />, c('luotNam')], [<DemSo key="b" gt={tongQt} />, c('luotQt')],
           [<DemSo key="c" gt={tk.danhGia.so} />, c('dg')], [tk.danhGia.saoTb ? tk.danhGia.saoTb.toFixed(1) : '–', c('saoTb')]].map(([gt, nhan], i) => (
-          <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-slate-800 dark:bg-slate-900"><b className="block text-2xl font-extrabold">{gt}</b><small className="text-xs text-slate-500">{nhan}</small></div>))}
+          <div key={i} className="hien-dan the p-5" style={{ '--i': i } as React.CSSProperties}><b className="so-lon block">{gt}</b><small className="mt-2 block text-[13px] text-muted">{nhan}</small></div>))}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {tk.khachTheoXa && tk.khachTheoXa.ds.length > 0 && <Khung rong tieuDe={t('khachTheoXa')} moTa={t('khachTheoXaMoTa', { ky: tk.khachTheoXa.ky })}>
@@ -82,5 +82,6 @@ export default function ThongKePage() {
             <Area type="monotone" dataKey="so" name={c('danhGia')} stroke="#d97706" fill="#F59E0B" fillOpacity={0.18} /></AreaChart></Khung>
       </div>
     </section>
+    </div>
   );
 }

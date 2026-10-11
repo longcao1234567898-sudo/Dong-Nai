@@ -8,6 +8,7 @@
 import { Link } from 'react-router-dom';
 import { Home, CalendarClock, Mountain, IdCard, Phone, BadgeDollarSign, Info } from 'lucide-react';
 import { useNN } from '../../i18n/NgonNgu';
+import { DauTrang } from '../../components/du-lich/GiaoDien';
 
 const MUC: { ic: typeof Home; vi: [string, string]; en: [string, string] }[] = [
   { ic: Home,
@@ -30,21 +31,22 @@ const MUC: { ic: typeof Home; vi: [string, string]; en: [string, string] }[] = [
 export default function KhachQuocTePage() {
   const { nn, t } = useNN();
   return (
-    <section className="animate-page container-page max-w-4xl py-8">
-      <h1 className="text-2xl font-extrabold">{t('khachQuocTe')}</h1>
-      <p className="text-sm text-slate-500">{nn === 'en' ? 'Welcome to Dong Nai! A few rules worth knowing to make your trip smooth.' : 'Chào mừng bạn đến Đồng Nai! Vài quy định nên biết để chuyến đi suôn sẻ.'}</p>
-      <div className="mt-5 space-y-3">{MUC.map(({ ic: Ic, vi, en }) => { const [tieuDe, noiDung] = nn === 'en' ? en : vi; return (
-        <div key={vi[0]} className="flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft dark:border-slate-800 dark:bg-slate-900">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-100 text-primary-700 dark:bg-slate-800 dark:text-primary-400"><Ic className="h-5 w-5" /></span>
-          <div><h2 className="font-bold">{tieuDe}</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{noiDung}</p></div>
-        </div>); })}</div>
-      <div className="mt-5 rounded-2xl bg-red-50 p-5 text-red-900 dark:bg-red-900/30 dark:text-red-100">
-        <h2 className="flex items-center gap-2 font-bold"><Phone className="h-5 w-5" />{nn === 'en' ? 'Emergency' : 'Khẩn cấp'}</h2>
-        <p className="mt-1 text-sm">{t('khanCap')}</p>
-        <p className="mt-2 text-sm"><Link to="/phan-anh" className="font-bold underline">{t('phanAnhTieuDe')} →</Link></p>
-      </div>
-      <p className="mt-5 flex gap-2 text-xs text-slate-500"><Info className="h-4 w-4 shrink-0" />{nn === 'en'
-        ? 'Summary for reference only. The binding rules are Vietnam’s Law on Entry, Exit, Transit and Residence of Foreigners (Law No. 47/2014/QH13, as amended in 2019 and 2023) and guidance from the immigration authorities.'
-        : 'Tóm tắt để tham khảo. Quy định chính thức theo Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam (Luật số 47/2014/QH13, sửa đổi, bổ sung năm 2019 và 2023) và hướng dẫn của cơ quan quản lý xuất nhập cảnh.'}</p>
-    </section>);
+    <div className="animate-page">
+      <DauTrang tieuDe={t('khachQuocTe')} moTa={nn === 'en' ? 'Welcome to Dong Nai! A few rules worth knowing to make your trip smooth.' : 'Chào mừng bạn đến Đồng Nai! Vài quy định nên biết để chuyến đi suôn sẻ.'} />
+      <section className="container-page max-w-4xl py-12">
+        <ol className="space-y-4">{MUC.map(({ ic: Ic, vi, en }, i) => { const [tieuDe, noiDung] = nn === 'en' ? en : vi; return (
+          <li key={vi[0]} className="hien-dan the flex gap-5 p-6" style={{ '--i': i % 3 } as React.CSSProperties}>
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-sunken text-action"><Ic className="h-6 w-6" strokeWidth={1.6} /></span>
+            <div><h2 className="text-[19px] font-semibold leading-snug">{tieuDe}</h2><p className="mt-1.5 text-[16px] leading-relaxed text-ink-2">{noiDung}</p></div>
+          </li>); })}</ol>
+        <div className="hien-dan nen-toi mt-6 rounded-[20px] p-6 shadow-sh-2">
+          <h2 className="flex items-center gap-2 text-[17px] font-semibold"><Phone className="h-5 w-5" />{nn === 'en' ? 'Emergency' : 'Khẩn cấp'}</h2>
+          <p className="mt-1.5 text-[16px] text-[#DCE4E0]">{t('khanCap')}</p>
+          <Link to="/phan-anh" className="nut nut-coral mt-4">{t('phanAnhTieuDe')}</Link>
+        </div>
+        <p className="mt-6 flex gap-2 text-[13px] leading-relaxed text-muted"><Info className="mt-0.5 h-4 w-4 shrink-0" />{nn === 'en'
+          ? 'Summary for reference only. The binding rules are Vietnam’s Law on Entry, Exit, Transit and Residence of Foreigners (Law No. 47/2014/QH13, as amended in 2019 and 2023) and guidance from the immigration authorities.'
+          : 'Tóm tắt để tham khảo. Quy định chính thức theo Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam (Luật số 47/2014/QH13, sửa đổi, bổ sung năm 2019 và 2023) và hướng dẫn của cơ quan quản lý xuất nhập cảnh.'}</p>
+      </section>
+    </div>);
 }

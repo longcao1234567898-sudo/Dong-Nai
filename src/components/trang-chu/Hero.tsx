@@ -30,7 +30,7 @@ function TimKiem({ ds, onTim }: { ds: DiaDiem[]; onTim: (q: string) => void }) {
   return (
     <form role="search" className="relative mt-7 max-w-[36rem]" onSubmit={(e) => { e.preventDefault(); gui(); }}>
       <div className="kinh flex items-center gap-2 rounded-2xl p-1.5 pl-4 shadow-sh-3">
-        <Search className="h-5 w-5 shrink-0 text-ink-2" aria-hidden="true" />
+        <Search className="h-5 w-5 shrink-0 text-[#3E4C48]" aria-hidden="true" />
         <input type="search" value={q} placeholder={t('timGoiY')} aria-label={t('timGoiY')}
           role="combobox" aria-autocomplete="list" aria-expanded={hienDs} aria-controls={id + 'ds'}
           aria-activedescendant={hl >= 0 ? `${id}-${hl}` : undefined}
