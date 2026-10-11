@@ -54,6 +54,7 @@ export async function doiVeXacMinh(token: string): Promise<void> {
   luuVe(d.ve || VE_TAT, d.hetHan || Date.now() + 3_600_000);
 }
 export const layDiaDiem = async () => { const d = await goi<DiaDiem[]>('/dia-diem'); if (!Array.isArray(d)) throw new Error('Dữ liệu địa điểm sai định dạng.'); return d; };
+export const layChiTiet = (id: string) => goi<{ chiTiet: string | null; chiTietEn: string | null }>(`/dia-diem/${encodeURIComponent(id)}/chi-tiet`);
 export const layDanhGia = (id: string, sx: string) => goi<DanhGia[]>(`/dia-diem/${encodeURIComponent(id)}/danh-gia?sx=${sx}`);
 export const layDanhGiaCuaToi = (id: string) => goi<DanhGiaGui | null>(`/dia-diem/${encodeURIComponent(id)}/cua-toi`);
 export const guiDanhGia = (d: DanhGiaGui & { diaDiemId: string }) => goi<{ ok: true }>('/danh-gia', { method: 'POST', body: JSON.stringify(d) });

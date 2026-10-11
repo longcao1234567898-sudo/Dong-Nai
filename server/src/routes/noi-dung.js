@@ -67,7 +67,7 @@ router.delete('/lo-trinh/:id', async (req, res, next) => {
 });
 
 /* ================================================================ ẢNH ĐỊA ĐIỂM */
-const TOI_DA_ANH = 8;
+const TOI_DA_ANH = 20;
 const nhanAnh = express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '1500kb' });
 /* Nhận diện ảnh bằng mấy byte đầu tệp, không tin phần đuôi hay Content-Type người gửi khai. */
 function kieuAnh(buf) {

@@ -55,6 +55,16 @@ router.get('/dia-diem', async (_req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* Bài giới thiệu chi tiết — tách khỏi danh sách để trang chủ không phải tải mấy chục KB chữ. */
+router.get('/dia-diem/:id/chi-tiet', async (req, res, next) => {
+  try {
+    const [[r]] = await pool.query('SELECT chi_tiet, chi_tiet_en FROM dia_diem WHERE id = ? AND hien = 1', [String(req.params.id)]);
+    if (!r) return res.status(404).json({ error: 'Không tìm thấy địa điểm.' });
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({ chiTiet: r.chi_tiet ?? null, chiTietEn: r.chi_tiet_en ?? null });
+  } catch (e) { next(e); }
+});
+
 router.get('/dia-diem/:id/danh-gia', async (req, res, next) => {
   try {
     const sx = { cao: 'sao DESC, updated_at DESC', thap: 'sao ASC, updated_at DESC' }[req.query.sx] || 'updated_at DESC';

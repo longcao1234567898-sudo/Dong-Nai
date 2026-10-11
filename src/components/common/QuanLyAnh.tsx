@@ -15,6 +15,8 @@ import { nutVien, nutChinh } from './KhoiQt';
 
 interface Anh { id: number; rong: number | null; cao: number | null; chuThich: string | null; tieuDiemX: number; tieuDiemY: number; kichThuoc: number }
 const CANH_DAI = 1600;
+/** Số ảnh tối đa mỗi điểm — khớp TOI_DA_ANH ở server/src/routes/noi-dung.js. */
+const TOI_DA = 20;
 
 async function thuNho(tep: Blob, goc: 0 | 90 | -90 = 0): Promise<{ blob: Blob; rong: number; cao: number }> {
   /* imageOrientation: xoay đúng chiều ảnh chụp dọc từ điện thoại (thông tin EXIF). */
@@ -199,7 +201,7 @@ export default function QuanLyAnh({ diaDiemId, dangHien, tenGoiY = '' }: { diaDi
   const nhapMacDinh = async () => {
     setDangTai((n) => n + 1);
     try {
-      for (const m of macDinh.slice(0, 8 - ds.length)) {
+      for (const m of macDinh.slice(0, TOI_DA - ds.length)) {
         const r = await fetch(m.tep); if (!r.ok) throw new Error('Không đọc được ảnh mặc định.');
         await guiMoi(diaDiemId, await thuNho(await r.blob()));
       }
@@ -212,11 +214,11 @@ export default function QuanLyAnh({ diaDiemId, dangHien, tenGoiY = '' }: { diaDi
 
   return (
     <div className="mt-4 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-      <div className="flex flex-wrap items-center justify-between gap-2"><b className="text-sm">Ảnh ({ds.length}/8)</b>
+      <div className="flex flex-wrap items-center justify-between gap-2"><b className="text-sm">Ảnh ({ds.length}/{TOI_DA})</b>
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" className={nutVien + ' gap-1.5'} disabled={ds.length >= 8 || dangTai > 0} onClick={() => chonTep.current?.click()}>
+          <button type="button" className={nutVien + ' gap-1.5'} disabled={ds.length >= TOI_DA || dangTai > 0} onClick={() => chonTep.current?.click()}>
             {dangTai ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}{dangTai ? 'Đang tải lên…' : 'Thêm ảnh'}</button>
-          <button type="button" className={nutVien + ' gap-1.5'} disabled={ds.length >= 8} onClick={() => setMoTim((m) => !m)}><Search className="h-3.5 w-3.5" />Tìm ảnh trên Wikimedia</button>
+          <button type="button" className={nutVien + ' gap-1.5'} disabled={ds.length >= TOI_DA} onClick={() => setMoTim((m) => !m)}><Search className="h-3.5 w-3.5" />Tìm ảnh trên Wikimedia</button>
         </div>
         <input ref={chonTep} type="file" accept="image/*" multiple hidden onChange={(e) => taiLen(e.target.files)} /></div>
       <p className="mt-1 text-xs text-slate-500">Ảnh đầu tiên làm ảnh đại diện. Bấm Chỉnh để xoay ảnh, chọn điểm lấy nét hoặc thay ảnh. Chỉ đăng ảnh tự chụp hoặc được phép dùng.{!dangHien && ' Địa điểm đang ẩn nên ảnh nhỏ bên dưới chưa xem trước được (vẫn chỉnh được).'}</p>

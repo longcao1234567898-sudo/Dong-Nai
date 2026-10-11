@@ -149,6 +149,7 @@ const TU: Record<string, [string, string]> = {
   timGoiY: ['Tìm điểm đến, xã, phường', 'Search places, communes, wards'], tim: ['Tìm', 'Search'],
   khongThayDiem: ['Không thấy điểm nào tên "{q}".', 'No place matches "{q}".'],
   xemBanDo: ['Xem bản đồ', 'Open the map'],
+  boAnh: ['Bộ ảnh', 'Photos'], xemAnhLon: ['Xem ảnh lớn', 'View larger'], anhTruoc: ['Ảnh trước', 'Previous photo'], anhSau: ['Ảnh sau', 'Next photo'],
   trongAnh: ['Trong ảnh', 'Pictured'], anhSo: ['Ảnh {n}', 'Photo {n}'], tamDung: ['Tạm dừng trình chiếu', 'Pause slideshow'], chayTiep: ['Chạy tiếp trình chiếu', 'Play slideshow'],
   loTrinhNoiBat: ['Lộ trình nổi bật', 'Featured itinerary'], soDiemDung: ['{n} điểm dừng', '{n} stops'],
   saoTuDanhGia: ['sao trung bình từ {n} đánh giá', 'average from {n} reviews'],

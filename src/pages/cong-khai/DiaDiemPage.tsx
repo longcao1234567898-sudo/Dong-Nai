@@ -4,7 +4,9 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
 import BanDo from '../../components/du-lich/BanDo';
-import { ThongTinDiaDiem, DaiAnh } from '../../components/du-lich/ChiTiet';
+import { ThongTinDiaDiem } from '../../components/du-lich/ChiTiet';
+import BoAnh from '../../components/du-lich/BoAnh';
+import BaiChiTiet from '../../components/du-lich/BaiChiTiet';
 import { KhungAnh } from '../../components/du-lich/GiaoDien';
 import { layDiaDiem } from '../../services/api';
 import { useNN } from '../../i18n/NgonNgu';
@@ -22,11 +24,12 @@ export default function DiaDiemPage() {
       <div className="container-page pt-8">
         <Link to="/" className="inline-flex min-h-[40px] items-center gap-1.5 text-sm font-semibold text-action"><ArrowLeft className="h-4 w-4" />{t('khamPha')}</Link>
         <div className="mt-4 grid gap-8 lg:grid-cols-12">
-          <article className="hien-dan the min-w-0 p-6 sm:p-8 lg:col-span-7"><ThongTinDiaDiem p={p} trangRieng /></article>
+          {/* Điện thoại: ảnh đại diện lên đầu, trước phần chữ. Màn rộng: ảnh nằm cột phải. */}
+          <div className="relative aspect-[3/2] overflow-hidden rounded-[20px] bg-sunken shadow-sh-2 lg:hidden"><KhungAnh p={p} uuTien sizes="100vw" /></div>
+          <article className="hien-dan the min-w-0 p-6 sm:p-8 lg:col-span-7"><ThongTinDiaDiem p={p} trangRieng giua={<><BoAnh p={p} /><BaiChiTiet id={p.id} /></>} /></article>
           <aside className="space-y-4 lg:col-span-5">
             {/* Ảnh: ảnh cán bộ tải lên, không thì ảnh mặc định của điểm. */}
-            <div className="hien-dan relative aspect-[3/2] overflow-hidden rounded-[20px] bg-sunken shadow-sh-2"><KhungAnh p={p} uuTien sizes="(min-width: 1024px) 40vw, 100vw" /></div>
-            {p.anh.length > 1 && <div className="hien-dan"><DaiAnh p={p} lon /></div>}
+            <div className="hien-dan relative hidden aspect-[3/2] overflow-hidden rounded-[20px] bg-sunken shadow-sh-2 lg:block"><KhungAnh p={p} uuTien sizes="40vw" /></div>
             <div className="hien-dan lg:sticky lg:top-24"><BanDo ds={[p]} tam={[p.lat, p.lng]} chon={p.id} onChon={() => undefined} thap /></div>
           </aside>
         </div>

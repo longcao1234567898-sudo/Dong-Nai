@@ -679,4 +679,559 @@ SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =
 SET @lenh := IF(@co = 0, 'ALTER TABLE anh_dia_diem ADD COLUMN tieu_diem_x TINYINT UNSIGNED NOT NULL DEFAULT 50 AFTER chu_thich, ADD COLUMN tieu_diem_y TINYINT UNSIGNED NOT NULL DEFAULT 50 AFTER tieu_diem_x', 'DO 0');
 PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
 
+-- ============================================================================
+-- GIAI ĐOẠN 5 — BÀI GIỚI THIỆU CHI TIẾT TỪNG ĐỊA ĐIỂM
+-- ============================================================================
+-- chi_tiet: bài dài hiện ở trang riêng của địa điểm. Định dạng đơn giản:
+-- dòng "## " là tiêu đề mục, dòng "- " là gạch đầu dòng, dòng trống ngăn đoạn.
+-- Mục "Lịch sử hình thành" mỗi dòng dạng "Mốc: nội dung" hiện thành dòng thời
+-- gian. Bài viết sẵn là bản TỔNG HỢP, chờ cán bộ đối chiếu (cột da_kiem_tra);
+-- chỉ điền khi cột còn trống, chạy lại không đè bài cán bộ đã sửa.
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dia_diem' AND COLUMN_NAME = 'chi_tiet');
+SET @lenh := IF(@co = 0, 'ALTER TABLE dia_diem ADD COLUMN chi_tiet TEXT NULL AFTER mo_ta_en, ADD COLUMN chi_tiet_en TEXT NULL AFTER chi_tiet', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Văn miếu Trấn Biên được dựng năm 1715, thời chúa Nguyễn Phúc Chu, là văn miếu đầu tiên ở vùng đất phương Nam — sớm hơn cả văn miếu ở kinh thành Huế. Nơi đây thờ Khổng Tử và tôn vinh những người có công với nền học vấn, văn hoá của dân tộc.
+
+Công trình cũ bị phá huỷ trong thời Pháp chiếm đóng ở thế kỷ XIX. Văn miếu hiện nay được phục dựng trên nền đất xưa và khánh thành đầu những năm 2000, theo lối kiến trúc cổ với cổng tam quan, hồ nước, nhà bia và khu điện thờ chính.
+
+## Lịch sử hình thành
+- 1715: Chúa Nguyễn Phúc Chu cho dựng Văn miếu ở dinh Trấn Biên — văn miếu đầu tiên ở phương Nam.
+- Thế kỷ XVIII – đầu XIX: Văn miếu được trùng tu nhiều lần, là nơi tế lễ, tôn vinh Nho học của cả vùng Gia Định.
+- 1861 – 1862: Khi quân Pháp đánh chiếm Biên Hoà, Văn miếu bị phá huỷ, chỉ còn lại nền cũ.
+- 1998 – 2002: Phục dựng trên nền đất xưa theo kiến trúc cổ; khánh thành năm 2002.
+- Từ 2002 đến nay: Trung tâm văn hoá, khuyến học của địa phương, nơi tổ chức khai bút đầu xuân, vinh danh học sinh giỏi.
+
+## Có gì để xem
+- Cổng tam quan, Khuê Văn Các và hồ nước trước sân — góc chụp ảnh đẹp nhất vào buổi sáng.
+- Khu điện thờ chính và nhà bia ghi danh các danh nhân.
+- Các hoạt động khuyến học, khai bút đầu xuân, lễ vinh danh học sinh giỏi được tổ chức hằng năm.
+
+## Kinh nghiệm
+- Văn miếu nằm gần khu du lịch Bửu Long, có thể ghép hai điểm trong một buổi.
+- Đây là nơi thờ tự: ăn mặc kín đáo, giữ trật tự trong khu điện thờ.
+- Dịp Tết và mùa thi, nhiều gia đình đến xin chữ, cầu may cho con em — đông vào sáng sớm.', chi_tiet_en = '## About
+Tran Bien Temple of Literature was founded in 1715 under Lord Nguyen Phuc Chu — the first temple of literature in the southern lands, older than the one in the imperial capital Hue. It honours Confucius and the scholars who shaped Vietnamese learning and culture.
+
+The original buildings were destroyed in the 19th century. Today''s complex was rebuilt on the old grounds in the early 2000s in classical style, with a triple gate, a pond, stele houses and the main shrine.
+
+## Timeline
+- 1715: Founded under Lord Nguyen Phuc Chu at Tran Bien citadel — the first temple of literature in the south.
+- 18th – early 19th century: Restored several times; the centre of Confucian rites for the Gia Dinh region.
+- 1861 – 1862: Destroyed when French troops took Bien Hoa; only the foundations remained.
+- 1998 – 2002: Rebuilt on the old site in classical style; reopened in 2002.
+- Since 2002: A cultural and study-promotion centre, hosting new-year calligraphy and student awards.
+
+## What to see
+- The triple gate, the Khue Van pavilion and the pond — best photographed in the morning.
+- The main shrine and the stele houses.
+- New-year calligraphy and study-promotion ceremonies held every year.
+
+## Tips
+- It sits next to Buu Long tourist area; the two fit into one half-day.
+- It is a place of worship: dress modestly and keep quiet near the shrine.' WHERE id = 'van-mieu-tran-bien' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Năm 1698, Thống suất Lễ Thành hầu Nguyễn Hữu Cảnh được chúa Nguyễn cử vào kinh lược vùng đất phía Nam. Ông lập dinh Trấn Biên và dinh Phiên Trấn, đặt nền hành chính đầu tiên cho vùng Đồng Nai – Gia Định, chiêu mộ lưu dân khai hoang lập làng.
+
+Để tưởng nhớ công lao ấy, người dân lập đền thờ ông bên sông Đồng Nai, gần cù lao Phố — nơi từng là thương cảng sầm uất nhất phương Nam. Đền là di tích lịch sử, nơi diễn ra lễ giỗ hằng năm với nhiều nghi thức truyền thống.
+
+## Lịch sử hình thành
+- 1698: Lễ Thành hầu Nguyễn Hữu Cảnh vào kinh lược, lập dinh Trấn Biên, đặt nền hành chính cho vùng Đồng Nai – Gia Định.
+- 1700: Ông mất trên đường trở về sau chuyến dẹp loạn ở vùng biên giới Tây Nam.
+- Thế kỷ XVIII: Người dân lập đền thờ bên sông Đồng Nai, gần thương cảng cù lao Phố, để tưởng nhớ công lao mở cõi.
+- Thế kỷ XIX – XX: Đền được tu bổ nhiều lần, lễ giỗ hằng năm trở thành sinh hoạt văn hoá của cả vùng.
+- Ngày nay: Di tích lịch sử – văn hoá, nơi tổ chức lễ tưởng niệm và giáo dục truyền thống.
+
+## Có gì để xem
+- Kiến trúc đình đền Nam Bộ với mái ngói, hoành phi, câu đối chạm khắc.
+- Cảnh sông Đồng Nai và cù lao Phố ngay cạnh đền.
+- Lễ hội tưởng niệm Nguyễn Hữu Cảnh hằng năm, có tế lễ và các hoạt động văn hoá dân gian.
+
+## Kinh nghiệm
+- Nên kết hợp với tham quan cù lao Phố: chùa Ông (Thất Phủ cổ miếu), chùa Đại Giác.
+- Đây là nơi thờ tự, ăn mặc lịch sự; hỏi ban quản lý trước khi chụp ảnh bên trong điện thờ.', chi_tiet_en = '## About
+In 1698 Lord Nguyen sent Marquis Nguyen Huu Canh south to organise the new lands. He set up the first administration of the Dong Nai – Gia Dinh region and settled migrants in new villages.
+
+Local people built this temple by the Dong Nai River, next to Cu Lao Pho — once the busiest trading port of the south — to honour him. His anniversary is commemorated every year with traditional rites.
+
+## Timeline
+- 1698: Marquis Nguyen Huu Canh arrives, founds Tran Bien and lays out the first administration of Dong Nai – Gia Dinh.
+- 1700: He dies on the way back from a campaign on the south-western frontier.
+- 18th century: Locals build a temple by the Dong Nai River near the Cu Lao Pho port in his memory.
+- 19th – 20th century: Restored several times; his anniversary becomes a regional cultural event.
+- Today: A historic site hosting the annual commemoration.
+
+## What to see
+- Southern-style temple architecture with carved panels and couplets.
+- The river and Cu Lao Pho island right beside the temple.
+
+## Tips
+- Combine with the old temples and pagodas on Cu Lao Pho.
+- Dress respectfully; ask before photographing inside the shrine.' WHERE id = 'den-tho-nguyen-huu-canh' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Bửu Long là quần thể núi đá, hồ nước và chùa chiền nằm ngay trong khu đô thị cũ của Biên Hoà, thường được ví là "Hạ Long thu nhỏ". Phần lớn cảnh quan hình thành từ những mỏ đá xưa: vách đá dựng đứng soi bóng xuống hồ, xen giữa là cây xanh và đảo nhỏ.
+
+## Lịch sử hình thành
+- Cuối thế kỷ XVII: Theo truyền lại, chùa Bửu Phong được dựng trên núi — một trong những ngôi chùa sớm nhất của vùng.
+- Thế kỷ XX: Khu đồi đá được khai thác làm mỏ đá xây dựng; các hố khai thác dần thành hồ sâu, vách đá dựng đứng.
+- Cuối thế kỷ XX – đầu XXI: Mỏ đá ngừng khai thác, khu vực được cải tạo thành khu du lịch với hồ Long Ẩn, đảo, vườn cây.
+- Ngày nay: Điểm vui chơi, dã ngoại quen thuộc ngay trong đô thị, ghép tuyến với Văn miếu Trấn Biên.
+
+## Có gì để xem
+- Hồ Long Ẩn với vách đá và đảo nhỏ — có thể đi thuyền dạo hồ.
+- Chùa Bửu Phong trên núi, một trong những ngôi chùa lâu đời của vùng, nhìn xuống toàn cảnh khu du lịch và sông Đồng Nai.
+- Khu vui chơi, công viên nước, chỗ cắm trại và ăn uống cho gia đình.
+
+## Đi lại
+Bửu Long ở gần trung tâm, đi xe máy hoặc ô tô thuận tiện; có thể ghép với Văn miếu Trấn Biên ngay bên cạnh.
+
+## Kinh nghiệm
+- Leo bậc đá lên chùa Bửu Phong mất chừng nửa giờ, nên đi sáng sớm hoặc chiều mát.
+- Mang giày đế bám, nước uống; không leo lên các vách đá không có lối đi.
+- Cuối tuần và ngày lễ rất đông, nên đến sớm.', chi_tiet_en = '## About
+Buu Long is a cluster of rock hills, lakes and pagodas inside the old city of Bien Hoa, often called "a little Ha Long Bay". Most of the scenery grew out of old stone quarries: sheer cliffs above green water, small islands and trees.
+
+## Timeline
+- Late 17th century: By tradition, Buu Phong Pagoda is founded on the hill — one of the earliest in the area.
+- 20th century: The rock hills are quarried; the pits slowly become deep lakes under sheer cliffs.
+- Late 20th – early 21st century: Quarrying ends and the area is landscaped into a park around Long An Lake.
+- Today: A popular in-city park, paired with the Temple of Literature next door.
+
+## What to see
+- Long An Lake with its cliffs and islets — boat rides available.
+- Buu Phong Pagoda on the hilltop, one of the oldest in the area, with views over the park and the Dong Nai River.
+- Play areas, a water park, picnic and camping spots for families.
+
+## Tips
+- The stone steps up to Buu Phong take about half an hour; go early or late afternoon.
+- Wear grippy shoes and stay on marked paths. Weekends are busy.' WHERE id = 'khu-du-lich-buu-long' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Thác Giang Điền là quần thể thác nước nhiều tầng đổ xuống giữa rừng cây, cách khu đô thị Biên Hoà cũ không xa. Khu du lịch sinh thái được xây dựng quanh thác, giữ lại nhiều mảng rừng, suối và hồ nước, là điểm dã ngoại cuối tuần quen thuộc của người dân thành phố và TP.HCM.
+
+## Lịch sử hình thành
+- Trước đây: Thác nằm giữa vùng rừng và vườn cây, chủ yếu người dân quanh vùng biết tới.
+- Đầu thế kỷ XXI: Khu du lịch sinh thái được đầu tư quanh thác, giữ lại rừng, suối, xây hồ, cầu và đường dạo.
+- Ngày nay: Điểm dã ngoại cuối tuần quen thuộc của người dân thành phố và TP.HCM. (Mốc năm cụ thể: cán bộ bổ sung.)
+
+## Có gì để xem
+- Các tầng thác trắng xoá giữa những tảng đá lớn, đẹp nhất vào mùa mưa khi nước nhiều.
+- Hồ nước, cầu treo, đường dạo trong rừng.
+- Khu cắm trại, trò chơi tập thể, nhà hàng và chỗ nghỉ qua đêm.
+
+## Đi lại
+Đi theo quốc lộ 1 hoặc đường cao tốc rồi rẽ vào đường dẫn tới khu du lịch; xe máy, ô tô đều tới tận nơi.
+
+## Kinh nghiệm
+- Chỉ tắm ở khu vực được cho phép; đá quanh thác rất trơn, nước có thể dâng nhanh sau mưa.
+- Trẻ em luôn cần người lớn đi kèm khi chơi gần nước.
+- Mùa mưa (khoảng tháng 5 – 11) thác đẹp nhất; mùa khô nước ít hơn nhưng dễ đi lại.', chi_tiet_en = '## About
+Giang Dien is a multi-tier waterfall in the forest not far from old Bien Hoa. The eco-park around it keeps patches of forest, streams and a lake, and is a favourite weekend picnic spot for families from the city and Ho Chi Minh City.
+
+## Timeline
+- Earlier: The falls sat among forest and gardens, known mainly to local people.
+- Early 21st century: An eco-park is developed around the falls, keeping the forest and streams.
+- Today: A favourite weekend spot for the city and Ho Chi Minh City.
+
+## What to see
+- Cascades over large boulders, fullest in the rainy season.
+- A lake, a suspension bridge and forest walks.
+- Camping grounds, group games, restaurants and overnight stays.
+
+## Tips
+- Swim only in designated areas; rocks are slippery and water can rise quickly after rain.
+- The falls are fullest from about May to November.' WHERE id = 'thac-giang-dien' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Suối Mơ là khu du lịch sinh thái ở vùng Tân Phú, phía đông bắc thành phố, nằm gần quốc lộ 20 — tuyến đường đi Đà Lạt. Dòng suối chảy qua những bãi đá lớn và tạo thành các thác nhỏ, hai bên là rừng cây mát rượi.
+
+## Lịch sử hình thành
+- Trước đây: Dòng suối giữa rừng ven quốc lộ 20, nơi người dân địa phương tắm suối, nghỉ chân.
+- Đầu thế kỷ XXI: Được đầu tư thành khu du lịch sinh thái với đường dạo, chòi nghỉ, khu ăn uống.
+- Ngày nay: Điểm dừng chân quen thuộc trên tuyến đi Cát Tiên, Đà Lạt. (Mốc năm cụ thể: cán bộ bổ sung.)
+
+## Có gì để xem
+- Thác và những hồ nước tự nhiên giữa các tảng đá — chỗ tắm suối của gia đình.
+- Đường dạo ven suối, các chòi nghỉ dưới tán cây.
+- Khu ăn uống, cắm trại, nghỉ qua đêm.
+
+## Đi lại
+Theo quốc lộ 20; tiện ghé khi đi Vườn quốc gia Cát Tiên hoặc Đà Lạt.
+
+## Kinh nghiệm
+- Đá trong suối trơn, nên đi dép quai hậu hoặc giày lội nước.
+- Mùa mưa nước chảy mạnh, chỉ xuống suối ở khu được cho phép và theo hướng dẫn của nhân viên.', chi_tiet_en = '## About
+Suoi Mo is an eco-park in the Tan Phu area, north-east of the city, close to National Road 20 (the road to Da Lat). A stream runs over large boulders, forming small falls under shady forest.
+
+## Timeline
+- Earlier: A forest stream by National Road 20 where locals swam and rested.
+- Early 21st century: Developed into an eco-park with paths, huts and restaurants.
+- Today: A familiar stop on the road to Cat Tien and Da Lat.
+
+## What to see
+- Natural pools between the rocks — a family swimming spot.
+- Streamside paths and shaded huts; food, camping and overnight stays.
+
+## Tips
+- A handy stop on the way to Cat Tien National Park or Da Lat.
+- Rocks are slippery; in the rainy season only enter the water where staff allow.' WHERE id = 'khu-du-lich-suoi-mo' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Bò Cạp Vàng là khu du lịch sinh thái ở vùng Nhơn Trạch, gần sông, rợp bóng cây với vườn cây trái, ao hồ và kênh rạch kiểu miền Tây. Khu du lịch được nhiều bình chọn đưa vào nhóm điểm du lịch sinh thái được yêu thích.
+
+## Lịch sử hình thành
+- Trước đây: Vùng đất vườn, ao, kênh rạch ven sông đặc trưng của Nhơn Trạch.
+- Những năm gần đây: Được xây dựng thành khu du lịch sinh thái đồng quê, giữ cảnh vườn cây, ao sen, kênh rạch.
+- 2024: Được bình chọn vào nhóm điểm du lịch sinh thái được yêu thích. (Các mốc khác: cán bộ bổ sung.)
+
+## Có gì để xem
+- Vườn cây, ao sen, cầu tre, kênh rạch — bối cảnh chụp ảnh đồng quê Nam Bộ.
+- Trò chơi dân gian, trò chơi vận động cho trẻ em và đoàn đông người.
+- Ẩm thực đồng quê, chỗ nghỉ cho dã ngoại cuối tuần.
+
+## Đi lại
+Gần TP.HCM qua cầu Phú Mỹ hoặc đường cao tốc; thuận tiện cho chuyến đi trong ngày.
+
+## Kinh nghiệm
+- Phù hợp đi theo gia đình có trẻ nhỏ, công ty tổ chức hoạt động tập thể.
+- Mang kem chống muỗi, mũ nón; trẻ em chơi gần ao hồ cần người lớn trông.', chi_tiet_en = '## About
+Bo Cap Vang is a riverside eco-park in the Nhon Trach area, with fruit gardens, lotus ponds and Mekong-style canals. It has appeared in several lists of favourite eco-tourism spots.
+
+## Timeline
+- Earlier: Riverside gardens, ponds and canals typical of Nhon Trach.
+- Recent years: Developed into a countryside eco-park keeping its gardens and lotus ponds.
+- 2024: Named among favourite eco-tourism spots.
+
+## What to see
+- Gardens, lotus ponds and bamboo bridges — classic southern countryside scenes.
+- Folk games and team activities; countryside food.
+
+## Tips
+- Close to Ho Chi Minh City — an easy day trip, good for families and company outings.
+- Bring insect repellent; watch children near the ponds.' WHERE id = 'khu-du-lich-bo-cap-vang' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Hồ Trị An là hồ chứa của nhà máy thuỷ điện Trị An trên sông Đồng Nai, xây dựng trong những năm 1980 và hoàn thành đầu thập niên 1990. Mặt hồ rộng hơn 300 km², điểm xuyết hàng chục đảo lớn nhỏ, là một trong những hồ nhân tạo lớn nhất miền Nam.
+
+## Lịch sử hình thành
+- 1945 – 1975: Vùng rừng quanh lưu vực sông Đồng Nai là chiến khu Đ, căn cứ kháng chiến quan trọng của miền Đông Nam Bộ.
+- 1984: Khởi công công trình thuỷ điện Trị An trên sông Đồng Nai.
+- 1988 – 1991: Các tổ máy lần lượt phát điện; công trình hoàn thành năm 1991, lòng hồ rộng hơn 300 km² hình thành.
+- Từ những năm 1990: Làng bè nuôi cá, nghề đánh bắt trên hồ phát triển; đảo Ó – Đồng Trường mở du lịch sinh thái.
+- Ngày nay: Vừa là công trình năng lượng, cấp nước, vừa là điểm du lịch hồ – đảo nổi tiếng của thành phố.
+
+## Có gì để xem
+- Hoàng hôn trên hồ — cảnh nổi tiếng nhất của Trị An, đẹp nhất vào mùa khô khi trời quang.
+- Đảo Ó – Đồng Trường: khu du lịch sinh thái trên đảo, gắn với căn cứ kháng chiến chiến khu Đ.
+- Làng bè nuôi cá trên hồ, xem ngư dân kéo lưới buổi sáng sớm.
+- Đập và nhà máy thuỷ điện nhìn từ xa (khu vực nhà máy là công trình được bảo vệ, không vào tự do).
+
+## Đi lại
+Từ trung tâm thành phố đi về phía bắc theo các tuyến tỉnh lộ tới khu vực La Ngà, Trị An; ra đảo bằng thuyền của các khu du lịch.
+
+## Kinh nghiệm
+- Đi thuyền phải mặc áo phao; không tự ý bơi ra xa trên hồ — hồ rất sâu và rộng.
+- Đặc sản cá lăng, cá thát lát từ hồ; nên thử ở các quán ven hồ.
+- Muốn ngắm hoàng hôn, đến trước khi mặt trời lặn khoảng một giờ.', chi_tiet_en = '## About
+Tri An Lake is the reservoir of the Tri An hydropower plant on the Dong Nai River, built in the 1980s and finished in the early 1990s. Covering more than 300 km² and dotted with dozens of islands, it is one of the largest man-made lakes in southern Vietnam.
+
+## Timeline
+- 1945 – 1975: The forests of the Dong Nai basin form War Zone D, a key resistance base.
+- 1984: Construction of the Tri An hydropower plant begins.
+- 1988 – 1991: Turbines come online in turn; completed in 1991, creating a lake of over 300 km².
+- From the 1990s: Floating fish farms and fishing grow; O – Dong Truong islands open to eco-tourism.
+- Today: Both a power and water source and a well-known lake-and-island destination.
+
+## What to see
+- Sunsets over the water — Tri An''s signature view, best on clear dry-season evenings.
+- O – Dong Truong islands, an eco-tourism area tied to the War Zone D resistance base.
+- Floating fish-farm villages; fishermen hauling nets at dawn.
+- The dam seen from a distance (the plant itself is a protected site).
+
+## Tips
+- Always wear a life jacket on boats; do not swim out into the lake.
+- Try local river fish at the lakeside restaurants. Arrive about an hour before sunset.' WHERE id = 'ho-tri-an' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Vườn quốc gia Cát Tiên là một trong những khu rừng nhiệt đới đất thấp quý giá nhất còn lại ở Việt Nam, trải trên địa phận nhiều tỉnh dọc sông Đồng Nai. Vùng lõi của vườn là một phần Khu dự trữ sinh quyển Đồng Nai được UNESCO công nhận; vùng đất ngập nước Bàu Sấu là khu Ramsar có tầm quan trọng quốc tế.
+
+Rừng là nơi sống của hàng trăm loài chim, thú, bò sát và nhiều loài quý hiếm như bò tót, voọc, vượn đen má vàng, cá sấu nước ngọt.
+
+## Lịch sử hình thành
+- 1978: Khu rừng cấm Nam Cát Tiên được thành lập để bảo vệ rừng đất thấp ven sông Đồng Nai.
+- 1992: Thành lập Vườn quốc gia Cát Tiên, hợp nhất các khu Nam Cát Tiên, Tây Cát Tiên và Cát Lộc.
+- 2001: UNESCO công nhận Khu dự trữ sinh quyển Cát Tiên (năm 2011 mở rộng thành Khu dự trữ sinh quyển Đồng Nai).
+- 2005: Vùng đất ngập nước Bàu Sấu được công nhận là khu Ramsar có tầm quan trọng quốc tế.
+- 2010: Cá thể tê giác Java cuối cùng ở Việt Nam bị săn trộm trong vườn — bài học đắt giá về bảo tồn.
+- Ngày nay: Trung tâm bảo tồn đa dạng sinh học, nghiên cứu và du lịch sinh thái hàng đầu phía Nam.
+
+## Có gì để xem
+- Bàu Sấu: đi bộ xuyên rừng tới hồ ngập nước, có thể gặp cá sấu, chim nước (cần đăng ký, đi cùng kiểm lâm).
+- Cây Tung cổ thụ, cây Gõ đỏ hàng trăm năm tuổi trên các tuyến đường mòn.
+- Ghềnh Bến Cự trên sông Đồng Nai.
+- Xem thú đêm bằng xe chuyên dụng, xem chim buổi sáng sớm.
+- Trung tâm cứu hộ linh trưởng Đảo Tiên (theo lịch của vườn).
+- Đạp xe trên đường rừng.
+
+## Đi lại
+Theo quốc lộ 20 rồi rẽ vào đường tới trụ sở vườn; qua sông Đồng Nai bằng phà để vào khu trung tâm.
+
+## Kinh nghiệm
+- Nên ở lại ít nhất một đêm để đi Bàu Sấu và xem thú đêm.
+- Mùa khô (khoảng tháng 12 – 4) đường rừng dễ đi; mùa mưa có vắt, nên mang tất chống vắt.
+- Giữ yên lặng, không cho thú ăn, không mang đồ nhựa dùng một lần vào rừng.', chi_tiet_en = '## About
+Cat Tien National Park protects one of the most valuable remaining lowland tropical forests in Vietnam, along the Dong Nai River. Its core is part of the UNESCO Dong Nai Biosphere Reserve, and the Crocodile Lake (Bau Sau) wetland is a Ramsar site of international importance.
+
+The forest is home to hundreds of bird and mammal species, including gaur, langurs, yellow-cheeked gibbons and Siamese crocodiles.
+
+## Timeline
+- 1978: Nam Cat Tien protected forest is created to save the lowland forest along the Dong Nai River.
+- 1992: Cat Tien National Park is founded, merging Nam Cat Tien, Tay Cat Tien and Cat Loc.
+- 2001: UNESCO recognises the Cat Tien Biosphere Reserve (expanded as the Dong Nai Biosphere Reserve in 2011).
+- 2005: The Crocodile Lake wetland becomes a Ramsar site.
+- 2010: The last Javan rhino in Vietnam is poached here — a hard lesson for conservation.
+- Today: A leading centre for biodiversity, research and eco-tourism in the south.
+
+## What to see
+- Crocodile Lake: a forest trek to the wetland (register in advance, go with a ranger).
+- Giant ancient trees along the trails; the Ben Cu rapids.
+- Night safaris and early-morning birdwatching; cycling forest roads.
+- The Dao Tien primate rescue centre (on the park''s schedule).
+
+## Tips
+- Stay at least one night for Crocodile Lake and the night safari.
+- Dry season (about December–April) is easiest; in the rainy season bring leech socks.
+- Keep quiet, never feed animals, and carry your rubbish out.' WHERE id = 'vuon-quoc-gia-cat-tien' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Thác Đắk Mai nằm trong Vườn quốc gia Bù Gia Mập, ở vùng rừng biên giới phía bắc thành phố. Nước đổ qua nhiều tầng đá giữa rừng già, tạo thành những hồ nước trong xanh. Thác được bình chọn vào nhóm điểm du lịch sinh thái có cảnh quan ấn tượng.
+
+## Lịch sử hình thành
+- Trước đây: Thác nằm sâu trong rừng biên giới, chỉ đồng bào và kiểm lâm biết tới.
+- Từ khi thành lập Vườn quốc gia Bù Gia Mập (2002): Thác thuộc rừng đặc dụng, được bảo vệ cùng hệ sinh thái xung quanh.
+- 2023: Được bình chọn vào nhóm điểm du lịch sinh thái có cảnh quan ấn tượng; du lịch có kiểm soát bắt đầu phát triển.
+
+## Có gì để xem
+- Các tầng thác giữa rừng nguyên sinh, đẹp nhất vào mùa mưa.
+- Đường mòn trong rừng, suối và thảm thực vật phong phú của vườn quốc gia.
+
+## Đi lại
+Đường vào xa và qua rừng, nên đi ô tô gầm cao hoặc xe máy vững tay lái; liên hệ Vườn quốc gia Bù Gia Mập trước khi đi.
+
+## Kinh nghiệm
+- Thác nằm trong rừng đặc dụng: đi theo hướng dẫn của kiểm lâm, không tự ý cắm trại, đốt lửa.
+- Mùa mưa đường trơn, nước dâng nhanh — theo dõi thời tiết, không tắm khi nước lớn.
+- Không có nhiều dịch vụ ăn uống quanh thác, nên mang theo nước và đồ ăn nhẹ, mang rác ra khỏi rừng.', chi_tiet_en = '## About
+Dak Mai Falls lies inside Bu Gia Map National Park, in the border forests in the north of the city. Water drops over several rock tiers through old-growth forest into clear pools.
+
+## Timeline
+- Earlier: Deep in the border forest, known only to locals and rangers.
+- Since Bu Gia Map National Park was founded (2002): Protected as special-use forest.
+- 2023: Listed among striking eco-tourism landscapes; controlled visits begin.
+
+## Tips
+- Access is long and through forest — use a sturdy vehicle and contact the national park first.
+- It is protected forest: follow ranger guidance, no camping or fires without permission.
+- Few services nearby: bring water and snacks, and take your rubbish out.' WHERE id = 'thac-dak-mai' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Vườn quốc gia Bù Gia Mập nằm ở vùng biên giới phía bắc thành phố, giáp Campuchia và Tây Nguyên. Đây là vùng chuyển tiếp giữa cao nguyên và đồng bằng Nam Bộ nên hệ sinh thái rất đa dạng, còn nhiều diện tích rừng nguyên sinh, rừng tre nứa và nhiều loài động vật hoang dã.
+
+## Lịch sử hình thành
+- Trước 2002: Vùng rừng biên giới được bảo vệ dưới dạng khu bảo tồn thiên nhiên.
+- 2002: Thành lập Vườn quốc gia Bù Gia Mập.
+- Ngày nay: Bảo tồn rừng nguyên sinh vùng chuyển tiếp Tây Nguyên – Đông Nam Bộ, phát triển du lịch sinh thái có kiểm soát.
+
+## Có gì để xem
+- Thác Đắk Mai và các dòng suối trong rừng.
+- Các tuyến đi bộ xuyên rừng, quan sát chim và thực vật.
+- Văn hoá của đồng bào S''tiêng, M''nông sống quanh vùng đệm.
+
+## Đi lại
+Vườn ở xa trung tâm, nên đi ô tô và ở lại qua đêm tại khu vực lân cận. Liên hệ ban quản lý vườn để đăng ký tham quan và thuê hướng dẫn viên.
+
+## Kinh nghiệm
+- Mùa khô thuận lợi cho đi rừng; mang giày đi rừng, áo dài tay, thuốc chống côn trùng.
+- Tuân thủ quy định của rừng đặc dụng: không săn bắt, không hái lượm, không xả rác.', chi_tiet_en = '## About
+Bu Gia Map National Park lies on the northern border of the city, next to Cambodia and the Central Highlands. As a transition zone between highland and lowland, it has great biodiversity, large tracts of primary forest, bamboo forest and wildlife.
+
+## Timeline
+- Before 2002: The border forest is protected as a nature reserve.
+- 2002: Bu Gia Map National Park is established.
+- Today: Protecting primary forest between the Central Highlands and the south-east, with controlled eco-tourism.
+
+## Tips
+- Remote: travel by car, stay nearby overnight, and register with the park office for a guide.
+- Dry season is best for trekking; bring long sleeves and insect repellent.' WHERE id = 'vuon-quoc-gia-bu-gia-map' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Núi Bà Rá cao khoảng 723 m, là ngọn núi cao nhất vùng Phước Long và là biểu tượng của vùng đất này. Đứng trên đỉnh có thể nhìn toàn cảnh đồi núi, rừng cao su và lòng hồ thuỷ điện Thác Mơ ngay dưới chân núi.
+
+Dưới chân núi là di tích nhà tù Bà Rá do thực dân Pháp xây dựng, nơi giam giữ nhiều chiến sĩ cách mạng — nay là di tích lịch sử quốc gia.
+
+## Lịch sử hình thành
+- Từ xa xưa: Núi gắn với truyền thuyết về bà Rá và là nơi sinh sống của đồng bào S''tiêng quanh vùng.
+- Những năm 1940: Thực dân Pháp lập nhà tù Bà Rá dưới chân núi để giam giữ chiến sĩ cách mạng.
+- 1945 – 1975: Vùng núi là địa bàn hoạt động của lực lượng kháng chiến.
+- Những năm 1990: Hồ thuỷ điện Thác Mơ hình thành ngay chân núi, tạo nên cảnh núi – hồ hiện nay.
+- Ngày nay: Di tích nhà tù được công nhận cấp quốc gia; núi có đường leo và cáp treo phục vụ du lịch.
+
+## Có gì để xem
+- Đường lên đỉnh bằng bậc đá hoặc cáp treo, các miếu thờ trên sườn núi.
+- Toàn cảnh hồ Thác Mơ, đặc biệt lúc bình minh và hoàng hôn.
+- Di tích nhà tù Bà Rá.
+
+## Kinh nghiệm
+- Leo bộ lên đỉnh mất vài giờ, nên xuất phát sớm, mang đủ nước.
+- Mùa mưa đường đá trơn, có sương mù trên đỉnh — kiểm tra thời tiết trước khi leo.
+- Rằm tháng Giêng có nhiều người hành hương lên các miếu thờ trên núi.', chi_tiet_en = '## About
+Ba Ra Mountain, about 723 m high, is the highest peak of the Phuoc Long area and its landmark. From the top you see rolling hills, rubber plantations and the Thac Mo hydropower lake below.
+
+At the foot of the mountain is the Ba Ra prison, built by the French colonial government to hold revolutionaries — now a national historic site.
+
+## Timeline
+- Ancient times: The mountain is tied to the legend of Lady Ra and to the S''tieng communities around it.
+- 1940s: The French colonial government builds Ba Ra prison at its foot.
+- 1945 – 1975: The area is a resistance stronghold.
+- 1990s: The Thac Mo hydropower lake forms below the mountain.
+- Today: The prison is a national historic site; trails and a cable car serve visitors.
+
+## Tips
+- Climbing on foot takes a few hours; start early and carry water. A cable car also runs to the upper slopes.
+- In the rainy season the stone path is slippery and the summit often misty.' WHERE id = 'nui-ba-ra' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Núi Chứa Chan (còn gọi là núi Gia Lào) cao khoảng 837 m, là ngọn núi cao nhất vùng Xuân Lộc và là điểm leo núi, hành hương quen thuộc của miền Đông Nam Bộ. Trên sườn núi có chùa Gia Lào hàng trăm năm tuổi cùng nhiều chùa, miếu nhỏ.
+
+## Lịch sử hình thành
+- Từ thế kỷ XVIII: Các nhà sư dựng am, chùa trên sườn núi; chùa Gia Lào trở thành điểm hành hương của vùng.
+- 1945 – 1975: Đỉnh núi (cao điểm 837) là vị trí quân sự quan trọng nhờ tầm quan sát rộng.
+- Sau 1975: Chùa chiền được tu bổ; núi trở thành điểm leo núi, hành hương đầu năm của miền Đông.
+- Những năm gần đây: Có cáp treo lên các chùa trên sườn núi; được công nhận là di tích danh thắng của địa phương.
+
+## Có gì để xem
+- Chùa Gia Lào và các điểm thờ tự trên đường lên núi.
+- Đường leo qua rừng và bãi đá, nhìn xuống đồng ruộng, vườn cây vùng Xuân Lộc.
+- Đỉnh núi đón bình minh, mây phủ vào sáng sớm mùa mưa.
+- Cáp treo phục vụ khách lên các chùa trên sườn núi.
+
+## Kinh nghiệm
+- Leo tới đỉnh mất nhiều giờ và khá dốc: mang giày tốt, nước, đèn pin nếu đi sớm; nên đi theo nhóm.
+- Không leo vào ban đêm hay khi mưa lớn; báo cho người nhà lộ trình của mình.
+- Dịp đầu năm âm lịch rất đông người hành hương.
+- Đặc sản quanh vùng: chôm chôm, sầu riêng Xuân Lộc theo mùa.', chi_tiet_en = '## About
+Chua Chan Mountain (also called Gia Lao), about 837 m high, is the highest peak of the Xuan Loc area and a favourite for hiking and pilgrimage in south-east Vietnam. The centuries-old Gia Lao Pagoda and several shrines sit on its slopes.
+
+## Timeline
+- From the 18th century: Monks build hermitages and pagodas; Gia Lao Pagoda becomes a pilgrimage site.
+- 1945 – 1975: The summit (Hill 837) is a strategic military lookout.
+- After 1975: Pagodas are restored; the mountain becomes a hiking and new-year pilgrimage spot.
+- Recent years: A cable car serves the pagodas on the slopes.
+
+## Tips
+- Reaching the summit takes several hours on steep trails: good shoes, water, go in a group.
+- Do not hike at night or in heavy rain. It is very busy around the lunar new year.
+- A cable car serves the pagodas on the slopes.' WHERE id = 'nui-chua-chan' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Cuối thế kỷ XVII, nhóm di dân người Hoa do Trần Thượng Xuyên dẫn đầu được chúa Nguyễn cho định cư ở vùng Đồng Nai. Họ cùng cư dân Việt biến cù lao Phố thành thương cảng Nông Nại Đại Phố — thương cảng sầm uất bậc nhất phương Nam thế kỷ XVII – XVIII, thuyền buôn nhiều nước ra vào tấp nập.
+
+Cuối thế kỷ XVIII, thương cảng bị tàn phá trong chiến tranh và suy tàn; trung tâm buôn bán chuyển dần về Sài Gòn – Chợ Lớn. Nhưng cù lao vẫn giữ lại nhiều đình, chùa, miếu cổ.
+
+## Lịch sử hình thành
+- 1679: Nhóm di dân người Hoa do Trần Thượng Xuyên dẫn đầu được chúa Nguyễn cho định cư ở vùng Đồng Nai.
+- 1684: Dựng Thất Phủ cổ miếu (chùa Ông), nơi sinh hoạt chung của cộng đồng thương nhân.
+- Cuối thế kỷ XVII – giữa XVIII: Thương cảng Nông Nại Đại Phố thịnh vượng nhất phương Nam, thuyền buôn nhiều nước ra vào.
+- 1776 – 1777: Chiến tranh tàn phá thương cảng; thương nhân dời về vùng Sài Gòn – Chợ Lớn, cù lao suy tàn.
+- Thế kỷ XIX – XX: Cù lao trở thành làng vườn ven sông, còn giữ nhiều đình, chùa, miếu cổ.
+- Ngày nay: Vùng di sản với các di tích cấp quốc gia, du lịch văn hoá – tâm linh và vườn cây.
+
+## Có gì để xem
+- Chùa Ông (Thất Phủ cổ miếu), dựng từ cuối thế kỷ XVII — một trong những miếu Hoa cổ nhất Nam Bộ.
+- Chùa Đại Giác, ngôi chùa cổ gắn với nhiều giai thoại thời chúa Nguyễn.
+- Đền thờ Nguyễn Hữu Cảnh ngay bên sông.
+- Vườn cây ăn trái, đường làng ven sông Đồng Nai.
+
+## Kinh nghiệm
+- Đi xe đạp hoặc xe máy vòng quanh cù lao trong nửa ngày là hợp lý.
+- Rằm tháng Giêng có lễ hội ở chùa Ông, rất đông và nhiều nghi lễ truyền thống.
+- Ăn mặc lịch sự khi vào chùa, miếu.', chi_tiet_en = '## About
+In the late 17th century Chinese migrants led by Tran Thuong Xuyen settled in the Dong Nai region. Together with Vietnamese settlers they turned Cu Lao Pho island into the port of Nong Nai Dai Pho — the busiest trading port of the south in the 17th and 18th centuries.
+
+War in the late 18th century ruined the port and trade moved to Saigon – Cho Lon, but the island kept many old temples and pagodas.
+
+## Timeline
+- 1679: Chinese migrants led by Tran Thuong Xuyen are allowed to settle in the Dong Nai region.
+- 1684: That Phu Co Mieu (Ong Pagoda) is built as the merchants'' community temple.
+- Late 17th – mid 18th century: Nong Nai Dai Pho is the most prosperous port of the south.
+- 1776 – 1777: War destroys the port; merchants move to Saigon – Cho Lon.
+- 19th – 20th century: The island becomes a riverside village of orchards, keeping its old temples.
+- Today: A heritage area of national relics, cultural and spiritual tourism.
+
+## What to see
+- Ong Pagoda (That Phu Co Mieu), founded in the late 17th century — one of the oldest Chinese temples in the south.
+- Dai Giac Pagoda; the Nguyen Huu Canh temple by the river; orchards and riverside lanes.
+
+## Tips
+- Half a day by bicycle or motorbike is enough to loop the island.
+- The first full moon of the lunar year brings a large festival at Ong Pagoda.' WHERE id = 'cu-lao-pho' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Sóc Bom Bo là làng của đồng bào S''tiêng, nổi tiếng khắp cả nước qua bài hát "Tiếng chày trên sóc Bom Bo" của nhạc sĩ Xuân Hồng. Trong kháng chiến, dân làng ngày đêm giã gạo nuôi bộ đội — tiếng chày vang khắp núi rừng trở thành biểu tượng của tinh thần đoàn kết quân dân.
+
+Ngày nay ở đây có khu bảo tồn văn hoá dân tộc S''tiêng, giới thiệu nhà dài truyền thống, nông cụ, nhạc cụ và đời sống của đồng bào.
+
+## Lịch sử hình thành
+- Từ lâu đời: Vùng cư trú của đồng bào S''tiêng với nhà dài, nương rẫy, cồng chiêng.
+- 1945 – 1975: Dân làng giã gạo nuôi bộ đội, góp sức cho các chiến dịch ở miền Đông.
+- 1965: Nhạc sĩ Xuân Hồng sáng tác "Tiếng chày trên sóc Bom Bo", đưa tên sóc đi khắp cả nước.
+- Sau 1975: Sóc được công nhận là di tích lịch sử.
+- Ngày nay: Khu bảo tồn văn hoá dân tộc S''tiêng, giữ nhà dài, nghề dệt, cồng chiêng và lễ hội truyền thống.
+
+## Có gì để xem
+- Nhà dài, nhà sàn truyền thống của người S''tiêng.
+- Cồng chiêng, nghề dệt thổ cẩm, đan lát, rượu cần.
+- Khu di tích lịch sử gắn với câu chuyện giã gạo nuôi quân.
+- Các lễ hội truyền thống của đồng bào (theo lịch địa phương).
+
+## Kinh nghiệm
+- Tôn trọng phong tục: hỏi trước khi chụp ảnh người dân, không tự ý vào nhà dân.
+- Mua sản phẩm thổ cẩm, đồ đan của bà con là cách hỗ trợ giữ nghề truyền thống.', chi_tiet_en = '## About
+Bom Bo is a village of the S''tieng people, known nationwide through the song "The sound of pestles in Bom Bo village". During the war villagers pounded rice day and night to feed the soldiers, and the sound became a symbol of solidarity.
+
+Today a S''tieng cultural conservation area shows traditional longhouses, tools, instruments and daily life.
+
+## Timeline
+- Long ago: Home of the S''tieng people with longhouses, upland fields and gongs.
+- 1945 – 1975: Villagers pound rice to feed the soldiers.
+- 1965: Composer Xuan Hong writes "The sound of pestles in Bom Bo village", making the name known nationwide.
+- After 1975: The village is recognised as a historic site.
+- Today: A S''tieng cultural conservation area keeping longhouses, weaving, gongs and festivals.
+
+## What to see
+- Traditional S''tieng longhouses and stilt houses.
+- Gongs, brocade weaving, basketry and rice wine; the historic site of the rice-pounding story.
+
+## Tips
+- Respect local customs: ask before photographing people and do not enter homes uninvited.
+- Buying brocade and handicrafts helps keep these crafts alive.' WHERE id = 'soc-bom-bo' AND chi_tiet IS NULL;
+UPDATE dia_diem SET chi_tiet = '## Giới thiệu
+Hồ Suối Lam là hồ nước nằm giữa vùng đồi rừng và vườn cây ở phía bắc thành phố, gần khu vực Đồng Xoài cũ. Mặt hồ phẳng lặng, quanh hồ là rừng cây và vườn cao su, điều — chỗ dã ngoại, thư giãn cuối tuần quen thuộc của người dân địa phương.
+
+## Lịch sử hình thành
+- Trước đây: Vùng đồi đất đỏ bazan với rừng và vườn cây công nghiệp.
+- Sau khi hình thành hồ: Mặt nước giữa đồi rừng thành nơi dã ngoại, nghỉ ngơi của người dân quanh vùng.
+- Ngày nay: Điểm thư giãn cuối tuần của địa phương. (Mốc năm cụ thể: cán bộ bổ sung.)
+
+## Có gì để xem
+- Cảnh hồ buổi sáng sớm có sương và lúc hoàng hôn.
+- Đường đi dạo, chỗ ngồi picnic dưới tán cây ven hồ.
+- Vườn cây công nghiệp đặc trưng vùng đất đỏ bazan.
+
+## Kinh nghiệm
+- Dịch vụ quanh hồ còn ít, nên mang theo nước, đồ ăn và mang rác về.
+- Không tắm hồ ở nơi không có biển cho phép — hồ sâu, đáy dốc.
+- Kết hợp với các điểm khác ở vùng phía bắc như núi Bà Rá, sóc Bom Bo.', chi_tiet_en = '## About
+Suoi Lam is a lake among wooded hills and plantations in the north of the city, near old Dong Xoai. The calm water is ringed by trees, rubber and cashew gardens — a local favourite for weekend picnics.
+
+## Timeline
+- Earlier: Red basalt hills with forest and plantations.
+- After the lake formed: A picnic and rest spot for local people.
+- Today: A local weekend retreat.
+
+## Tips
+- Few services around the lake: bring water and food, and take your rubbish home.
+- Do not swim where there is no sign allowing it — the lake is deep with steep banks.
+- Combine with Ba Ra Mountain or Bom Bo village in the north.' WHERE id = 'ho-suoi-lam' AND chi_tiet IS NULL;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

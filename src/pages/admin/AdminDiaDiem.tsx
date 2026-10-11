@@ -9,8 +9,9 @@ import QuanLyAnh from '../../components/common/QuanLyAnh';
 import type { Loai } from '../../utils/kieu';
 
 interface DD { id: string; ten: string; loai: Loai; moTa: string | null; diaChi: string | null; lat: number; lng: number; sdt: string | null; web: string | null;
-  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null; tenEn: string | null; moTaEn: string | null; vung: string | null }
-const TRONG = { ten: '', tenEn: '', loai: 'thien-nhien' as Loai, moTa: '', moTaEn: '', diaChi: '', xaPhuongId: '', vung: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
+  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null; tenEn: string | null; moTaEn: string | null; vung: string | null;
+  chiTiet: string | null; chiTietEn: string | null }
+const TRONG = { ten: '', tenEn: '', loai: 'thien-nhien' as Loai, moTa: '', moTaEn: '', chiTiet: '', chiTietEn: '', diaChi: '', xaPhuongId: '', vung: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
 
 export default function AdminDiaDiem() {
   const qc = useQueryClient();
@@ -25,7 +26,7 @@ export default function AdminDiaDiem() {
   });
   const anHien = useMutation({ mutationFn: (p: DD) => adminFetch(`/dia-diem/${p.id}/hien`, { method: 'PATCH', body: JSON.stringify({ hien: !p.hien }) }), onSuccess: lamMoi,
     onError: (e: Error) => toast.error(e.message) });
-  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '', vung: p.vung || '', tenEn: p.tenEn || '', moTaEn: p.moTaEn || '' });
+  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '', vung: p.vung || '', tenEn: p.tenEn || '', moTaEn: p.moTaEn || '', chiTiet: p.chiTiet || '', chiTietEn: p.chiTietEn || '' });
     window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const dat = (k: keyof typeof TRONG) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value }));
@@ -39,9 +40,14 @@ export default function AdminDiaDiem() {
           <label className={nhan}>Loại<select className={o} value={f.loai} onChange={dat('loai')}>{(Object.keys(LOAI) as Loai[]).map((k) => <option key={k} value={k}>{LOAI[k].ten}</option>)}</select></label>
           <label className={nhan}>Giờ mở cửa<input className={o} value={f.gioMo} onChange={dat('gioMo')} placeholder="7:00 – 17:00" /></label></div>
         <label className={nhan}>Giới thiệu<textarea className={o} rows={3} value={f.moTa} onChange={dat('moTa')} maxLength={1500} /></label>
+        <label className={nhan}>Bài chi tiết <small className="font-normal text-slate-500">(hiện ở trang riêng của địa điểm)</small>
+          <textarea className={o + ' font-mono text-[13px] leading-relaxed'} rows={12} value={f.chiTiet} onChange={dat('chiTiet')} maxLength={20000} /></label>
+        <p className="mt-1 text-xs text-slate-500">Dòng bắt đầu bằng <code>## </code> là tiêu đề mục, dòng bắt đầu bằng <code>- </code> là gạch đầu dòng, để một dòng trống giữa hai đoạn. Trong mục <b>Lịch sử hình thành</b>, mỗi dòng ghi <code>- Mốc: nội dung</code> (ví dụ <code>- 1715: Dựng văn miếu…</code>) sẽ hiện thành dòng thời gian.</p>
         <details className="mt-3 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700"><summary className="cursor-pointer text-sm font-semibold">Tiếng Anh cho khách nước ngoài <small className="font-normal text-slate-500">(không bắt buộc — trống thì hiện tiếng Việt)</small></summary>
           <label className={nhan}>Tên tiếng Anh<input className={o} value={f.tenEn} onChange={dat('tenEn')} maxLength={120} /></label>
-          <label className={nhan}>Giới thiệu tiếng Anh<textarea className={o} rows={3} value={f.moTaEn} onChange={dat('moTaEn')} maxLength={1500} /></label></details>
+          <label className={nhan}>Giới thiệu tiếng Anh<textarea className={o} rows={3} value={f.moTaEn} onChange={dat('moTaEn')} maxLength={1500} /></label>
+          <label className={nhan}>Bài chi tiết tiếng Anh <small className="font-normal text-slate-500">(mục lịch sử đặt tên <code>## Timeline</code>)</small>
+            <textarea className={o + ' font-mono text-[13px] leading-relaxed'} rows={8} value={f.chiTietEn} onChange={dat('chiTietEn')} maxLength={20000} /></label></details>
         <div className="grid grid-cols-2 gap-3">
           <label className={nhan}>Địa chỉ<input className={o} value={f.diaChi} onChange={dat('diaChi')} maxLength={200} /></label>
           <label className={nhan}>Xã/phường<select className={o} value={f.xaPhuongId} onChange={dat('xaPhuongId')}>

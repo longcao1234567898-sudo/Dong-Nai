@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, MapPin, Star, Phone, Globe, Clock, Loader2, ExternalLink, MessageSquareWarning, Flag, Navigation } from 'lucide-react';
@@ -102,7 +102,7 @@ export function DaiAnh({ p, lon = false }: { p: DiaDiem; lon?: boolean }) {
 }
 
 /** Nội dung chi tiết một địa điểm — dùng chung cho cửa sổ nổi và trang riêng. */
-export function ThongTinDiaDiem({ p, trangRieng = false, vietNgay = false }: { p: DiaDiem; trangRieng?: boolean; vietNgay?: boolean }) {
+export function ThongTinDiaDiem({ p, trangRieng = false, vietNgay = false, giua }: { p: DiaDiem; trangRieng?: boolean; vietNgay?: boolean; giua?: ReactNode }) {
   const { t, nn, chon, ngay } = useNN();
   const [sx, setSx] = useState('moi'); const [viet, setViet] = useState(vietNgay);
   const [daBao, setDaBao] = useState<number[]>([]);
@@ -136,6 +136,8 @@ export function ThongTinDiaDiem({ p, trangRieng = false, vietNgay = false }: { p
       <Link to={`/phan-anh?diem=${encodeURIComponent(p.id)}`} className="nut nut-vien"><MessageSquareWarning className="h-4 w-4" />{t('guiPhanAnhDiemNay')}</Link>
     </div>
     {viet && <FormDanhGia p={p} onXong={() => setViet(false)} />}
+    {/* Trang riêng: bộ ảnh và bài chi tiết nằm giữa thông tin chung và phần đánh giá. */}
+    {giua}
     {p.soDanhGia > 0 && p.saoTb !== null ? (<>
       <div className="da-hien mt-6 grid grid-cols-[auto_1fr] items-center gap-6 rounded-2xl bg-sunken/70 p-5">
         <div><b className="so-lon block">{so1(p.saoTb)}</b><span className="mt-1 block"><HienSao gt={p.saoTb} co={18} /></span>

@@ -41,6 +41,9 @@ function docDiaDiem(b) {
   return { loi, du: {
     ten: sanitizeText(String(b.ten || ''), 120), loai: b.loai, mo_ta: sanitizeText(String(b.moTa || ''), 1500) || null,
     ten_en: sanitizeText(String(b.tenEn || ''), 120) || null, mo_ta_en: sanitizeText(String(b.moTaEn || ''), 1500) || null,
+    /* Bài chi tiết: giữ xuống dòng (định dạng "## mục", "- gạch đầu dòng"), tối đa 20 000 ký tự. */
+    chi_tiet: sanitizeText(String(b.chiTiet || '').replace(/\r\n?/g, '\n'), 20000) || null,
+    chi_tiet_en: sanitizeText(String(b.chiTietEn || '').replace(/\r\n?/g, '\n'), 20000) || null,
     dia_chi: sanitizeText(String(b.diaChi || ''), 200) || null, lat: Math.round(lat * 1e7) / 1e7, lng: Math.round(lng * 1e7) / 1e7,
     sdt: String(b.sdt || '').replace(/[^0-9+ .()-]/g, '').slice(0, 20) || null, web: String(b.web || '').slice(0, 200) || null,
     gio_mo: sanitizeText(String(b.gioMo || ''), 80) || null, noi_bat: !!b.noiBat, hien: b.hien !== false, da_kiem_tra: !!b.daKiemTra,
@@ -85,7 +88,7 @@ router.get('/dia-diem', async (_req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM dia_diem ORDER BY ten');
     res.json(rows.map((r) => ({ id: r.id, ten: r.ten, loai: r.loai, moTa: r.mo_ta, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
-      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null, tenEn: r.ten_en ?? null, moTaEn: r.mo_ta_en ?? null, vung: r.vung ?? null })));
+      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null, tenEn: r.ten_en ?? null, moTaEn: r.mo_ta_en ?? null, vung: r.vung ?? null, chiTiet: r.chi_tiet ?? null, chiTietEn: r.chi_tiet_en ?? null })));
   } catch (e) { next(e); }
 });
 router.post('/dia-diem', async (req, res, next) => {
