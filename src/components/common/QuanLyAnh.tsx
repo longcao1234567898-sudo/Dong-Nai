@@ -18,7 +18,7 @@ const CANH_DAI = 1600;
 /** Số ảnh tối đa mỗi điểm — khớp TOI_DA_ANH ở server/src/routes/noi-dung.js. */
 const TOI_DA = 20;
 
-async function thuNho(tep: Blob, goc: 0 | 90 | -90 = 0): Promise<{ blob: Blob; rong: number; cao: number }> {
+export async function thuNho(tep: Blob, goc: 0 | 90 | -90 = 0): Promise<{ blob: Blob; rong: number; cao: number }> {
   /* imageOrientation: xoay đúng chiều ảnh chụp dọc từ điện thoại (thông tin EXIF). */
   const bm = await createImageBitmap(tep, { imageOrientation: 'from-image' } as ImageBitmapOptions);
   const tl = Math.min(1, CANH_DAI / Math.max(bm.width, bm.height));

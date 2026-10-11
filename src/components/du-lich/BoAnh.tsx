@@ -11,7 +11,7 @@ import { ANH_MAC_DINH } from '../../utils/anhMacDinh';
 import { useNN } from '../../i18n/NgonNgu';
 import type { DiaDiem } from '../../utils/kieu';
 
-interface Tam { lon: string; nho: string; chuThich: string; rong?: number | null; cao?: number | null; vt: string }
+export interface Tam { lon: string; nho: string; chuThich: string; rong?: number | null; cao?: number | null; vt: string }
 
 export function dsAnh(p: DiaDiem, ten: string): Tam[] {
   if (p.anh?.length) return p.anh.map((a) => ({ lon: anhUrl(a.id), nho: anhUrl(a.id), chuThich: a.chuThich || ten, rong: a.rong, cao: a.cao,
@@ -20,7 +20,7 @@ export function dsAnh(p: DiaDiem, ten: string): Tam[] {
   return (ANH_MAC_DINH[p.id] || []).map((m) => ({ lon: m.tep, nho: m.nho, chuThich: ten, rong: m.rong, cao: m.cao, vt: '50% 50%' }));
 }
 
-function KhungXem({ ds, dau, onDong }: { ds: Tam[]; dau: number; onDong: () => void }) {
+export function KhungXem({ ds, dau, onDong }: { ds: Tam[]; dau: number; onDong: () => void }) {
   const { t } = useNN();
   const [i, setI] = useState(dau);
   const dongRef = useRef<HTMLButtonElement>(null);

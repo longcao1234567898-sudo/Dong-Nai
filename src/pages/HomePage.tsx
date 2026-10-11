@@ -23,7 +23,8 @@ export default function HomePage() {
   const { data: tin = [] } = useQuery({ queryKey: ['tin-tuc'], queryFn: layTinTuc });
   const { data: tk } = useQuery({ queryKey: ['thong-ke', ''], queryFn: () => layThongKe() });
   const canhBao = tin.filter((x) => x.loai === 'canh-bao');
-  const suKien = tin.filter((x) => x.loai === 'su-kien' || x.loai === 'thong-bao').slice(0, 3);
+  /* Tin nổi bật lên trước. */
+  const suKien = tin.filter((x) => x.loai === 'su-kien' || x.loai === 'thong-bao').sort((a, b) => Number(!!b.noiBat) - Number(!!a.noiBat)).slice(0, 3);
 
   const [tuKhoa, setTuKhoa] = useState('');
   const [tab, setTab] = useState<Tab>('diem');
@@ -62,7 +63,7 @@ export default function HomePage() {
           <div className="hien-dan mb-6 flex flex-wrap items-end justify-between gap-3"><h2 className="tieu-de-vua">{t('tinMoi')}</h2>
             <Link to="/tin-tuc" className="text-[15px] font-semibold text-action underline-offset-2 hover:underline">{t('tinTuc')}</Link></div>
           <div className="grid gap-4 md:grid-cols-3">{suKien.map((x, i) => (
-            <Link key={x.id} to="/tin-tuc" className="hien-dan the block p-5 transition-shadow hover:shadow-sh-2" style={{ '--i': i } as React.CSSProperties}>
+            <Link key={x.id} to={`/tin-tuc/${x.id}`} className="hien-dan the block p-5 transition-shadow hover:shadow-sh-2" style={{ '--i': i } as React.CSSProperties}>
               <span className="flex items-center gap-1.5 text-[13px] font-medium text-muted"><CalendarDays className="h-4 w-4" />
                 {x.loai === 'su-kien' ? t('suKien') : t('thongBao')}{x.tuNgay ? `, ${ngay(x.tuNgay)}` : ''}{x.denNgay && x.denNgay !== x.tuNgay ? ` – ${ngay(x.denNgay)}` : ''}</span>
               <b className="mt-2 block text-[17px] font-semibold leading-snug">{dich(x.tieuDe, x.tieuDeEn)}</b>

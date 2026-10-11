@@ -93,6 +93,23 @@ test('tin tức: ngày kết thúc trước ngày bắt đầu -> 400', async ()
   assert.equal(r.status, 400);
 });
 
+test('tin tức: đường dẫn nguồn phải là http(s); tin nổi bật và đường dẫn được lưu; số điện thoại không thành tin nổi bật', async () => {
+  assert.equal((await api('/api/quan-tri/tin-tuc', { method: 'POST', token: ve, body: { loai: 'su-kien', tieuDe: 'Lễ hội', lienKet: 'javascript:alert(1)' } })).status, 400);
+  goi = [];
+  const r = await api('/api/quan-tri/tin-tuc', { method: 'POST', token: ve, body: { loai: 'su-kien', tieuDe: 'Lễ hội', noiBat: true, lienKet: 'https://dongnai.gov.vn/tin/1' } });
+  assert.equal(r.status, 201);
+  const ins = goi.find((g) => /INSERT INTO tin_tuc/i.test(g.sql)).params[0];
+  assert.equal(ins.noi_bat, true); assert.equal(ins.lien_ket, 'https://dongnai.gov.vn/tin/1');
+  goi = [];
+  await api('/api/quan-tri/tin-tuc', { method: 'POST', token: ve, body: { loai: 'lien-he', tieuDe: 'Đường dây nóng', noiDung: '0251 000', noiBat: true } });
+  assert.equal(goi.find((g) => /INSERT INTO tin_tuc/i.test(g.sql)).params[0].noi_bat, false);
+});
+
+test('ảnh của tin: chỉ nhận ảnh thật', async () => {
+  const r = await api('/api/quan-tri/tin-tuc/3/anh', { method: 'POST', token: ve, raw: Buffer.from('khong phai anh 123456789'), kieu: 'image/jpeg' });
+  assert.equal(r.status, 400);
+});
+
 test('xử lý xong phản ánh mà không trả lời người gửi -> 400', async () => {
   assert.equal((await api('/api/quan-tri/phan-anh/1', { method: 'PATCH', token: ve, body: { trangThai: 'da-xu-ly' } })).status, 400);
   assert.equal((await api('/api/quan-tri/phan-anh/1', { method: 'PATCH', token: ve, body: { trangThai: 'da-xu-ly', phanHoi: 'Đã yêu cầu hoàn tiền.' } })).status, 200);

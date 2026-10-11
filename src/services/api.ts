@@ -62,6 +62,9 @@ export const layThongKe = (nam?: string) => goi<ThongKe>(`/thong-ke${nam ? `?nam
 export const layLoTrinh = () => goi<LoTrinh[]>('/lo-trinh');
 export const layDanhGiaMoiNhat = (gioiHan = 6) => goi<DanhGiaMoi[]>(`/danh-gia/moi-nhat?gioiHan=${gioiHan}`);
 export const layTinTuc = () => goi<TinTuc[]>('/tin-tuc');
+export const layTin = (id: number) => goi<TinTuc>(`/tin-tuc/${id}`);
+/** Ảnh của tin tức — nhớ đệm lâu như ảnh địa điểm. */
+export const anhTinUrl = (id: number) => `${API_URL}/api/cong-khai/anh-tin/${id}`;
 export const layLuuTru = () => goi<LuuTru[]>('/luu-tru');
 export const guiPhanAnh = (d: { loai: string; diaDiemId?: string; noiDung: string; lienHe?: string }) =>
   goi<{ ok: true }>('/phan-anh', { method: 'POST', body: JSON.stringify(d) });

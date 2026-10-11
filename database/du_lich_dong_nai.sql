@@ -1261,4 +1261,30 @@ CREATE TABLE IF NOT EXISTS diem_quan_sat (
   FOREIGN KEY (nguoi_tai) REFERENCES staff(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================================================
+-- GIAI ĐOẠN 7 — TIN TỨC CÓ ẢNH, TIN NỔI BẬT, ĐƯỜNG DẪN NGUỒN
+-- ============================================================================
+-- noi_bat: tin nổi bật, tự lướt ở đầu trang Tin tức. lien_ket: đường dẫn tới
+-- nguồn tin (trang của sở, báo…). Nội dung tin nới lên TEXT để viết bài dài.
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tin_tuc' AND COLUMN_NAME = 'noi_bat');
+SET @lenh := IF(@co = 0, 'ALTER TABLE tin_tuc ADD COLUMN noi_bat BOOLEAN NOT NULL DEFAULT FALSE AFTER hien, ADD COLUMN lien_ket VARCHAR(300) NULL AFTER dia_diem_id, MODIFY noi_dung TEXT NULL, MODIFY noi_dung_en TEXT NULL', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
+-- Ảnh của tin (ảnh đầu là ảnh bìa), lưu trong cơ sở dữ liệu như ảnh địa điểm.
+CREATE TABLE IF NOT EXISTS anh_tin (
+  id           INT PRIMARY KEY AUTO_INCREMENT,
+  tin_id       INT NOT NULL,
+  du_lieu      MEDIUMBLOB NOT NULL,
+  kieu         VARCHAR(20) NOT NULL,
+  rong         SMALLINT UNSIGNED NULL,
+  cao          SMALLINT UNSIGNED NULL,
+  chu_thich    VARCHAR(200) NULL,
+  thu_tu       SMALLINT NOT NULL DEFAULT 0,
+  nguoi_tai    INT NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_tin (tin_id, thu_tu),
+  FOREIGN KEY (tin_id) REFERENCES tin_tuc(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_tai) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

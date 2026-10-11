@@ -226,14 +226,41 @@ router.get('/lo-trinh', async (_req, res, next) => {
 });
 
 /* Tin còn hạn: chưa tới ngày bắt đầu hoặc đã qua ngày kết thúc thì tự thôi hiện. */
+/* Tin tức: kèm danh sách ảnh (chỉ mã, cỡ), tin nổi bật, đường dẫn nguồn. Cột/bảng mới
+   chưa có (chưa chạy lại tệp SQL) thì vẫn trả tin như cũ. */
+const docTinCK = (r, anh) => ({ id: r.id, loai: r.loai, tieuDe: r.tieu_de, tieuDeEn: r.tieu_de_en, noiDung: r.noi_dung, noiDungEn: r.noi_dung_en,
+  tuNgay: r.tu_ngay, denNgay: r.den_ngay, diaDiemId: r.dia_diem_id, noiBat: !!r.noi_bat, lienKet: r.lien_ket ?? null,
+  anh: anh.filter((a) => a.tin_id === r.id).map((a) => ({ id: a.id, rong: a.rong, cao: a.cao, chuThich: a.chu_thich })) });
+const layAnhTin = (ids) => (ids.length
+  ? pool.query('SELECT id, tin_id, rong, cao, chu_thich FROM anh_tin WHERE tin_id IN (?) ORDER BY tin_id, thu_tu, id', [ids])
+    .then(([r]) => r).catch((e) => { if (e.code === 'ER_NO_SUCH_TABLE') return []; throw e; })
+  : Promise.resolve([]));
 router.get('/tin-tuc', async (_req, res, next) => {
   try {
     const [rows] = await pool.query(
-      `SELECT id, loai, tieu_de, tieu_de_en, noi_dung, noi_dung_en, tu_ngay, den_ngay, dia_diem_id FROM tin_tuc
+      `SELECT * FROM tin_tuc
         WHERE hien = 1 AND (tu_ngay IS NULL OR tu_ngay <= CURDATE() OR loai = 'su-kien') AND (den_ngay IS NULL OR den_ngay >= CURDATE())
         ORDER BY FIELD(loai, 'canh-bao', 'su-kien', 'thong-bao', 'lien-he'), thu_tu, tu_ngay, id DESC LIMIT 100`);
-    res.json(rows.map((r) => ({ id: r.id, loai: r.loai, tieuDe: r.tieu_de, tieuDeEn: r.tieu_de_en, noiDung: r.noi_dung, noiDungEn: r.noi_dung_en,
-      tuNgay: r.tu_ngay, denNgay: r.den_ngay, diaDiemId: r.dia_diem_id })));
+    const anh = await layAnhTin(rows.map((r) => r.id));
+    res.json(rows.map((r) => docTinCK(r, anh)));
+  } catch (e) { next(e); }
+});
+/* Một tin — đường dẫn riêng để chia sẻ. Tin đã hết hạn vẫn mở được qua đường dẫn (người
+   ta đã gửi nhau), giao diện ghi rõ đã kết thúc; tin bị ẩn thì không. */
+router.get('/tin-tuc/:id', async (req, res, next) => {
+  try {
+    const [[r]] = await pool.query('SELECT * FROM tin_tuc WHERE id = ? AND hien = 1 AND loai <> \'lien-he\'', [Number(req.params.id) || 0]);
+    if (!r) return res.status(404).json({ error: 'Không tìm thấy tin, hoặc tin đã được gỡ.' });
+    res.json(docTinCK(r, await layAnhTin([r.id])));
+  } catch (e) { next(e); }
+});
+router.get('/anh-tin/:id', async (req, res, next) => {
+  try {
+    const [[a]] = await pool.query('SELECT a.du_lieu, a.kieu FROM anh_tin a JOIN tin_tuc t ON t.id = a.tin_id WHERE a.id = ? AND t.hien = 1', [Number(req.params.id) || 0]);
+    if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    res.setHeader('Content-Type', a.kieu);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(a.du_lieu);
   } catch (e) { next(e); }
 });
 

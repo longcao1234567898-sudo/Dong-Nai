@@ -22,6 +22,7 @@ const TuTaoLoTrinh = lazy(() => import('./pages/cong-khai/LoTrinhPage').then((m)
 const LuuTruPage = lazy(() => import('./pages/cong-khai/LuuTruPage'));
 const PhanAnhPage = lazy(() => import('./pages/cong-khai/PhanAnhPage'));
 const TinTucPage = lazy(() => import('./pages/cong-khai/TinTucPage'));
+const TinChiTietPage = lazy(() => import('./pages/cong-khai/TinChiTietPage'));
 const KhachQuocTePage = lazy(() => import('./pages/cong-khai/KhachQuocTePage'));
 const AdminNguonAnh = lazy(() => import('./pages/admin/AdminNguonAnh'));
 const AdminLoTrinh = lazy(() => import('./pages/admin/AdminLoTrinh'));
@@ -76,6 +77,7 @@ export default function App() {
               <Route path="/luu-tru" element={<LuuTruPage />} />
               <Route path="/phan-anh" element={<PhanAnhPage />} />
               <Route path="/tin-tuc" element={<TinTucPage />} />
+              <Route path="/tin-tuc/:id" element={<TinChiTietPage />} />
               <Route path="/khach-quoc-te" element={<KhachQuocTePage />} />
               <Route path="/dang-nhap" element={<AdminLoginPage />} />
               <Route path="/quan-tri" element={<CanDangNhap />}>

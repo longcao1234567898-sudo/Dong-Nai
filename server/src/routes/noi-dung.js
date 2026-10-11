@@ -228,8 +228,10 @@ const LOAI_TIN = ['canh-bao', 'su-kien', 'thong-bao', 'lien-he'];
 router.get('/tin-tuc', async (_req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM tin_tuc ORDER BY FIELD(loai, \'canh-bao\', \'su-kien\', \'thong-bao\', \'lien-he\'), thu_tu, id DESC');
+    const [so] = await pool.query('SELECT tin_id, COUNT(*) AS so FROM anh_tin GROUP BY tin_id').catch(() => [[]]);
     res.json(rows.map((r) => ({ id: r.id, loai: r.loai, tieuDe: r.tieu_de, tieuDeEn: r.tieu_de_en, noiDung: r.noi_dung, noiDungEn: r.noi_dung_en,
-      tuNgay: r.tu_ngay, denNgay: r.den_ngay, diaDiemId: r.dia_diem_id, hien: !!r.hien, thuTu: r.thu_tu })));
+      tuNgay: r.tu_ngay, denNgay: r.den_ngay, diaDiemId: r.dia_diem_id, hien: !!r.hien, thuTu: r.thu_tu,
+      noiBat: !!r.noi_bat, lienKet: r.lien_ket ?? null, soAnh: Number(so.find((x) => x.tin_id === r.id)?.so || 0) })));
   } catch (e) { next(e); }
 });
 function docTin(b) {
@@ -239,8 +241,11 @@ function docTin(b) {
   const tu = ngay(b.tuNgay), den = ngay(b.denNgay);
   if (tu === undefined || den === undefined) return { loi: 'Ngày không hợp lệ.' };
   if (tu && den && den < tu) return { loi: 'Ngày kết thúc phải sau ngày bắt đầu.' };
+  const lienKet = String(b.lienKet || '').trim();
+  if (lienKet && !/^https?:\/\/[^\s]+$/i.test(lienKet)) return { loi: 'Đường dẫn nguồn phải bắt đầu bằng http:// hoặc https://' };
   return { du: { loai: b.loai, tieu_de: tieuDe, tieu_de_en: sanitizeText(String(b.tieuDeEn || ''), 200) || null,
-    noi_dung: sanitizeText(String(b.noiDung || ''), 3000) || null, noi_dung_en: sanitizeText(String(b.noiDungEn || ''), 3000) || null,
+    noi_dung: sanitizeText(String(b.noiDung || '').replace(/\r\n?/g, '\n'), 10000) || null, noi_dung_en: sanitizeText(String(b.noiDungEn || '').replace(/\r\n?/g, '\n'), 10000) || null,
+    noi_bat: !!b.noiBat && b.loai !== 'lien-he', lien_ket: lienKet.slice(0, 300) || null,
     tu_ngay: tu, den_ngay: den, dia_diem_id: b.diaDiemId ? String(b.diaDiemId) : null, hien: b.hien !== false,
     thu_tu: Number.isInteger(Number(b.thuTu)) ? Number(b.thuTu) : 0 } };
 }
@@ -266,6 +271,61 @@ router.delete('/tin-tuc/:id', async (req, res, next) => {
     await pool.query('DELETE FROM tin_tuc WHERE id = ?', [Number(req.params.id) || 0]);
     await ghiNhatKy(pool, req, { hanhDong: 'xoa_tin', loaiDoiTuong: 'tin_tuc', doiTuongId: req.params.id });
     res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
+/* Ảnh của tin: tối đa 10, ảnh đầu là ảnh bìa (băng chuyền tin nổi bật, thẻ tin). */
+const TOI_DA_ANH_TIN = 10;
+router.get('/tin-tuc/:id/anh', async (req, res, next) => {
+  try {
+    const [rows] = await pool.query('SELECT id, rong, cao, chu_thich FROM anh_tin WHERE tin_id = ? ORDER BY thu_tu, id', [Number(req.params.id) || 0]);
+    res.json(rows.map((r) => ({ id: r.id, rong: r.rong, cao: r.cao, chuThich: r.chu_thich })));
+  } catch (e) { next(e); }
+});
+router.post('/tin-tuc/:id/anh', nhanAnh, async (req, res, next) => {
+  try {
+    const kieu = kieuAnh(req.body);
+    if (!kieu) return res.status(400).json({ error: 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.' });
+    const [[tin]] = await pool.query('SELECT id FROM tin_tuc WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!tin) return res.status(404).json({ error: 'Không tìm thấy tin. Lưu tin trước rồi mới thêm ảnh.' });
+    const [[{ so }]] = await pool.query('SELECT COUNT(*) AS so FROM anh_tin WHERE tin_id = ?', [tin.id]);
+    if (Number(so) >= TOI_DA_ANH_TIN) return res.status(409).json({ error: `Mỗi tin tối đa ${TOI_DA_ANH_TIN} ảnh.` });
+    const kichCo = (v) => { const n = Math.floor(Number(v)); return n > 0 && n < 10000 ? n : null; };
+    const [kq] = await pool.query('INSERT INTO anh_tin SET ?', [{ tin_id: tin.id, du_lieu: req.body, kieu, rong: kichCo(req.query.rong), cao: kichCo(req.query.cao),
+      chu_thich: sanitizeText(String(req.query.chuThich || ''), 200) || null, thu_tu: Number(so) + 1, nguoi_tai: req.staff.id }]);
+    await ghiNhatKy(pool, req, { hanhDong: 'them_anh_tin', loaiDoiTuong: 'tin_tuc', doiTuongId: tin.id, chiTiet: { anh: kq.insertId } });
+    res.status(201).json({ id: kq.insertId });
+  } catch (e) {
+    if (e.type === 'entity.too.large') return res.status(413).json({ error: 'Ảnh lớn hơn 1,5 MB.' });
+    next(e);
+  }
+});
+router.patch('/anh-tin/:id', async (req, res, next) => {
+  try {
+    const doi = {};
+    if (req.body?.chuThich !== undefined) doi.chu_thich = sanitizeText(String(req.body.chuThich), 200) || null;
+    if (Number.isInteger(req.body?.thuTu)) doi.thu_tu = req.body.thuTu;
+    if (!Object.keys(doi).length) return res.status(400).json({ error: 'Không có gì để đổi.' });
+    await pool.query('UPDATE anh_tin SET ? WHERE id = ?', [doi, Number(req.params.id) || 0]);
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+router.delete('/anh-tin/:id', async (req, res, next) => {
+  try {
+    const [[a]] = await pool.query('SELECT tin_id FROM anh_tin WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    await pool.query('DELETE FROM anh_tin WHERE id = ?', [Number(req.params.id)]);
+    await ghiNhatKy(pool, req, { hanhDong: 'xoa_anh_tin', loaiDoiTuong: 'tin_tuc', doiTuongId: a.tin_id });
+    res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+/* Ảnh gốc cho cán bộ xem — kể cả ảnh của tin đang ẩn. */
+router.get('/anh-tin/:id/tep', async (req, res, next) => {
+  try {
+    const [[a]] = await pool.query('SELECT du_lieu, kieu FROM anh_tin WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    res.setHeader('Content-Type', a.kieu); res.setHeader('Cache-Control', 'no-store');
+    res.send(a.du_lieu);
   } catch (e) { next(e); }
 });
 

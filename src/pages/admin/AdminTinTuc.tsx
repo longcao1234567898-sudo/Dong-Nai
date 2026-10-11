@@ -5,16 +5,17 @@ import toast from 'react-hot-toast';
 import { adminFetch } from '../../services/adminService';
 import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../components/common/KhoiQt';
 import { ngayVn } from '../../utils/phuLuc';
+import QuanLyAnhTin from '../../components/common/QuanLyAnhTin';
 
 interface Tin { id: number; loai: string; tieuDe: string; tieuDeEn: string | null; noiDung: string | null; noiDungEn: string | null;
-  tuNgay: string | null; denNgay: string | null; diaDiemId: string | null; hien: boolean; thuTu: number }
+  tuNgay: string | null; denNgay: string | null; diaDiemId: string | null; hien: boolean; thuTu: number; noiBat: boolean; lienKet: string | null; soAnh: number }
 const LOAI: Record<string, [string, string]> = {
   'canh-bao': ['Cảnh báo', 'Hiện thành dải màu vàng trên đầu trang chủ — dùng cho biển động, mưa lũ, sạt lở, đóng cửa tạm thời…'],
   'su-kien': ['Sự kiện', 'Lễ hội, hội chợ, giải đấu. Hiện cả khi chưa tới ngày bắt đầu.'],
   'thong-bao': ['Thông báo', 'Tin thường: giờ mở cửa mới, thay đổi giá vé…'],
   'lien-he': ['Số điện thoại', 'Hiện ở ô "Số điện thoại cần biết". Ghi số vào ô Nội dung.'],
 };
-const TRONG = { loai: 'thong-bao', tieuDe: '', tieuDeEn: '', noiDung: '', noiDungEn: '', tuNgay: '', denNgay: '', diaDiemId: '', hien: true, thuTu: 0 };
+const TRONG = { loai: 'thong-bao', tieuDe: '', tieuDeEn: '', noiDung: '', noiDungEn: '', tuNgay: '', denNgay: '', diaDiemId: '', hien: true, thuTu: 0, noiBat: false, lienKet: '' };
 
 export default function AdminTinTuc() {
   const qc = useQueryClient();
@@ -36,14 +37,19 @@ export default function AdminTinTuc() {
         <p className="mt-1 text-xs text-slate-500">{LOAI[f.loai][1]}</p>
         <label className={nhan}>Tiêu đề<input className={o} value={f.tieuDe} maxLength={200} onChange={dat('tieuDe')} /></label>
         <label className={nhan}>Tiêu đề tiếng Anh <small className="font-normal text-slate-500">(không bắt buộc)</small><input className={o} value={f.tieuDeEn} maxLength={200} onChange={dat('tieuDeEn')} /></label>
-        <label className={nhan}>Nội dung{f.loai === 'lien-he' && ' (số điện thoại)'}<textarea className={o} rows={f.loai === 'lien-he' ? 1 : 4} maxLength={3000} value={f.noiDung} onChange={dat('noiDung')} /></label>
-        {f.loai !== 'lien-he' && <label className={nhan}>Nội dung tiếng Anh<textarea className={o} rows={3} maxLength={3000} value={f.noiDungEn} onChange={dat('noiDungEn')} /></label>}
+        <label className={nhan}>Nội dung{f.loai === 'lien-he' && ' (số điện thoại)'}<textarea className={o} rows={f.loai === 'lien-he' ? 1 : 6} maxLength={10000} value={f.noiDung} onChange={dat('noiDung')} /></label>
+        {f.loai !== 'lien-he' && <label className={nhan}>Nội dung tiếng Anh<textarea className={o} rows={3} maxLength={10000} value={f.noiDungEn} onChange={dat('noiDungEn')} /></label>}
+        {f.loai !== 'lien-he' && <label className={nhan}>Đường dẫn nguồn tin <small className="font-normal text-slate-500">(không bắt buộc — trang của sở, báo… hiện nút "Xem nguồn tin")</small>
+          <input className={o} type="url" placeholder="https://" maxLength={300} value={f.lienKet} onChange={dat('lienKet')} /></label>}
         <div className="grid gap-x-3 sm:grid-cols-2">
           <label className={nhan}>Từ ngày<input type="date" className={o} value={f.tuNgay} onChange={dat('tuNgay')} /></label>
           <label className={nhan}>Đến ngày (hết hạn thì tự ẩn)<input type="date" className={o} value={f.denNgay} onChange={dat('denNgay')} /></label>
         </div>
         <label className={nhan}>Gắn với địa điểm<select className={o} value={f.diaDiemId} onChange={dat('diaDiemId')}><option value="">—</option>{dd.map((x) => <option key={x.id} value={x.id}>{x.ten}</option>)}</select></label>
         <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" className="h-[18px] w-[18px] accent-primary-600" checked={f.hien} onChange={dat('hien')} />Hiện cho người dân</label>
+        {f.loai !== 'lien-he' && <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" className="h-[18px] w-[18px] accent-primary-600" checked={f.noiBat} onChange={dat('noiBat')} />
+          Tin nổi bật <small className="text-slate-500">— tự lướt ở đầu trang Tin tức; nên có ảnh bìa</small></label>}
+        {suaId ? (f.loai !== 'lien-he' && <QuanLyAnhTin tinId={suaId} />) : f.loai !== 'lien-he' && <p className="mt-3 text-xs text-slate-500">Lưu tin xong, bấm Sửa để thêm ảnh.</p>}
         {loi && <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{loi}</div>}
         <div className="mt-4 flex gap-2"><button type="button" className={nutChinh} disabled={luu.isPending} onClick={() => luu.mutate()}>Lưu</button>
           {suaId && <button type="button" className={nutVien + ' min-h-[44px] px-4 text-sm'} onClick={() => { setSuaId(null); setF(TRONG); setLoi(''); }}>Huỷ sửa</button>}</div>
@@ -51,10 +57,10 @@ export default function AdminTinTuc() {
       <The><h2 className="mb-2 text-[17px] font-bold">Đã đăng ({ds.length})</h2>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">{ds.map((x) => { const hetHan = !!x.denNgay && x.denNgay < homNay; return (
           <li key={x.id} className={`flex flex-wrap items-start justify-between gap-2 py-3 ${!x.hien || hetHan ? 'opacity-60' : ''}`}>
-            <div className="min-w-0"><The_nho mau={x.loai === 'canh-bao' ? 'vang' : 'xanh'}>{LOAI[x.loai]?.[0]}</The_nho> <b>{x.tieuDe}</b>{x.loai === 'lien-he' && <span className="ml-1 font-bold text-primary-700">{x.noiDung}</span>}
-              <p className="text-xs text-slate-500">{x.tuNgay && `Từ ${ngayVn(x.tuNgay)} `}{x.denNgay && `đến ${ngayVn(x.denNgay)}`}{hetHan && ' · đã hết hạn'}{!x.hien && ' · đang ẩn'}</p></div>
+            <div className="min-w-0"><The_nho mau={x.loai === 'canh-bao' ? 'vang' : 'xanh'}>{LOAI[x.loai]?.[0]}</The_nho> {x.noiBat && <The_nho mau="vang">Nổi bật</The_nho>} <b>{x.tieuDe}</b>{x.loai === 'lien-he' && <span className="ml-1 font-bold text-primary-700">{x.noiDung}</span>}
+              <p className="text-xs text-slate-500">{x.tuNgay && `Từ ${ngayVn(x.tuNgay)} `}{x.denNgay && `đến ${ngayVn(x.denNgay)}`}{hetHan && ' · đã hết hạn'}{!x.hien && ' · đang ẩn'}{x.soAnh > 0 && ` · ${x.soAnh} ảnh`}</p></div>
             <div className="whitespace-nowrap"><button type="button" className={nutVien} onClick={() => { setSuaId(x.id); setLoi(''); setF({ loai: x.loai, tieuDe: x.tieuDe, tieuDeEn: x.tieuDeEn || '', noiDung: x.noiDung || '',
-              noiDungEn: x.noiDungEn || '', tuNgay: x.tuNgay || '', denNgay: x.denNgay || '', diaDiemId: x.diaDiemId || '', hien: x.hien, thuTu: x.thuTu }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Sửa</button>{' '}
+              noiDungEn: x.noiDungEn || '', tuNgay: x.tuNgay || '', denNgay: x.denNgay || '', diaDiemId: x.diaDiemId || '', hien: x.hien, thuTu: x.thuTu, noiBat: x.noiBat, lienKet: x.lienKet || '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Sửa</button>{' '}
               <button type="button" className={nutVien} onClick={() => window.confirm('Xoá tin này?') && xoa.mutate(x.id)}>Xoá</button></div>
           </li>); })}</ul></The>
     </div>

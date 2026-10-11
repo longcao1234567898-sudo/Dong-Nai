@@ -114,11 +114,13 @@ Các bảng hiện có:
 
 **Ảnh địa điểm:** ảnh cán bộ tải lên (Quản trị → Địa điểm → Sửa) luôn hiện trước. Ở đó có nút **Tìm ảnh trên Wikimedia**: gõ tên điểm, xem ảnh (chỉ hiện ảnh CC0 hoặc phạm vi công cộng, dùng tự do không phải ghi tác giả), bấm *Dùng ảnh này* là ảnh được thu nhỏ và lưu như ảnh tự tải lên. Mỗi ảnh có nút **Chỉnh**: xoay trái/phải, bấm vào phần quan trọng nhất của ảnh để đặt *điểm lấy nét* (ảnh bị cắt vừa thẻ, ảnh đầu trang hay màn điện thoại vẫn giữ phần đó, có khung xem trước từng kiểu cắt), hoặc thay bằng ảnh khác mà vẫn giữ chú thích và thứ tự. Nút ngôi sao đặt ảnh làm ảnh đại diện. Điểm đang dùng ảnh mặc định thì bấm *Đưa vào danh sách* để chép ảnh mặc định sang và chỉnh như ảnh tự tải. Chưa có thì dùng ảnh mặc định trong `public/anh/dia-diem/`, lấy từ Wikimedia Commons bằng `node scripts/tai-anh-dia-diem.mjs goi-y` (xem ứng viên, chép tên tệp vào `scripts/anh-dia-diem.json`) rồi `node scripts/tai-anh-dia-diem.mjs tai`. Script chỉ nhận ảnh CC0 hoặc phạm vi công cộng, vì trang người dân không hiện tác giả; nguồn từng ảnh xem ở Quản trị → Nguồn ảnh.
 
+**Tin tức:** cán bộ đăng ở Quản trị → Tin tức, cảnh báo. Mỗi tin có trang riêng `/tin-tuc/<số>` để chia sẻ (nút *Chép đường dẫn*), tối đa 10 ảnh (ảnh đầu là ảnh bìa; lưu tin xong bấm Sửa để thêm ảnh), ô *Đường dẫn nguồn tin* (hiện nút "Xem nguồn tin"). Tích **Tin nổi bật** thì tin lên băng chuyền tự lướt ở đầu trang Tin tức (6 giây một tin, dừng khi rê chuột, có nút tạm dừng, chấm chọn tin, vuốt trên điện thoại; bật "giảm chuyển động" thì không tự lướt) và được ưu tiên ở mục tin trên trang chủ. Tin hết hạn tự thôi hiện trong danh sách nhưng đường dẫn đã chia sẻ vẫn mở được, có ghi "đã hết thời hạn".
+
 **Điểm quan sát 360°:** mỗi địa điểm có tối đa 10 điểm quan sát (Quản trị → Địa điểm → Sửa → *Điểm quan sát 360°*). Cán bộ chụp ảnh 360° tại một vị trí (máy ảnh 360° như Insta360, Ricoh Theta; hoặc chế độ toàn cảnh / Photo Sphere của điện thoại), đặt tên vị trí ("Đỉnh núi", "Cổng chính"…) rồi tải lên — ảnh tự thu về ngang 4096px. Ảnh tỉ lệ 2:1 là 360° trọn vòng; ảnh panorama thường thì chọn góc chụp ngang. Bấm *Xem, đặt hướng* để chọn hướng nhìn lúc mở. Trang riêng của điểm có mục *Quan sát 360°*: kéo chuột hoặc vuốt để nhìn quanh, điện thoại xoay máy để nhìn; luôn kèm nút sang Street View của Google Maps quanh toạ độ điểm. Trình xem là Pannellum (MIT), chỉ tải khi điểm có ảnh 360°.
 
 **Bài giới thiệu chi tiết:** mỗi địa điểm có ô *Bài chi tiết* (Quản trị → Địa điểm → Sửa), hiện ở trang riêng của điểm. Dòng `## ` là tiêu đề mục, dòng `- ` là gạch đầu dòng; trong mục *Lịch sử hình thành* mỗi dòng `- Mốc: nội dung` hiện thành dòng thời gian. 15 điểm có sẵn bài tổng hợp (giới thiệu, lịch sử hình thành theo giai đoạn, có gì để xem, đi lại, kinh nghiệm) — **cán bộ đối chiếu nguồn chính thức rồi tích "Đã kiểm tra"**; chỗ ghi "cán bộ bổ sung" là mốc chưa xác minh được năm.
 
-**Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch, bài chi tiết, bảng điểm quan sát 360° cho địa điểm, cột phương tiện cho lộ trình và cột điểm lấy nét cho ảnh. Thiếu cột thì máy chủ báo ngay lúc khởi động.
+**Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch, bài chi tiết, bảng điểm quan sát 360° cho địa điểm, ảnh và tin nổi bật cho tin tức, cột phương tiện cho lộ trình và cột điểm lấy nét cho ảnh. Thiếu cột thì máy chủ báo ngay lúc khởi động.
 
 ## Bảo mật tài khoản
 
@@ -144,6 +146,6 @@ Trang xem (địa điểm, lộ trình, tin tức) vẫn mở cho mọi người
 ## Kiểm thử
 
 ```
-cd server && npm test     # 62 bài, không cần MySQL
+cd server && npm test     # 64 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```
