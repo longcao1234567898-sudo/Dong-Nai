@@ -4,7 +4,6 @@ import { layIpThat } from '../lib/helpers.js';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { pool } from '../db.js';
-import { turnstileEnabled, kiemVe, CAN_XAC_MINH } from '../lib/turnstile.js';
 import { kiemMa } from '../lib/totp.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
@@ -69,17 +68,11 @@ const COOKIE_OPTS = {
    Với hệ thống tiếp nhận tin báo khẩn cấp, hậu quả đó nặng hơn cả việc bị dò
    mật khẩu.
 
-   CÁCH LÀM THAY THẾ — VÉ XÁC MINH TỪ CỔNG VÀO:
-   Ô "không phải người máy" chỉ hiện một lần, ngay khi mở trang; qua ô thì
-   có vé 12 giờ gắn với IP (lib/turnstile.js). Mọi lần đăng nhập phải có vé.
-   Tài khoản đã bị gõ sai từ 3 lần: vé phải MỚI, qua cổng trong 10 phút gần
-   nhất — giao diện tự hiện lại cổng kiểm tra.
-     - Máy tự động dò mật khẩu -> mỗi IP phải tự qua ô, mười phút lại qua lần
-       nữa, cộng hạn mức 5 lần sai mỗi 15 phút mỗi IP -> dò không nổi
-     - Cán bộ thật -> qua ô lần nữa là vào được ngay, KHÔNG bị khoá
-   Bảo vệ đúng thứ cần bảo vệ mà không tạo cửa phá hoại mới. */
-const SO_LAN_SAI_CAN_VE_MOI = 3;
-const TUOI_VE_MOI_MS = 10 * 60_000;
+   CÁCH LÀM THAY THẾ: hạn mức 5 lần sai mỗi 15 phút theo IP (loginLimiter),
+   mật khẩu tối thiểu 12 ký tự đủ bốn loại, xác thực hai lớp tự nguyện, và
+   ghi vết mọi lần sai để phát hiện tấn công. Khu cán bộ KHÔNG có ô "không
+   phải người máy" (theo yêu cầu của đơn vị — chỉ trang du khách có cổng
+   kiểm tra). Bộ đếm failed_attempts vẫn ghi để theo dõi. */
 
 /** Ghi vết mọi lần đăng nhập thất bại — để phát hiện tấn công đang diễn ra */
 async function ghiThatBai(staffId, username, ip) {
@@ -102,8 +95,6 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   try {
     const ip = (layIpThat(req) || '').trim();
-    const veXacMinh = req.get('X-Xac-Minh');
-    if (turnstileEnabled() && !kiemVe(veXacMinh, ip)) return res.status(403).json(CAN_XAC_MINH);
 
     /* Lấy thêm failed_attempts và locked_until. Dùng COALESCE để vẫn chạy
        được khi database chưa nâng cấp v9 — không làm sập đăng nhập. */
@@ -126,13 +117,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       staff = rows[0];
     }
 
-    /* ĐÃ SAI NHIỀU LẦN -> PHẢI QUA CỔNG KIỂM TRA LẠI (không khoá tài khoản) */
     const soLanSaiHienTai = Number(staff?.failed_attempts || 0);
-    if (turnstileEnabled() && soLanSaiHienTai >= SO_LAN_SAI_CAN_VE_MOI && !kiemVe(veXacMinh, ip, { toiDaTuoiMs: TUOI_VE_MOI_MS })) {
-      await ghiThatBai(staff?.id ?? null, username, ip);
-      return res.status(403).json({ ...CAN_XAC_MINH,
-        error: 'Tài khoản này vừa bị gõ sai nhiều lần. Làm lại bước kiểm tra "không phải người máy" rồi đăng nhập lại.' });
-    }
 
     // Luôn so sánh bcrypt kể cả khi không tìm thấy user -> chống dò tài khoản qua thời gian phản hồi
     const ok = await bcrypt.compare(password, staff?.password_hash || DUMMY_HASH);
@@ -165,7 +150,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     /* XÁC THỰC HAI LỚP — chỉ với tài khoản đã tự bật.
        Mật khẩu đúng mà chưa gửi mã thì báo giao diện hiện ô nhập mã (canOtp),
        KHÔNG tính là lần sai. Mã sai thì tính như mật khẩu sai: tăng bộ đếm,
-       đủ 3 lần phải qua cổng kiểm tra lại, cộng với giới hạn 5 lần/15 phút theo IP —
+       cộng với giới hạn 5 lần/15 phút theo IP —
        dò hết một triệu mã 6 số là không thể. */
     if (staff.totp_bat) {
       const ma = String(req.body?.maOtp || '').replace(/\s/g, '');

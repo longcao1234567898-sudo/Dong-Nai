@@ -1,10 +1,11 @@
 /**
  * CỔNG KIỂM TRA "KHÔNG PHẢI NGƯỜI MÁY" — chỗ DUY NHẤT có ô Cloudflare Turnstile.
  *
- * Hiện ngay khi mở trang (cả trang du khách lẫn trang đăng nhập cán bộ). Qua
- * ô thì máy chủ cấp vé 12 giờ (services/xacMinh.ts); trong thời gian đó đánh
- * giá, phản ánh, đăng nhập không hỏi lại. Vé hết hạn hoặc đổi mạng giữa chừng
- * thì cổng hiện lại đè lên trang, trang bên dưới giữ nguyên chữ đã gõ.
+ * Chỉ ở trang du khách; khu cán bộ (/dang-nhap, /quan-tri) không có. Hiện khi
+ * mở trang mà thiết bị chưa có vé; qua ô thì máy chủ cấp vé 1 giờ gắn mã thiết
+ * bị (services/xacMinh.ts) — mỗi thiết bị mỗi giờ kiểm tra một lần. Hết giờ thì
+ * cổng hiện lại ở lần chuyển trang tiếp theo, hoặc lúc bấm gửi (khi đó trang
+ * bên dưới giữ nguyên chữ đã gõ).
  *
  * Trang vẫn dựng và tải dữ liệu phía sau cổng (bị khoá thao tác bằng inert),
  * nên qua cổng là thấy nội dung ngay. Chưa khai VITE_TURNSTILE_SITE_KEY thì
@@ -21,6 +22,7 @@
  */
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import Turnstile from './Turnstile';
 import { DauHieu } from '../layout/Header';
@@ -32,7 +34,9 @@ import { useNN } from '../../i18n/NgonNgu';
 
 export default function CongXacMinh({ children }: { children: ReactNode }) {
   const { t, nn, doi, chon } = useNN();
-  const [can, setCan] = useState(() => captchaEnabled && !layVe());
+  const { pathname } = useLocation();
+  const khuCanBo = /^\/(dang-nhap|quan-tri)(\/|$)/.test(pathname);
+  const [can, setCan] = useState(() => captchaEnabled && !khuCanBo && !layVe());
   const [lanLai, setLanLai] = useState(false);
   const [dang, setDang] = useState(false);
   const [cham, setCham] = useState(false);
@@ -44,6 +48,13 @@ export default function CongXacMinh({ children }: { children: ReactNode }) {
     .find((p) => p.anh?.length || (anhMacDinh(p.id)?.rong ?? 0) >= 1280), [ds]);
   const trang = useRef<HTMLDivElement>(null);
   const hop = useRef<HTMLDivElement>(null);
+
+  /* Mỗi lần chuyển trang: vào khu cán bộ thì đóng cổng; ở trang du khách mà vé đã hết giờ thì hiện cổng. */
+  useEffect(() => {
+    if (!captchaEnabled) return;
+    if (khuCanBo) { setCan(false); setLanLai(false); return; }
+    if (!layVe()) setCan(true);
+  }, [pathname, khuCanBo]);
 
   useEffect(() => {
     if (!captchaEnabled) return;

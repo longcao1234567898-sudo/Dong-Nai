@@ -17,9 +17,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /* Ô "không phải người máy" chỉ ở cổng vào (CongXacMinh). Tài khoản vừa bị gõ
-     sai nhiều lần thì máy chủ đòi qua cổng lần nữa: cổng tự hiện đè lên trang,
-     tên và mật khẩu đã gõ vẫn giữ, xong bấm Đăng nhập lại. */
+  /* Khu cán bộ không có ô "không phải người máy" (cổng kiểm tra chỉ ở trang du khách). */
   /* Xác thực hai lớp: mật khẩu đúng thì máy chủ báo canOtp -> hiện ô mã 6 số,
      giữ nguyên tên và mật khẩu đã gõ, gửi lại kèm mã. */
   const [canOtp, setCanOtp] = useState(false);

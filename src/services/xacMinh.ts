@@ -1,9 +1,10 @@
 /**
- * VÉ XÁC MINH "KHÔNG PHẢI NGƯỜI MÁY" — lấy một lần ở cổng vào (CongXacMinh.tsx).
+ * VÉ XÁC MINH "KHÔNG PHẢI NGƯỜI MÁY" — lấy ở cổng vào trang du khách (CongXacMinh.tsx).
  *
- * Máy chủ cấp vé 12 giờ gắn với IP. Mọi lần gửi (đánh giá, phản ánh, báo vi
- * phạm, đăng nhập cán bộ) kèm vé trong đầu X-Xac-Minh. Vé hết hạn hoặc đổi
- * mạng thì máy chủ trả 403 canXacMinh -> boVe() -> cổng kiểm tra hiện lại.
+ * Máy chủ cấp vé 1 giờ gắn với mã thiết bị (dldn_thiet_bi). Mọi lần gửi của du
+ * khách (đánh giá, phản ánh, báo vi phạm) kèm vé trong đầu X-Xac-Minh. Hết giờ
+ * thì cổng hiện lại khi chuyển trang, hoặc máy chủ trả 403 canXacMinh lúc gửi
+ * -> boVe() -> cổng hiện lại. Khu cán bộ không dùng vé.
  */
 /** Khoá công khai Turnstile (Site Key). Trống = tắt cổng kiểm tra. */
 export const SITE_KEY = ((import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) || '').trim();

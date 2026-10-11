@@ -3,8 +3,6 @@
  * access token giữ trong bộ nhớ (mất khi tải lại trang), refresh token nằm
  * trong cookie httpOnly để khôi phục phiên. Gặp 401 thì tự làm mới một lần.
  */
-import { dauXacMinh, xuLyCanXacMinh } from './xacMinh';
-
 export const API_URL = ((import.meta.env.VITE_API_URL as string | undefined) || '').trim().replace(/\/$/, '');
 const hasBackend = Boolean(API_URL) || import.meta.env.DEV;
 const laJson = (r: Response) => (r.headers.get('content-type') || '').includes('application/json');
@@ -27,20 +25,19 @@ export class LoginError extends Error {
 
 let accessToken: string | null = null;
 
-/* Kèm vé xác minh lấy ở cổng vào. Tài khoản bị gõ sai nhiều lần thì máy chủ
-   đòi vé mới (403 canXacMinh): cổng kiểm tra hiện lại, xong bấm Đăng nhập lần nữa. */
+/* Khu cán bộ không có kiểm tra "không phải người máy": chống dò mật khẩu bằng hạn
+   mức lượt sai theo IP và xác thực hai lớp. */
 export async function login(username: string, password: string, maOtp?: string): Promise<StaffInfo> {
   if (!hasBackend) throw new Error('Chưa cấu hình máy chủ. Khai VITE_API_URL rồi dựng lại.');
   const res = await fetch(`${API_URL}/api/auth/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...dauXacMinh() },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password, maOtp }), credentials: 'include',
   });
   if (!laJson(res)) throw new LoginError('Chưa kết nối được máy chủ. Kiểm tra cấu hình VITE_API_URL.');
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const d = data as { error?: string; canXacMinh?: boolean; canOtp?: boolean };
-    const loiCauHinh = d?.canXacMinh ? xuLyCanXacMinh() : null;
-    throw new LoginError(loiCauHinh || d?.error || 'Đăng nhập thất bại.', Boolean(d?.canOtp));
+    const d = data as { error?: string; canOtp?: boolean };
+    throw new LoginError(d?.error || 'Đăng nhập thất bại.', Boolean(d?.canOtp));
   }
   accessToken = data.accessToken;
   return data.staff as StaffInfo;

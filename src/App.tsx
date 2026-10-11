@@ -63,8 +63,8 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <NgonNguProvider>
       <AdminAuthProvider>
-        <CongXacMinh>
         <BrowserRouter>
+        <CongXacMinh>
           <Routes>
             <Route element={<KhungChung />}>
               <Route path="/" element={<HomePage />} />
@@ -98,8 +98,8 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
-        </BrowserRouter>
         </CongXacMinh>
+        </BrowserRouter>
         <Toaster position="top-center" toastOptions={{ style: { borderRadius: 14, fontFamily: 'inherit', background: '#FFFEFB', color: '#192522', boxShadow: '0 4px 10px rgb(18 60 53 / .08), 0 24px 50px -20px rgb(18 60 53 / .4)' } }} />
       </AdminAuthProvider>
       </NgonNguProvider>

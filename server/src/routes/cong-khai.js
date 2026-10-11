@@ -4,8 +4,8 @@
  * ⚠️ Đánh giá là chỗ dễ bị phá nhất (chấm 1 sao hàng loạt, quảng cáo). Ba lớp:
  *    1. Mỗi thiết bị chỉ MỘT đánh giá cho mỗi điểm — gửi lại là sửa bài cũ.
  *    2. Giới hạn 10 lần gửi mỗi giờ trên một địa chỉ IP.
- *    3. Vé xác minh: người xem qua ô Turnstile một lần ở cổng vào (POST /xac-minh),
- *       mọi đường GỬI đòi vé đó (khi máy chủ đã khai khoá Cloudflare).
+ *    3. Vé xác minh: du khách qua ô Turnstile ở cổng vào (POST /xac-minh), mỗi thiết bị
+ *       mỗi giờ một lần; mọi đường GỬI đòi vé đó (khi máy chủ đã khai khoá Cloudflare).
  *    Mã thiết bị và IP chỉ lưu dạng băm có HASH_PEPPER, không lưu bản thô.
  */
 import { Router } from 'express';
@@ -14,7 +14,7 @@ import rateLimit from 'express-rate-limit';
 import { pool } from '../db.js';
 import { layIpThat, generateTrackingCode } from '../lib/helpers.js';
 import { sanitizeText, containsProfanity } from '../lib/security.js';
-import { verifyTurnstile, turnstileEnabled, capVe, canVeXacMinh } from '../lib/turnstile.js';
+import { verifyTurnstile, turnstileEnabled, capVe, canVeXacMinh, maThietBiHopLe } from '../lib/turnstile.js';
 
 const router = Router();
 const PEPPER = process.env.HASH_PEPPER || '';
@@ -255,17 +255,18 @@ router.post('/phan-anh', canVeXacMinh, gioiHanPhanAnh, async (req, res, next) =>
   } catch (e) { next(e); }
 });
 
-/* ---------------- Cổng vào: đổi mã Turnstile lấy vé xác minh 12 giờ ---------------- */
+/* ---------------- Cổng vào: đổi mã Turnstile lấy vé 1 giờ cho thiết bị này ---------------- */
 const gioiHanXacMinh = rateLimit({ windowMs: 10 * 60_000, max: 30, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => layIpThat(req),
   message: { error: 'Kiểm tra quá nhiều lần. Đợi vài phút rồi tải lại trang.' } });
 router.post('/xac-minh', gioiHanXacMinh, async (req, res, next) => {
   try {
     /* Máy chủ chưa khai khoá bí mật: không kiểm được, báo giao diện cho qua. */
     if (!turnstileEnabled()) return res.json({ ve: null, tat: true });
-    const ip = layIpThat(req);
-    const kq = await verifyTurnstile(String(req.body?.token || ''), ip);
+    const may = req.get('X-Ma-Thiet-Bi');
+    if (!maThietBiHopLe(may)) return res.status(400).json({ error: 'Thiếu mã thiết bị. Tải lại trang rồi thử lại.' });
+    const kq = await verifyTurnstile(String(req.body?.token || ''), layIpThat(req));
     if (!kq.ok) return res.status(400).json({ error: kq.error });
-    res.json(capVe(ip));
+    res.json(capVe(may));
   } catch (e) { next(e); }
 });
 
