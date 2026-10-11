@@ -12,6 +12,8 @@ Người dùng thấy cảnh 3D và ảnh địa hình vẽ máy "mờ, nhựa",
 - **Hero**: trình chiếu ảnh các điểm nổi bật, mỗi ảnh 7 giây, chuyển mờ dần, ảnh đang chiếu phóng rất chậm (Ken Burns), lớp ảnh trôi chậm hơn trang khi cuộn. Có chấm chọn ảnh và nút tạm dừng (nội dung tự chạy quá 5 giây phải dừng được); bật "giảm chuyển động" thì không tự chạy. Góc dưới ghi "Trong ảnh: tên điểm".
 - **Không hiện tác giả, giấy phép phía người dân** (theo yêu cầu của đơn vị). Vì thế chỉ dùng ảnh CC0 hoặc phạm vi công cộng; script tải ảnh tự loại CC BY, CC BY-SA (hai loại này bắt buộc ghi công công khai). Nguồn từng ảnh vẫn lưu, cán bộ xem ở Quản trị → Nguồn ảnh.
 - Ảnh lộ trình là ảnh điểm dừng đầu tiên có ảnh. Trang đăng nhập cán bộ đặt trên một ảnh thật.
+- **Cỡ ảnh**: Commons chỉ phục vụ ảnh thu nhỏ theo cỡ chuẩn, nên ảnh mặc định có hai bản 1920px (đầu trang) và 960px (thẻ). Ảnh CC0 đúng địa điểm hiếm, nên nhận từ 700px; ảnh hẹp hơn 1280px chỉ dùng cho thẻ và trang chi tiết, không lên trình chiếu đầu trang chủ hay nền trang đăng nhập (phóng cả màn hình sẽ nhoè).
+- **Điểm lấy nét**: cán bộ bấm vào phần quan trọng của ảnh (Quản trị → Địa điểm → Sửa → Chỉnh). Mọi chỗ cắt ảnh cho vừa khung (`object-fit: cover`) dùng điểm này làm `object-position`, trình chiếu dùng thêm làm tâm phóng chậm. Trình chỉnh có khung xem trước ba kiểu cắt: thẻ 3:2, đầu trang màn rộng 16:7, đầu trang điện thoại 9:16.
 
 Các chuyển động không dính tới 3D vẫn giữ: thẻ nghiêng theo chuột, hiện khi cuộn, đường kể chuyện của lộ trình, View Transitions.
 

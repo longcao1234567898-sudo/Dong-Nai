@@ -23,7 +23,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const API = 'https://commons.wikimedia.org/w/api.php';
-const UA = 'DuLichDongNai/1.0 (trang du lich cong khai; lien he qua kho GitHub cua du an)';
+/* Chính sách của Wikimedia: User-Agent phải có cách liên hệ, thiếu là bị chặn (lỗi 429 "robot policy"). */
+const UA = 'DuLichDongNai/1.0 (https://github.com/longcao1234567898-sudo/Dong-Nai) node-fetch';
 const GOC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CHON = path.join(GOC, 'scripts/anh-dia-diem.json');
 const RA_ANH = path.join(GOC, 'public/anh/dia-diem');
@@ -80,7 +81,10 @@ const thongTin = (trang) => {
     tacGia: boThe(m.Artist?.value) || 'Không rõ', giayPhep: boThe(m.LicenseShortName?.value), linkGiayPhep: m.LicenseUrl?.value || null,
     moTa: boThe(m.ImageDescription?.value).slice(0, 200) || null };
 };
-const hopLe = (a) => a && a.mime === 'image/jpeg' && Math.max(a.rong, a.cao) >= 1200 && GIAY_PHEP_DUOC.test(a.giayPhep) && !KHONG_LAY.test(a.ten);
+/* Ảnh CC0 đúng địa điểm hiếm, nên nhận từ 700px (đủ cho thẻ, trang chi tiết); ảnh hẹp hơn
+   1280px không được đưa lên trình chiếu đầu trang chủ (xem Hero.tsx) để khỏi bị nhoè. */
+const CANH_TOI_THIEU = 700;
+const hopLe = (a) => a && a.mime === 'image/jpeg' && Math.max(a.rong, a.cao) >= CANH_TOI_THIEU && GIAY_PHEP_DUOC.test(a.giayPhep) && !KHONG_LAY.test(a.ten);
 
 async function goiY() {
   const khoi = [];

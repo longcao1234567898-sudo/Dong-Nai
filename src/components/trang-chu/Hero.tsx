@@ -75,7 +75,8 @@ export default function Hero({ ds, loTrinh, onTim, onToiBanDo, onToiLoTrinh }: {
   const chieu = useMemo(() => ds.map((p) => {
     const a = p.anh?.[0], m = anhMacDinh(p.id);
     if (a) return { p, src: anhUrl(a.id), srcSet: undefined as string | undefined, tieuDiem: `${a.tieuDiemX ?? 50}% ${a.tieuDiemY ?? 50}%` };
-    if (m) return { p, src: m.tep, srcSet: srcSetMacDinh(m), tieuDiem: '50% 50%' };
+    /* Ảnh mặc định hẹp (dưới 1280px) chỉ dùng cho thẻ: phóng ra cả màn hình sẽ nhoè. */
+    if (m && m.rong >= 1280) return { p, src: m.tep, srcSet: srcSetMacDinh(m), tieuDiem: '50% 50%' };
     return null;
   }).filter((x): x is NonNullable<typeof x> => !!x).sort((a, b) => Number(b.p.noiBat) - Number(a.p.noiBat)).slice(0, 5), [ds]);
   const [i, setI] = useState(0);

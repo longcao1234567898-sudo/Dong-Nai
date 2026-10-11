@@ -8,7 +8,8 @@ import { LoginError } from '../../services/adminService';
 import { ANH_MAC_DINH, srcSetMacDinh } from '../../utils/anhMacDinh';
 
 /* Nền: một ảnh thật của địa điểm (ưu tiên rừng Cát Tiên), không có thì nền rạng sáng tĩnh. */
-const ANH_NEN = (ANH_MAC_DINH['vuon-quoc-gia-cat-tien'] || Object.values(ANH_MAC_DINH)[0] || [])[0];
+/* Nền trang đăng nhập: ảnh mặc định đủ rộng cho cả màn hình, ưu tiên Cát Tiên. */
+const ANH_NEN = [...(ANH_MAC_DINH['vuon-quoc-gia-cat-tien'] || []), ...Object.values(ANH_MAC_DINH).flat()].find((a) => a.rong >= 1280);
 
 export default function AdminLoginPage() {
   const { login, staff, loading: dangKhoiPhucPhien } = useAdminAuth();
