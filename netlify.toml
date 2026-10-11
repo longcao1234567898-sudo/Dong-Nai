@@ -3,6 +3,12 @@
   publish = "dist"
 [build.environment]
   NODE_VERSION = "20"
+  # Hai giá trị CÔNG KHAI (đằng nào cũng nằm trong mã JavaScript của trang), khai sẵn ở đây
+  # nên không phải khai trên Netlify. Đổi địa chỉ Render hay khoá Turnstile thì sửa ở đây.
+  # Địa chỉ máy chủ Render, KHÔNG có dấu / ở cuối
+  VITE_API_URL = "https://dong-nai.onrender.com"
+  # Cloudflare Turnstile, khoá CÔNG KHAI (Site Key) — đi cặp với TURNSTILE_SECRET_KEY trên Render
+  VITE_TURNSTILE_SITE_KEY = "0x4AAAAAAFThvfl6nJtb9l8v"
 # Mọi đường dẫn trả về index.html để định tuyến phía giao diện chạy được khi tải lại trang
 [[redirects]]
   from = "/*"

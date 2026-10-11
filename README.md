@@ -50,7 +50,7 @@ npm run dev                     # /api tự chuyển sang máy chủ cổng 4000
 
 **Render (máy chủ):** tạo Web Service từ kho GitHub, Render đọc sẵn `render.yaml`. Khai các biến trong mục Environment theo `server/.env.example`.
 
-**Netlify (giao diện):** nối kho GitHub, Netlify đọc sẵn `netlify.toml`. Khai `VITE_API_URL` là địa chỉ Render, rồi *Clear cache and deploy site*.
+**Netlify (giao diện):** nối kho GitHub, Netlify đọc sẵn `netlify.toml` — trong đó đã khai sẵn `VITE_API_URL` (https://dong-nai.onrender.com) và `VITE_TURNSTILE_SITE_KEY`, không phải khai trên Netlify. Đổi địa chỉ máy chủ hay khoá thì sửa `netlify.toml` rồi đẩy lên.
 
 Sau khi có địa chỉ Netlify, quay lại Render khai `CORS_ORIGIN` bằng địa chỉ đó.
 
