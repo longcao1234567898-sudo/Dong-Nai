@@ -25,6 +25,7 @@ pool.query = async (sql, params = []) => {
   if (/SELECT id FROM dia_diem WHERE id IN/i.test(sql)) return [[{ id: 'ho-tri-an' }, { id: 'cu-lao-pho' }]];
   if (/SELECT id FROM dia_diem WHERE id = \?/i.test(sql)) return [[{ id: 'ho-tri-an' }]];
   if (/COUNT\(\*\) AS so FROM anh_dia_diem/i.test(sql)) return [[{ so: 0 }]];
+  if (/SELECT id, dia_diem_id, chu_thich, thu_tu, tieu_diem_x/i.test(sql)) return [params[0] === 5 ? [{ id: 5, dia_diem_id: 'ho-tri-an', chu_thich: 'Hoàng hôn', thu_tu: 2, tieu_diem_x: 30, tieu_diem_y: 70 }] : []];
   if (/FROM danh_gia g JOIN dia_diem d/i.test(sql)) return [[{ id: 3, dia_diem_id: 'ho-tri-an', ten: 'Hồ Trị An', ten_en: 'Tri An Lake', sao: 5,
     di_cung: 'gia-dinh', thoi_diem: '2026-08', nhan_xet: 'Hoàng hôn trên hồ rất đẹp.', ten_hien_thi: null, updated_at: '2026-09-01 10:00:00' }]];
   return [{ affectedRows: 1, insertId: 7 }];
@@ -125,4 +126,20 @@ test('lộ trình lưu phương tiện; địa điểm chỉ nhận vùng hợp 
     return goi.find((g) => /UPDATE dia_diem SET/i.test(g.sql)).params[0].vung; };
   assert.equal(await sua('phia-bac'), 'phia-bac');
   assert.equal(await sua('vung-la'), null);
+});
+
+test('chỉnh ảnh: điểm lấy nét chỉ nhận 0–100; thay ảnh tạo mã mới, giữ thứ tự và điểm lấy nét, xoá ảnh cũ', async () => {
+  goi = [];
+  await api('/api/quan-tri/anh/5', { method: 'PATCH', token: ve, body: { tieuDiemX: 30, tieuDiemY: 150 } });
+  const doi = goi.find((g) => /UPDATE anh_dia_diem SET/i.test(g.sql)).params[0];
+  assert.deepEqual(doi, { tieu_diem_x: 30 }, 'giá trị ngoài 0–100 bị bỏ qua');
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64)]);
+  goi = [];
+  const r = await api('/api/quan-tri/anh/5/tep?rong=1600&cao=1067', { method: 'PUT', token: ve, raw: jpeg, kieu: 'image/jpeg' });
+  assert.equal(r.status, 200);
+  const them = goi.find((g) => /INSERT INTO anh_dia_diem SET/i.test(g.sql)).params[0];
+  assert.equal(them.thu_tu, 2); assert.equal(them.tieu_diem_x, 30); assert.equal(them.chu_thich, 'Hoàng hôn'); assert.equal(them.rong, 1600);
+  assert.ok(goi.some((g) => /DELETE FROM anh_dia_diem WHERE id = \?/i.test(g.sql) && g.params[0] === 5));
+  assert.equal((await api('/api/quan-tri/anh/9/tep', { method: 'PUT', token: ve, raw: jpeg, kieu: 'image/jpeg' })).status, 404);
+  assert.equal((await api('/api/quan-tri/anh/5/tep', { method: 'PUT', token: ve, raw: Buffer.from('<html>khong phai anh</html>'), kieu: 'image/jpeg' })).status, 400);
 });

@@ -5,7 +5,7 @@ import { ShieldCheck, Lock, User, Loader2, Smartphone } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import Turnstile, { captchaEnabled } from '../../components/common/Turnstile';
 import { LoginError } from '../../services/adminService';
-import { ANH_MAC_DINH } from '../../utils/anhMacDinh';
+import { ANH_MAC_DINH, srcSetMacDinh } from '../../utils/anhMacDinh';
 
 /* Nền: một ảnh thật của địa điểm (ưu tiên rừng Cát Tiên), không có thì nền rạng sáng tĩnh. */
 const ANH_NEN = (ANH_MAC_DINH['vuon-quoc-gia-cat-tien'] || Object.values(ANH_MAC_DINH)[0] || [])[0];
@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
   return (
     <div className="relative isolate flex min-h-[calc(100svh-4rem)] items-center justify-center overflow-hidden bg-[#0C2925] px-4 py-12 sm:py-20">
       <div className="hero-nen absolute inset-0" aria-hidden="true" />
-      {ANH_NEN && <img src={ANH_NEN.tep} srcSet={`${ANH_NEN.nho} 800w, ${ANH_NEN.tep} ${ANH_NEN.rong}w`} sizes="100vw" alt="" aria-hidden="true"
+      {ANH_NEN && <img src={ANH_NEN.tep} srcSet={srcSetMacDinh(ANH_NEN)} sizes="100vw" alt="" aria-hidden="true"
         className="absolute inset-0 h-full w-full object-cover" />}
       <div className="absolute inset-0 bg-[#0C2925]/55" aria-hidden="true" />
       <div className="hop-thoai relative w-full max-w-md rounded-[24px] bg-paper p-8 text-ink shadow-sh-3">

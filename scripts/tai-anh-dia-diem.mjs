@@ -8,9 +8,12 @@
  *
  * Bước 2 — tải ảnh đã chọn:
  *     node scripts/tai-anh-dia-diem.mjs tai
- *   -> public/anh/dia-diem/<mã>-<n>.jpg (cạnh dài 1600px) và <mã>-<n>-800.jpg,
+ *   -> public/anh/dia-diem/<mã>-<n>.jpg (ngang 1920px) và <mã>-<n>-nho.jpg (ngang 960px),
  *      ghi src/du-lieu/anh-dia-diem.json (tác giả, giấy phép, đường dẫn nguồn).
+ *   Commons chỉ trả ảnh thu nhỏ theo các cỡ chuẩn (500, 960, 1280, 1920…); cỡ lẻ như
+ *   1600 hay 800 bị từ chối (lỗi 400), nên script xin đúng cỡ chuẩn.
  *
+ * Máy sau proxy công ty: chạy kèm NODE_USE_ENV_PROXY=1 (Node 22.21+) để fetch đi qua proxy.
  * Chỉ nhận CC0 và phạm vi công cộng (không bắt buộc ghi tác giả), vì trang người dân
  * không hiện dòng tác giả. Cần Node 18+ (có fetch). Không cần thư viện ngoài: Commons
  * tự thu nhỏ ảnh theo cỡ yêu cầu.
@@ -50,16 +53,30 @@ const GIAY_PHEP_DUOC = /^(cc0|public domain|pd\b|pd-|cc-zero|no restrictions)/i;
 const KHONG_LAY = /\b(map|bản đồ|ban do|logo|sơ đồ|so do|diagram|location|locator|flag|coat of arms)\b/i;
 
 const boThe = (s = '') => String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+const ngu = (ms) => new Promise((ok) => setTimeout(ok, ms));
+/* Commons giới hạn tốc độ: mỗi lần gọi cách nhau ~1,2 giây, bị 429 thì chờ lâu dần rồi thử lại. */
+async function layCoThuLai(url) {
+  for (let lan = 0; lan < 6; lan++) {
+    await ngu(1200 * (lan ? 2 ** lan : 1));
+    const r = await fetch(url, { headers: { 'User-Agent': UA } });
+    if (r.status !== 429 && r.status < 500) return r;
+  }
+  throw new Error(`Commons từ chối nhiều lần: ${url}`);
+}
 async function goiApi(thamSo) {
   const url = `${API}?${new URLSearchParams({ format: 'json', ...thamSo })}`;
-  const r = await fetch(url, { headers: { 'User-Agent': UA } });
+  const r = await layCoThuLai(url);
   if (!r.ok) throw new Error(`Commons trả ${r.status} cho ${url}`);
   return r.json();
 }
+/* Ảnh thu nhỏ: Commons trả về máy thumb.wikimedia.org; một số mạng (proxy công ty) chặn máy
+   này nhưng cho upload.wikimedia.org — đường dẫn cũ trên upload.wikimedia.org vẫn phục vụ
+   đúng ảnh đó, nên đổi sang cho chắc. Bỏ phần ?utm_… phía sau. */
+const veUpload = (u = '') => u.replace(/^https:\/\/thumb\.wikimedia\.org\//, 'https://upload.wikimedia.org/').replace(/\?.*$/, '');
 const thongTin = (trang) => {
   const ii = trang.imageinfo?.[0]; if (!ii) return null;
   const m = ii.extmetadata || {};
-  return { ten: trang.title, rong: ii.width, cao: ii.height, mime: ii.mime, thumb: ii.thumburl, trangNguon: ii.descriptionurl,
+  return { ten: trang.title, rong: ii.width, cao: ii.height, mime: ii.mime, thumb: veUpload(ii.thumburl), thumbRong: ii.thumbwidth, thumbCao: ii.thumbheight, trangNguon: ii.descriptionurl,
     tacGia: boThe(m.Artist?.value) || 'Không rõ', giayPhep: boThe(m.LicenseShortName?.value), linkGiayPhep: m.LicenseUrl?.value || null,
     moTa: boThe(m.ImageDescription?.value).slice(0, 200) || null };
 };
@@ -71,7 +88,7 @@ async function goiY() {
     const thay = new Map();
     for (const q of ds) {
       const kq = await goiApi({ action: 'query', generator: 'search', gsrsearch: `${q} filetype:bitmap`, gsrnamespace: '6', gsrlimit: '15',
-        prop: 'imageinfo', iiprop: 'url|size|mime|extmetadata', iiurlwidth: '480' });
+        prop: 'imageinfo', iiprop: 'url|size|mime|extmetadata', iiurlwidth: '500' });
       for (const t of Object.values(kq.query?.pages || {})) { const a = thongTin(t); if (hopLe(a)) thay.set(a.ten, a); }
     }
     const ds2 = [...thay.values()].sort((a, b) => (b.rong / b.cao >= 1.2) - (a.rong / a.cao >= 1.2) || b.rong - a.rong).slice(0, 10);
@@ -84,7 +101,7 @@ async function goiY() {
 }
 
 async function taiTep(url, dich) {
-  const r = await fetch(url, { headers: { 'User-Agent': UA } });
+  const r = await layCoThuLai(url);
   if (!r.ok) throw new Error(`Tải ${url} lỗi ${r.status}`);
   fs.writeFileSync(dich, Buffer.from(await r.arrayBuffer()));
 }
@@ -95,20 +112,22 @@ async function tai() {
   const ra = {};
   for (const [ma, tens] of Object.entries(chon)) {
     if (ma.startsWith('_') || !Array.isArray(tens) || !tens.length) continue;
-    /* Hai cỡ: 1600px cho ảnh lớn, 800px cho thẻ. Ảnh gốc nhỏ hơn cỡ xin thì Commons trả ảnh gốc. */
+    /* Hai cỡ chuẩn: 1920px cho ảnh đầu trang, 960px cho thẻ. Ảnh gốc hẹp hơn cỡ xin thì Commons
+       trả ảnh gốc (không phóng to). */
     const lay = async (w) => new Map(Object.values((await goiApi({ action: 'query', titles: tens.join('|'), prop: 'imageinfo',
       iiprop: 'url|size|mime|extmetadata', iiurlwidth: w })).query?.pages || {}).map((t) => [t.title, thongTin(t)]));
-    const theoTen = await lay('1600'), nhoTheoTen = await lay('800');
+    const theoTen = await lay('1920'), nhoTheoTen = await lay('960');
     ra[ma] = [];
     for (const [i, ten] of tens.entries()) {
       const a = theoTen.get(ten.replace(/_/g, ' '));
       if (!a) { console.warn(`  ${ma}: không thấy ${ten}`); continue; }
       if (!hopLe(a)) { console.warn(`  ${ma}: bỏ ${ten} (giấy phép "${a.giayPhep}" hoặc cỡ ảnh không đạt)`); continue; }
       const goc = `${ma}-${i + 1}`;
+      const nho = nhoTheoTen.get(a.ten) || a;
       await taiTep(a.thumb, path.join(RA_ANH, `${goc}.jpg`));
-      await taiTep(nhoTheoTen.get(a.ten)?.thumb || a.thumb, path.join(RA_ANH, `${goc}-800.jpg`));
-      const rong = Math.min(1600, a.rong);
-      ra[ma].push({ tep: `/anh/dia-diem/${goc}.jpg`, nho: `/anh/dia-diem/${goc}-800.jpg`, rong, cao: Math.round((rong * a.cao) / a.rong),
+      await taiTep(nho.thumb, path.join(RA_ANH, `${goc}-nho.jpg`));
+      ra[ma].push({ tep: `/anh/dia-diem/${goc}.jpg`, nho: `/anh/dia-diem/${goc}-nho.jpg`, rong: a.thumbRong || a.rong, cao: a.thumbCao || a.cao,
+        rongNho: nho.thumbRong || nho.rong,
         tacGia: a.tacGia, giayPhep: a.giayPhep, linkGiayPhep: a.linkGiayPhep, nguon: a.trangNguon, moTa: a.moTa });
       console.log(`  ${ma}: đã tải ${ten} (${a.giayPhep}, ${a.tacGia})`);
     }

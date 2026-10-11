@@ -81,8 +81,8 @@ export const _kieuAnh = kieuAnh;   // cho bộ kiểm thử
 
 router.get('/dia-diem/:id/anh', async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT id, rong, cao, chu_thich, LENGTH(du_lieu) AS co FROM anh_dia_diem WHERE dia_diem_id = ? ORDER BY thu_tu, id', [String(req.params.id)]);
-    res.json(rows.map((r) => ({ id: r.id, rong: r.rong, cao: r.cao, chuThich: r.chu_thich, kichThuoc: Number(r.co) })));
+    const [rows] = await pool.query('SELECT id, rong, cao, chu_thich, tieu_diem_x, tieu_diem_y, LENGTH(du_lieu) AS co FROM anh_dia_diem WHERE dia_diem_id = ? ORDER BY thu_tu, id', [String(req.params.id)]);
+    res.json(rows.map((r) => ({ id: r.id, rong: r.rong, cao: r.cao, chuThich: r.chu_thich, tieuDiemX: r.tieu_diem_x ?? 50, tieuDiemY: r.tieu_diem_y ?? 50, kichThuoc: Number(r.co) })));
   } catch (e) { next(e); }
 });
 router.post('/dia-diem/:id/anh', nhanAnh, async (req, res, next) => {
@@ -108,10 +108,46 @@ router.patch('/anh/:id', async (req, res, next) => {
     const doi = {};
     if (req.body?.chuThich !== undefined) doi.chu_thich = sanitizeText(String(req.body.chuThich), 200) || null;
     if (Number.isInteger(req.body?.thuTu)) doi.thu_tu = req.body.thuTu;
+    const phanTram = (v) => (Number.isInteger(v) && v >= 0 && v <= 100 ? v : undefined);
+    if (phanTram(req.body?.tieuDiemX) !== undefined) doi.tieu_diem_x = req.body.tieuDiemX;
+    if (phanTram(req.body?.tieuDiemY) !== undefined) doi.tieu_diem_y = req.body.tieuDiemY;
     if (!Object.keys(doi).length) return res.status(400).json({ error: 'Không có gì để đổi.' });
     await pool.query('UPDATE anh_dia_diem SET ? WHERE id = ?', [doi, Number(req.params.id) || 0]);
     xoaDemCongKhai(); res.json({ ok: true });
   } catch (e) { next(e); }
+});
+/* Ảnh gốc cho cán bộ chỉnh — đọc được cả ảnh của điểm đang ẩn (đường công khai thì không). */
+router.get('/anh/:id/tep', async (req, res, next) => {
+  try {
+    const [[a]] = await pool.query('SELECT du_lieu, kieu FROM anh_dia_diem WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    res.setHeader('Content-Type', a.kieu); res.setHeader('Cache-Control', 'no-store');
+    res.send(a.du_lieu);
+  } catch (e) { next(e); }
+});
+/* Thay nội dung ảnh (sau khi xoay, cắt trên trình duyệt). Ảnh công khai được trình duyệt
+   nhớ đệm VĨNH VIỄN theo mã, nên không ghi đè: tạo bản ghi mới (mã mới) giữ thứ tự, chú
+   thích, điểm lấy nét, rồi xoá bản cũ — người xem luôn thấy ảnh mới. */
+router.put('/anh/:id/tep', nhanAnh, async (req, res, next) => {
+  const conn = await pool.getConnection();
+  try {
+    const kieu = kieuAnh(req.body);
+    if (!kieu) return res.status(400).json({ error: 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.' });
+    const [[cu]] = await conn.query('SELECT id, dia_diem_id, chu_thich, thu_tu, tieu_diem_x, tieu_diem_y FROM anh_dia_diem WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!cu) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    const kichCo = (v) => { const n = Math.floor(Number(v)); return n > 0 && n < 10000 ? n : null; };
+    await conn.beginTransaction();
+    const [kq] = await conn.query('INSERT INTO anh_dia_diem SET ?', [{ dia_diem_id: cu.dia_diem_id, du_lieu: req.body, kieu, rong: kichCo(req.query.rong), cao: kichCo(req.query.cao),
+      chu_thich: cu.chu_thich, thu_tu: cu.thu_tu, tieu_diem_x: cu.tieu_diem_x ?? 50, tieu_diem_y: cu.tieu_diem_y ?? 50, nguoi_tai: req.staff.id }]);
+    await conn.query('DELETE FROM anh_dia_diem WHERE id = ?', [cu.id]);
+    await conn.commit();
+    await ghiNhatKy(pool, req, { hanhDong: 'sua_anh', loaiDoiTuong: 'dia_diem', doiTuongId: cu.dia_diem_id, chiTiet: { cu: cu.id, moi: kq.insertId } });
+    xoaDemCongKhai(); res.json({ id: kq.insertId });
+  } catch (e) {
+    await conn.rollback().catch(() => {});
+    if (e.type === 'entity.too.large') return res.status(413).json({ error: 'Ảnh lớn hơn 1,5 MB.' });
+    next(e);
+  } finally { conn.release(); }
 });
 router.delete('/anh/:id', async (req, res, next) => {
   try {

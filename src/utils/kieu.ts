@@ -1,7 +1,7 @@
 export type Loai = 'thien-nhien' | 'di-tich' | 'vui-choi' | 'luu-tru' | 'am-thuc' | 'dac-san';
 export type Vung = 'ven-song' | 'mien-dong' | 'phia-bac';
 export interface TieuChi { canhQuan: number | null; dichVu: number | null; veSinh: number | null; giaCa: number | null }
-export interface AnhDD { id: number; rong: number | null; cao: number | null; chuThich: string | null }
+export interface AnhDD { id: number; rong: number | null; cao: number | null; chuThich: string | null; tieuDiemX?: number; tieuDiemY?: number }
 export interface DiaDiem {
   id: string; ten: string; tenEn: string | null; loai: Loai; moTa: string | null; moTaEn: string | null; diaChi: string | null; lat: number; lng: number; anh: AnhDD[];
   sdt: string | null; web: string | null; gioMo: string | null; noiBat: boolean; vung: Vung | null; xa: string | null;

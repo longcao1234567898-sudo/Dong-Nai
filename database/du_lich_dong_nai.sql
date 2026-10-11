@@ -673,4 +673,10 @@ SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA =
 SET @lenh := IF(@co = 0, 'ALTER TABLE lich_trinh ADD COLUMN phuong_tien VARCHAR(60) NULL AFTER thoi_gian, ADD COLUMN phuong_tien_en VARCHAR(60) NULL AFTER phuong_tien', 'DO 0');
 PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
 
+-- Điểm lấy nét của ảnh (phần trăm ngang, dọc): khi ảnh bị cắt cho vừa khung
+-- (thẻ, trình chiếu), phần cán bộ chọn luôn nằm trong khung.
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'anh_dia_diem' AND COLUMN_NAME = 'tieu_diem_x');
+SET @lenh := IF(@co = 0, 'ALTER TABLE anh_dia_diem ADD COLUMN tieu_diem_x TINYINT UNSIGNED NOT NULL DEFAULT 50 AFTER chu_thich, ADD COLUMN tieu_diem_y TINYINT UNSIGNED NOT NULL DEFAULT 50 AFTER tieu_diem_x', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

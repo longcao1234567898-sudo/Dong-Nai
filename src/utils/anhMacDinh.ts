@@ -13,8 +13,10 @@
 import duLieu from '../du-lieu/anh-dia-diem.json';
 
 export interface AnhMacDinh {
-  tep: string; nho: string; rong: number; cao: number;
+  tep: string; nho: string; rong: number; cao: number; rongNho?: number;
   tacGia: string; giayPhep: string; linkGiayPhep: string | null; nguon: string; moTa: string | null;
 }
 export const ANH_MAC_DINH = duLieu as Record<string, AnhMacDinh[]>;
 export const anhMacDinh = (id: string): AnhMacDinh | null => ANH_MAC_DINH[id]?.[0] || null;
+/* Ảnh nhỏ (thẻ) và ảnh lớn (đầu trang): trình duyệt tự chọn theo bề rộng khung. */
+export const srcSetMacDinh = (m: AnhMacDinh) => `${m.nho} ${m.rongNho || 960}w, ${m.tep} ${m.rong}w`;

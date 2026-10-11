@@ -2,7 +2,7 @@
 import { useId, type ReactNode } from 'react';
 import { Leaf, Landmark, Tent, BedDouble, UtensilsCrossed, Gift } from 'lucide-react';
 import { anhUrl } from '../../services/api';
-import { anhMacDinh } from '../../utils/anhMacDinh';
+import { anhMacDinh, srcSetMacDinh } from '../../utils/anhMacDinh';
 import { useNN } from '../../i18n/NgonNgu';
 import type { DiaDiem, Loai } from '../../utils/kieu';
 
@@ -29,9 +29,10 @@ export function KhungAnh({ p, sizes = '(min-width: 1024px) 50vw, 100vw', uuTien 
   const { t, chon } = useNN();
   const a = p.anh?.[0];
   if (a) return <img src={anhUrl(a.id)} alt={a.chuThich || chon(p.ten, p.tenEn)} loading={uuTien ? 'eager' : 'lazy'} decoding="async"
-    width={a.rong || undefined} height={a.cao || undefined} className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />;
+    width={a.rong || undefined} height={a.cao || undefined} className="fx-anh-troi absolute inset-0 h-full w-full object-cover"
+    style={{ objectPosition: `${a.tieuDiemX ?? 50}% ${a.tieuDiemY ?? 50}%` }} />;
   const m = anhMacDinh(p.id);
-  if (m) return <img src={m.nho} srcSet={`${m.nho} 800w, ${m.tep} ${m.rong}w`} sizes={sizes} alt={chon(p.ten, p.tenEn)} width={m.rong} height={m.cao}
+  if (m) return <img src={m.nho} srcSet={srcSetMacDinh(m)} sizes={sizes} alt={chon(p.ten, p.tenEn)} width={m.rong} height={m.cao}
     loading={uuTien ? 'eager' : 'lazy'} decoding="async" className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />;
   const Ic = IC_LOAI[p.loai] || Leaf;
   return <span className="anh-cho"><Ic className="h-7 w-7" strokeWidth={1.5} /><span className="text-xs font-medium">{t('chuaCoAnh')}</span></span>;

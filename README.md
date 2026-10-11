@@ -108,13 +108,13 @@ Các bảng hiện có:
 
 **Tiếng Anh:** nút EN/VI ở đầu trang. Tên, giới thiệu địa điểm, lộ trình, tin tức có ô tiếng Anh riêng trong khu cán bộ; ô trống thì hiện tiếng Việt. Đã nạp sẵn tên và giới thiệu tiếng Anh cho 15 điểm đến.
 
-**Cán bộ quản lý** ở nhóm *Người dân* trong khu quản trị: Phản ánh (xử lý, giao về xã, ghi kết quả xử lý nội bộ — bắt buộc khi đóng phản ánh; số hiệu 8 ký tự để cán bộ đối chiếu), Lộ trình, Tin tức – cảnh báo. Ảnh địa điểm thêm ở mục Địa điểm → Sửa: tối đa 8 ảnh mỗi điểm, ảnh tự thu nhỏ trên trình duyệt (cạnh dài 1600px) trước khi tải lên, lưu trong cơ sở dữ liệu (Render không có ổ đĩa lưu tệp lâu dài). Đánh giá bị du khách bấm *Báo vi phạm* nổi lên đầu mục Đánh giá.
+**Cán bộ quản lý** ở nhóm *Người dân* trong khu quản trị: Phản ánh (xử lý, giao về xã, ghi kết quả xử lý nội bộ — bắt buộc khi đóng phản ánh; số hiệu 8 ký tự để cán bộ đối chiếu), Lộ trình, Tin tức – cảnh báo. Ảnh địa điểm thêm ở mục Địa điểm → Sửa: tối đa 8 ảnh mỗi điểm, ảnh tự thu nhỏ trên trình duyệt (cạnh dài 1600px) trước khi tải lên, chỉnh được ngay tại chỗ (xoay, điểm lấy nét, thay ảnh, đặt ảnh đại diện), lưu trong cơ sở dữ liệu (Render không có ổ đĩa lưu tệp lâu dài). Đánh giá bị du khách bấm *Báo vi phạm* nổi lên đầu mục Đánh giá.
 
 **Giao diện:** trang chủ mở bằng trình chiếu ảnh thật các điểm nổi bật (có nút tạm dừng); thẻ, trang địa điểm, lộ trình dùng ảnh thật. Thiết kế và các quyết định: [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md). Xem thử bố cục khi có đánh giá: chạy `npm run dev` rồi mở `/?minh-hoa=1` (dữ liệu minh hoạ chỉ có ở máy phát triển, không vào bản build).
 
-**Ảnh địa điểm:** ảnh cán bộ tải lên (Quản trị → Địa điểm → Sửa) luôn hiện trước. Ở đó có nút **Tìm ảnh trên Wikimedia**: gõ tên điểm, xem ảnh (chỉ hiện ảnh CC0 hoặc phạm vi công cộng, dùng tự do không phải ghi tác giả), bấm *Dùng ảnh này* là ảnh được thu nhỏ và lưu như ảnh tự tải lên. Chưa có thì dùng ảnh mặc định trong `public/anh/dia-diem/`, lấy từ Wikimedia Commons bằng `node scripts/tai-anh-dia-diem.mjs goi-y` (xem ứng viên, chép tên tệp vào `scripts/anh-dia-diem.json`) rồi `node scripts/tai-anh-dia-diem.mjs tai`. Script chỉ nhận ảnh CC0 hoặc phạm vi công cộng, vì trang người dân không hiện tác giả; nguồn từng ảnh xem ở Quản trị → Nguồn ảnh.
+**Ảnh địa điểm:** ảnh cán bộ tải lên (Quản trị → Địa điểm → Sửa) luôn hiện trước. Ở đó có nút **Tìm ảnh trên Wikimedia**: gõ tên điểm, xem ảnh (chỉ hiện ảnh CC0 hoặc phạm vi công cộng, dùng tự do không phải ghi tác giả), bấm *Dùng ảnh này* là ảnh được thu nhỏ và lưu như ảnh tự tải lên. Mỗi ảnh có nút **Chỉnh**: xoay trái/phải, bấm vào phần quan trọng nhất của ảnh để đặt *điểm lấy nét* (ảnh bị cắt vừa thẻ, ảnh đầu trang hay màn điện thoại vẫn giữ phần đó, có khung xem trước từng kiểu cắt), hoặc thay bằng ảnh khác mà vẫn giữ chú thích và thứ tự. Nút ngôi sao đặt ảnh làm ảnh đại diện. Điểm đang dùng ảnh mặc định thì bấm *Đưa vào danh sách* để chép ảnh mặc định sang và chỉnh như ảnh tự tải. Chưa có thì dùng ảnh mặc định trong `public/anh/dia-diem/`, lấy từ Wikimedia Commons bằng `node scripts/tai-anh-dia-diem.mjs goi-y` (xem ứng viên, chép tên tệp vào `scripts/anh-dia-diem.json`) rồi `node scripts/tai-anh-dia-diem.mjs tai`. Script chỉ nhận ảnh CC0 hoặc phạm vi công cộng, vì trang người dân không hiện tác giả; nguồn từng ảnh xem ở Quản trị → Nguồn ảnh.
 
-**Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch cho địa điểm và cột phương tiện cho lộ trình. Thiếu cột thì máy chủ báo ngay lúc khởi động.
+**Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch cho địa điểm, cột phương tiện cho lộ trình và cột điểm lấy nét cho ảnh. Thiếu cột thì máy chủ báo ngay lúc khởi động.
 
 ## Bảo mật tài khoản
 
@@ -130,6 +130,6 @@ Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là
 ## Kiểm thử
 
 ```
-cd server && npm test     # 56 bài, không cần MySQL
+cd server && npm test     # 57 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```

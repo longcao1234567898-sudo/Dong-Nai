@@ -41,10 +41,10 @@ router.get('/dia-diem', async (_req, res, next) => {
     );
     const so = (v) => (v === null ? null : Number(v));
     /* Danh sách ảnh (chỉ mã và kích thước, không kèm dữ liệu ảnh) — ảnh tải riêng qua /anh/:id. */
-    const [anh] = await pool.query('SELECT id, dia_diem_id, rong, cao, chu_thich FROM anh_dia_diem ORDER BY dia_diem_id, thu_tu, id');
+    const [anh] = await pool.query('SELECT id, dia_diem_id, rong, cao, chu_thich, tieu_diem_x, tieu_diem_y FROM anh_dia_diem ORDER BY dia_diem_id, thu_tu, id');
     dem = { luc: Date.now(), du: rows.map((r) => ({
       id: r.id, ten: r.ten, tenEn: r.ten_en, loai: r.loai, moTa: r.mo_ta, moTaEn: r.mo_ta_en, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
-      anh: anh.filter((a) => a.dia_diem_id === r.id).map((a) => ({ id: a.id, rong: a.rong, cao: a.cao, chuThich: a.chu_thich })),
+      anh: anh.filter((a) => a.dia_diem_id === r.id).map((a) => ({ id: a.id, rong: a.rong, cao: a.cao, chuThich: a.chu_thich, tieuDiemX: a.tieu_diem_x ?? 50, tieuDiemY: a.tieu_diem_y ?? 50 })),
       sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, vung: r.vung ?? null, xa: r.xa ?? null,
       soDanhGia: Number(r.so_dg), saoTb: so(r.sao_tb),
       tieuChi: { canhQuan: so(r.tb_canh_quan), dichVu: so(r.tb_dich_vu), veSinh: so(r.tb_ve_sinh), giaCa: so(r.tb_gia_ca) },

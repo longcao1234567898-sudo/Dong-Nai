@@ -93,6 +93,14 @@ export async function adminTaiXuong(path: string, tenMacDinh: string, retry = tr
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+/** Lấy một tệp nhị phân (ảnh) từ khu quản trị — cần vé đăng nhập. */
+export async function adminLayBlob(path: string, retry = true): Promise<Blob> {
+  const res = await fetch(`${API_URL}/api/quan-tri${path}`, { credentials: 'include', headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+  if (res.status === 401 && retry && await restoreSession()) return adminLayBlob(path, false);
+  if (!res.ok) throw new Error('Không tải được ảnh.');
+  return res.blob();
+}
+
 /** Gửi một tệp lên máy chủ (thân yêu cầu là chính tệp đó). */
 export function adminTaiLen<T>(path: string, tep: File): Promise<T> {
   return adminFetch<T>(path, { method: 'POST', body: tep, headers: { 'Content-Type': tep.type || 'application/octet-stream' } });

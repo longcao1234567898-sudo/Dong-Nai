@@ -5,7 +5,7 @@ import { Search, Map as IcBanDo, Route, Pause, Play } from 'lucide-react';
 import { useNN } from '../../i18n/NgonNgu';
 import { LOAI, giamChuyenDong } from '../../utils/hangSo';
 import { anhUrl } from '../../services/api';
-import { anhMacDinh } from '../../utils/anhMacDinh';
+import { anhMacDinh, srcSetMacDinh } from '../../utils/anhMacDinh';
 import { AnhTuyen } from '../du-lich/GiaoDien';
 import type { DiaDiem, LoTrinh } from '../../utils/kieu';
 
@@ -74,8 +74,8 @@ export default function Hero({ ds, loTrinh, onTim, onToiBanDo, onToiLoTrinh }: {
   /* Ảnh trình chiếu: điểm nổi bật trước, mỗi điểm một ảnh — ảnh cán bộ tải lên, không thì ảnh mặc định. */
   const chieu = useMemo(() => ds.map((p) => {
     const a = p.anh?.[0], m = anhMacDinh(p.id);
-    if (a) return { p, src: anhUrl(a.id), srcSet: undefined as string | undefined };
-    if (m) return { p, src: m.tep, srcSet: `${m.nho} 800w, ${m.tep} ${m.rong}w` };
+    if (a) return { p, src: anhUrl(a.id), srcSet: undefined as string | undefined, tieuDiem: `${a.tieuDiemX ?? 50}% ${a.tieuDiemY ?? 50}%` };
+    if (m) return { p, src: m.tep, srcSet: srcSetMacDinh(m), tieuDiem: '50% 50%' };
     return null;
   }).filter((x): x is NonNullable<typeof x> => !!x).sort((a, b) => Number(b.p.noiBat) - Number(a.p.noiBat)).slice(0, 5), [ds]);
   const [i, setI] = useState(0);
@@ -98,7 +98,7 @@ export default function Hero({ ds, loTrinh, onTim, onToiBanDo, onToiLoTrinh }: {
       <div className="hero-troi absolute inset-0" aria-hidden="true">
         {chieu.map((c, k) => (
           <div key={c.p.id} className={`hero-anh absolute inset-0 transition-opacity duration-[1600ms] ease-out ${k === i ? 'dang-chieu opacity-100' : 'opacity-0'}`}>
-            <img src={c.src} srcSet={c.srcSet} sizes="100vw" alt="" className="h-full w-full object-cover"
+            <img src={c.src} srcSet={c.srcSet} sizes="100vw" alt="" className="h-full w-full object-cover" style={{ objectPosition: c.tieuDiem, transformOrigin: c.tieuDiem }}
               loading={k === 0 ? 'eager' : 'lazy'} fetchPriority={k === 0 ? 'high' : 'auto'} decoding="async" />
           </div>))}
       </div>
