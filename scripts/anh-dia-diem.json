@@ -1,3 +1,12 @@
 {
-  "_ghi_chu": "Mỗi địa điểm: danh sách tên tệp trên Wikimedia Commons (dạng \"File:...\"), ảnh đầu là ảnh chính. Chọn từ scripts/anh-ung-vien.html (node scripts/tai-anh-dia-diem.mjs goi-y), rồi chạy: node scripts/tai-anh-dia-diem.mjs tai"
+  "_ghi_chu": "Mỗi địa điểm: danh sách tên tệp trên Wikimedia Commons (dạng \"File:...\"), ảnh đầu là ảnh chính. Chỉ ảnh CC0 hoặc phạm vi công cộng, đúng địa điểm, đã xem tận mắt. Chọn từ scripts/anh-ung-vien.html (node scripts/tai-anh-dia-diem.mjs goi-y), rồi chạy: node scripts/tai-anh-dia-diem.mjs tai. Các điểm khác chưa có ảnh tự do đúng chỗ trên Commons (soát tháng 10/2026): cán bộ tải ảnh lên ở Quản trị → Địa điểm.",
+  "ho-tri-an": [
+    "File:Tri An Hydroelectric Dam And Its Reservoir.jpg",
+    "File:Tri An Hydroelectric Dam.jpg",
+    "File:Tri An Controlled Spillway.jpg"
+  ],
+  "van-mieu-tran-bien": [
+    "File:Ảnh 1, Văn Miếu Trấn Biên 11-5-2025.jpg",
+    "File:Ảnh 2, Văn Miếu Trấn Biên 11-5-2025.jpg"
+  ]
 }

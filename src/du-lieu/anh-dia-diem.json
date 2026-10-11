@@ -1,1 +1,66 @@
-{}
+{
+  "ho-tri-an": [
+    {
+      "tep": "/anh/dia-diem/ho-tri-an-1.jpg",
+      "nho": "/anh/dia-diem/ho-tri-an-1-nho.jpg",
+      "rong": 1920,
+      "cao": 1280,
+      "rongNho": 960,
+      "tacGia": "MinhVN123",
+      "giayPhep": "CC0",
+      "linkGiayPhep": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "nguon": "https://commons.wikimedia.org/wiki/File:Tri_An_Hydroelectric_Dam_And_Its_Reservoir.jpg",
+      "moTa": "Tri An Hydroelectric Dam and Its Reservoir"
+    },
+    {
+      "tep": "/anh/dia-diem/ho-tri-an-2.jpg",
+      "nho": "/anh/dia-diem/ho-tri-an-2-nho.jpg",
+      "rong": 1920,
+      "cao": 1280,
+      "rongNho": 960,
+      "tacGia": "MinhVN123",
+      "giayPhep": "CC0",
+      "linkGiayPhep": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "nguon": "https://commons.wikimedia.org/wiki/File:Tri_An_Hydroelectric_Dam.jpg",
+      "moTa": "Tri An Hydroelectric Dam"
+    },
+    {
+      "tep": "/anh/dia-diem/ho-tri-an-3.jpg",
+      "nho": "/anh/dia-diem/ho-tri-an-3-nho.jpg",
+      "rong": 1920,
+      "cao": 1280,
+      "rongNho": 960,
+      "tacGia": "MinhVN123",
+      "giayPhep": "CC0",
+      "linkGiayPhep": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "nguon": "https://commons.wikimedia.org/wiki/File:Tri_An_Controlled_Spillway.jpg",
+      "moTa": "This pictures shows the gate of the spillway which are currently closed"
+    }
+  ],
+  "van-mieu-tran-bien": [
+    {
+      "tep": "/anh/dia-diem/van-mieu-tran-bien-1.jpg",
+      "nho": "/anh/dia-diem/van-mieu-tran-bien-1-nho.jpg",
+      "rong": 750,
+      "cao": 558,
+      "rongNho": 750,
+      "tacGia": "Ngaikiet",
+      "giayPhep": "CC0",
+      "linkGiayPhep": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "nguon": "https://commons.wikimedia.org/wiki/File:%E1%BA%A2nh_1,_V%C4%83n_Mi%E1%BA%BFu_Tr%E1%BA%A5n_Bi%C3%AAn_11-5-2025.jpg",
+      "moTa": "Văn Miếu Trấn Biên ảnh do Ngaikiet chụp ngày 11/5/2025 tại Đồng Nai."
+    },
+    {
+      "tep": "/anh/dia-diem/van-mieu-tran-bien-2.jpg",
+      "nho": "/anh/dia-diem/van-mieu-tran-bien-2-nho.jpg",
+      "rong": 750,
+      "cao": 560,
+      "rongNho": 750,
+      "tacGia": "Ngaikiet",
+      "giayPhep": "CC0",
+      "linkGiayPhep": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "nguon": "https://commons.wikimedia.org/wiki/File:%E1%BA%A2nh_2,_V%C4%83n_Mi%E1%BA%BFu_Tr%E1%BA%A5n_Bi%C3%AAn_11-5-2025.jpg",
+      "moTa": "Văn Miếu Trấn Biên ảnh do Ngaikiet chụp ngày 11/5/2025 tại Đồng Nai."
+    }
+  ]
+}

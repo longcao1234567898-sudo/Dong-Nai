@@ -105,6 +105,7 @@ async function goiY() {
 }
 
 async function taiTep(url, dich) {
+  if (fs.existsSync(dich) && fs.statSync(dich).size > 0) return;   // chạy lại: ảnh đã có thì thôi
   const r = await layCoThuLai(url);
   if (!r.ok) throw new Error(`Tải ${url} lỗi ${r.status}`);
   fs.writeFileSync(dich, Buffer.from(await r.arrayBuffer()));
@@ -128,10 +129,15 @@ async function tai() {
       if (!hopLe(a)) { console.warn(`  ${ma}: bỏ ${ten} (giấy phép "${a.giayPhep}" hoặc cỡ ảnh không đạt)`); continue; }
       const goc = `${ma}-${i + 1}`;
       const nho = nhoTheoTen.get(a.ten) || a;
-      await taiTep(a.thumb, path.join(RA_ANH, `${goc}.jpg`));
-      await taiTep(nho.thumb, path.join(RA_ANH, `${goc}-nho.jpg`));
-      ra[ma].push({ tep: `/anh/dia-diem/${goc}.jpg`, nho: `/anh/dia-diem/${goc}-nho.jpg`, rong: a.thumbRong || a.rong, cao: a.thumbCao || a.cao,
-        rongNho: nho.thumbRong || nho.rong,
+      /* Một ảnh tải hỏng (Commons giới hạn lượt) không làm mất các ảnh đã tải: bỏ qua, chạy lại sau. */
+      try {
+        await taiTep(a.thumb, path.join(RA_ANH, `${goc}.jpg`));
+        await taiTep(nho.thumb, path.join(RA_ANH, `${goc}-nho.jpg`));
+      } catch (e) { console.warn(`  ${ma}: chưa tải được ${ten} (${e.message}) — chạy lại lệnh sau ít phút`); continue; }
+      /* Ảnh gốc hẹp hơn cỡ xin thì Commons trả nguyên ảnh gốc nhưng vẫn báo cỡ đã xin: lấy cỡ nhỏ hơn. */
+      const rong = Math.min(a.thumbRong || a.rong, a.rong);
+      ra[ma].push({ tep: `/anh/dia-diem/${goc}.jpg`, nho: `/anh/dia-diem/${goc}-nho.jpg`, rong, cao: Math.round((rong * a.cao) / a.rong),
+        rongNho: Math.min(nho.thumbRong || nho.rong, a.rong),
         tacGia: a.tacGia, giayPhep: a.giayPhep, linkGiayPhep: a.linkGiayPhep, nguon: a.trangNguon, moTa: a.moTa });
       console.log(`  ${ma}: đã tải ${ten} (${a.giayPhep}, ${a.tacGia})`);
     }
