@@ -13,9 +13,19 @@ export function maThietBi(): string {
   } catch { return crypto.randomUUID(); }
 }
 async function goi<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}/api/cong-khai${path}`, {
-    ...init, headers: { 'Content-Type': 'application/json', 'X-Ma-Thiet-Bi': maThietBi(), ...dauXacMinh(), ...(init.headers || {}) },
-  });
+  /* Không để trang xoay "Đang tải…" mãi khi máy chủ không trả lời (Render ngủ thì
+     khởi động mất 30–60 giây; quá 75 giây là máy chủ có vấn đề) — báo lỗi rõ ràng. */
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/cong-khai${path}`, {
+      signal: AbortSignal.timeout(75_000),
+      ...init, headers: { 'Content-Type': 'application/json', 'X-Ma-Thiet-Bi': maThietBi(), ...dauXacMinh(), ...(init.headers || {}) },
+    });
+  } catch (e) {
+    throw new Error((e as Error).name === 'TimeoutError'
+      ? 'Máy chủ chưa trả lời sau hơn một phút. Máy chủ có thể đang khởi động hoặc gặp lỗi — tải lại trang sau ít phút.'
+      : 'Không kết nối được máy chủ. Kiểm tra mạng, hoặc máy chủ đang tắt, hoặc chưa cho phép địa chỉ trang này (CORS_ORIGIN).');
+  }
   /* ⚠️ PHẢI KIỂM ĐÚNG LÀ JSON TRƯỚC KHI ĐỌC.
      Lỗi đã xảy ra thật: Netlify thiếu VITE_API_URL nên giao diện gọi nhầm
      /api/... trên chính Netlify. Netlify trả về trang index.html với mã 200,
