@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "build": "node -e \"console.log('Máy chủ không cần bước dựng — chạy thẳng: node src/index.js')\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -22,6 +23,6 @@
     "mysql2": "^3.11.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": "22.x"
   }
 }
