@@ -100,16 +100,8 @@ export default function QuanLyQuanSat({ diaDiemId }: { diaDiemId: string }) {
   return (
     <div className="mt-4 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
       <b className="flex items-center gap-1.5 text-sm"><Orbit className="h-4 w-4" />Điểm quan sát 360° ({ds.length}/{TOI_DA})</b>
-      <p className="mt-1 text-xs text-slate-500">Hai cách: lấy ảnh 360° có sẵn trên Google Maps (mục bên dưới), hoặc tự chụp ảnh 360° tại một vị trí của địa điểm (máy ảnh 360°, hoặc chế độ toàn cảnh / Photo Sphere của điện thoại). Du khách đứng "tại chỗ" đó, kéo để nhìn xung quanh. Ảnh tỉ lệ 2:1 tự nhận là 360° trọn vòng.</p>
-      {ds.length < TOI_DA && <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-        <input className={o} value={ten} onChange={(e) => setTen(e.target.value)} maxLength={120} placeholder="Tên vị trí, ví dụ: Đỉnh núi, Cổng chính, Bến thuyền" />
-        <select className={o} value={gocMoi} onChange={(e) => setGocMoi(Number(e.target.value))} title="Chỉ dùng khi ảnh không phải tỉ lệ 2:1" aria-label="Góc chụp ngang (ảnh panorama thường)">
-          {GOC.map(([g, nhan]) => <option key={g} value={g}>Ảnh thường: {nhan}</option>)}</select>
-        <button type="button" className={nutVien + ' gap-1.5'} disabled={dang} onClick={() => chonTep.current?.click()}>
-          {dang ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Orbit className="h-3.5 w-3.5" />}{dang ? 'Đang tải lên…' : 'Chọn ảnh 360°'}</button>
-        <input ref={chonTep} type="file" accept="image/*" hidden onChange={(e) => taiLen(e.target.files?.[0])} />
-      </div>}
-      {ds.length < TOI_DA && <details className="mt-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+      <p className="mt-1 text-xs text-slate-500">Hai cách: lấy ảnh 360° có sẵn trên Google Maps (ô xám ngay dưới, dán mã nhúng vào đó), hoặc tự chụp ảnh 360° tại một vị trí của địa điểm (máy ảnh 360°, hoặc chế độ toàn cảnh / Photo Sphere của điện thoại). Du khách đứng "tại chỗ" đó, kéo để nhìn xung quanh. Ảnh tỉ lệ 2:1 tự nhận là 360° trọn vòng.</p>
+      {ds.length < TOI_DA && <details open={ds.length === 0} className="mt-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
         <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold"><MapPin className="h-4 w-4" />Lấy ảnh 360° từ Google Maps (Street View, ảnh 360° người dùng đăng)</summary>
         <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-slate-600 dark:text-slate-300">
           <li>Mở Google Maps trên máy tính, tìm địa điểm. Kéo hình người vàng vào chỗ có đường xanh (Street View), hoặc bấm vào một ảnh 360° trong mục Ảnh của địa điểm.</li>
@@ -122,6 +114,14 @@ export default function QuanLyQuanSat({ diaDiemId }: { diaDiemId: string }) {
         <button type="button" className={nutVien + ' mt-2 gap-1.5'} disabled={themGoogle.isPending || !tenG.trim() || !maG.trim()} onClick={() => themGoogle.mutate()}>
           {themGoogle.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}Thêm từ Google Maps</button>
       </details>}
+      {ds.length < TOI_DA && <div className="mt-3 flex flex-wrap gap-2">
+        <input className={o + ' basis-full'} value={ten} onChange={(e) => setTen(e.target.value)} maxLength={120} placeholder="Tên vị trí (ảnh tự chụp), ví dụ: Đỉnh núi, Cổng chính" />
+        <select className={o + ' w-auto flex-1'} value={gocMoi} onChange={(e) => setGocMoi(Number(e.target.value))} title="Chỉ dùng khi ảnh không phải tỉ lệ 2:1" aria-label="Góc chụp ngang (ảnh panorama thường)">
+          {GOC.map(([g, nhan]) => <option key={g} value={g}>Ảnh thường: {nhan}</option>)}</select>
+        <button type="button" className={nutVien + ' gap-1.5'} disabled={dang} onClick={() => chonTep.current?.click()}>
+          {dang ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Orbit className="h-3.5 w-3.5" />}{dang ? 'Đang tải lên…' : 'Chọn ảnh 360°'}</button>
+        <input ref={chonTep} type="file" accept="image/*" hidden onChange={(e) => taiLen(e.target.files?.[0])} />
+      </div>}
       {ds.length > 0 && <ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-700">{ds.map((q, i) => (
         <li key={q.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
           <input className={o + ' max-w-[16rem] flex-1'} defaultValue={q.ten} aria-label="Tên vị trí"
