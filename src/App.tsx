@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import BaoLoi from './components/common/BaoLoi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/layout/Header';
@@ -45,12 +46,13 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30
 
 function KhungChung() {
   const { t } = useNN();
+  const { pathname } = useLocation();
   /* Chuyển động dùng chung: hiện khi cuộn (3D) và thẻ nghiêng theo chuột — bật một lần cho cả trang. */
   useEffect(() => { const a = batHienDan(), b = batNghieng(); return () => { a(); b(); }; }, []);
   return (<div className="flex min-h-screen flex-col text-ink">
     <a href="#noi-dung" className="sr-only z-[2000] rounded-xl bg-paper px-4 py-3 font-semibold text-ink shadow-sh-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{t('boQuaNoiDung')}</a>
     {cheDoMinhHoa && <div role="status" className="bg-[#FCEFC7] px-4 py-2 text-center text-sm font-semibold text-[#192522]">{t('dangXemMinhHoa')}</div>}
-    <Header /><main id="noi-dung" tabIndex={-1} className="flex-1 outline-none"><Suspense fallback={<div className="py-20 text-center text-muted">{t('dangTai')}</div>}><Outlet /></Suspense></main><Footer /></div>);
+    <Header /><main id="noi-dung" tabIndex={-1} className="flex-1 outline-none"><BaoLoi khoaDatLai={pathname}><Suspense fallback={<div className="py-20 text-center text-muted">{t('dangTai')}</div>}><Outlet /></Suspense></BaoLoi></main><Footer /></div>);
 }
 /** Chỉ cho vào khu quản trị khi đã khôi phục được phiên đăng nhập. */
 function CanDangNhap() {

@@ -9,6 +9,12 @@
   VITE_API_URL = "https://dong-nai.onrender.com"
   # Cloudflare Turnstile, khoá CÔNG KHAI (Site Key) — đi cặp với TURNSTILE_SECRET_KEY trên Render
   VITE_TURNSTILE_SITE_KEY = "0x4AAAAAAFThvfl6nJtb9l8v"
+# Tệp mã cũ không còn (vừa có bản mới) thì báo 404 thật, không trả index.html giả làm
+# tệp mã — trang nhận ra lỗi tải mã và tự tải lại lấy bản mới (BaoLoi.tsx).
+[[redirects]]
+  from = "/assets/*"
+  to = "/404.html"
+  status = 404
 # Mọi đường dẫn trả về index.html để định tuyến phía giao diện chạy được khi tải lại trang
 [[redirects]]
   from = "/*"
