@@ -4,7 +4,18 @@ Phạm vi: trang chủ (6 khối A–F) và hệ thống thiết kế dùng chun
 
 Mã nguồn hiện có: React 18 + TypeScript + Vite + Tailwind 3 + react-query + react-leaflet (nền OpenStreetMap) + lucide-react. Song ngữ qua `useNN()` (`t`, `chon`). Đọc mục [Ràng buộc dữ liệu](#ràng-buộc-dữ-liệu-đọc-trước-khi-dựng) trước khi dựng: trang này là trang của cơ quan nhà nước, **mọi con số, ảnh, đánh giá trên trang phải lần ra được nguồn thật**.
 
-## Đã dựng: bản 3D (thay đổi so với bản thiết kế ban đầu)
+## Cập nhật: bỏ cảnh 3D, dùng ảnh thật
+
+Người dùng thấy cảnh 3D và ảnh địa hình vẽ máy "mờ, nhựa", nên đã gỡ hẳn (bỏ cả gói three.js). Thay bằng:
+
+- **Ảnh mặc định của địa điểm**: ảnh chụp thật, giấy phép tự do (CC0, CC BY, CC BY-SA) trên Wikimedia Commons, tải bằng `scripts/tai-anh-dia-diem.mjs` về `public/anh/dia-diem/`, thông tin tác giả và giấy phép ở `src/du-lieu/anh-dia-diem.json`. Thứ tự ưu tiên: ảnh cán bộ tải lên, rồi ảnh mặc định, rồi khung chờ (nền rừng đêm có đường đồng mức).
+- **Hero**: trình chiếu ảnh các điểm nổi bật, mỗi ảnh 7 giây, chuyển mờ dần, ảnh đang chiếu phóng rất chậm (Ken Burns), lớp ảnh trôi chậm hơn trang khi cuộn. Có chấm chọn ảnh và nút tạm dừng (nội dung tự chạy quá 5 giây phải dừng được); bật "giảm chuyển động" thì không tự chạy. Góc dưới ghi "Trong ảnh: tên điểm" và tác giả, giấy phép.
+- **Ghi công**: ảnh lớn (hero, trang địa điểm) ghi tác giả, giấy phép ngay trên ảnh; trang `/nguon-anh` liệt kê đủ mọi ảnh mặc định.
+- Ảnh lộ trình là ảnh điểm dừng đầu tiên có ảnh. Trang đăng nhập cán bộ đặt trên một ảnh thật.
+
+Các chuyển động không dính tới 3D vẫn giữ: thẻ nghiêng theo chuột, hiện khi cuộn, đường kể chuyện của lộ trình, View Transitions.
+
+## Đã dựng: bản 3D (đã thay, giữ để tham khảo)
 
 Theo yêu cầu "bớt phẳng, bớt nhựa, có chiều sâu 3D", bản dựng đổi mấy chỗ dưới đây. Các mục 1–10 phía sau vẫn đúng, trừ những chỗ ghi ở đây.
 

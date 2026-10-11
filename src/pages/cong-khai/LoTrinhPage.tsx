@@ -6,9 +6,7 @@ import toast from 'react-hot-toast';
 import { Navigation, ArrowUp, ArrowDown, X, Link2, Plus, Clock, Bus, ArrowLeft, ArrowUpRight } from 'lucide-react';
 import BanDo from '../../components/du-lich/BanDo';
 import ChiTiet from '../../components/du-lich/ChiTiet';
-import { DauTrang, KhungAnh } from '../../components/du-lich/GiaoDien';
-import { useAnhCanh } from '../../components/trang-chu/anhCanh';
-import ChupDiaHinh from '../../components/trang-chu/ChupDiaHinh';
+import { AnhTuyen, DauTrang, KhungAnh } from '../../components/du-lich/GiaoDien';
 import { layDiaDiem, layLoTrinh } from '../../services/api';
 import { khoangCachKm, duongDanChiDuong } from '../../utils/hangSo';
 import { useNN } from '../../i18n/NgonNgu';
@@ -17,26 +15,19 @@ import type { DiaDiem, LoTrinh } from '../../utils/kieu';
 const tongKm = (ds: DiaDiem[]) => Math.round(ds.slice(1).reduce((s, p, i) => s + khoangCachKm(ds[i], p), 0));
 const diemCua = (l: LoTrinh, ds: DiaDiem[]) => l.diem.map((d) => ds.find((p) => p.id === d.id)).filter((p): p is DiaDiem => !!p);
 
-function AnhTuyen({ id }: { id: number }) {
-  const { t } = useNN();
-  const anh = useAnhCanh('tuyen:' + id);
-  return anh ? <><img src={anh} alt="" className="anh-hien fx-anh-troi absolute inset-0 h-full w-full object-cover" /><span className="nhan-anh">{t('anhDiaHinh')}</span></> : <span className="anh-cho" />;
-}
-
 export function LoTrinhDanhSach() {
   const { t, chon } = useNN();
   const { data: lt = [], isLoading } = useQuery({ queryKey: ['lo-trinh'], queryFn: layLoTrinh });
   const { data: ds = [] } = useQuery({ queryKey: ['dia-diem'], queryFn: layDiaDiem });
   return (
     <div className="animate-page">
-      {ds.length > 0 && lt.length > 0 && <ChupDiaHinh chup={{ diem: [], tuyen: lt.map((l) => ({ id: l.id, diem: diemCua(l, ds) })) }} />}
       <DauTrang tieuDe={t('loTrinhTieuDe')} moTa={t('loTrinhMoTa')} phai={<Link to="/tu-tao-lo-trinh" className="nut nut-chinh"><Plus className="h-4 w-4" />{t('tuTaoLoTrinh')}</Link>} />
       <section className="container-page py-12">
         {isLoading && <p className="py-10 text-center text-muted">{t('dangTai')}</p>}
         <div className="grid gap-5 md:grid-cols-2">{lt.map((l, i) => { const diem = diemCua(l, ds); return (
           <div key={l.id} className="hien-dan" style={{ '--i': i % 2 } as CSSProperties}>
             <Link to={`/lo-trinh/${l.id}`} className="fx-the the group relative block h-full" data-nghieng="5">
-              <span className="relative block h-48 overflow-hidden rounded-t-[15px] bg-sunken"><AnhTuyen id={l.id} /></span>
+              <span className="relative block h-48 overflow-hidden rounded-t-[15px] bg-sunken"><AnhTuyen diem={diem} sizes="(min-width: 768px) 50vw, 100vw" /></span>
               <span className="fx-noi-it block p-6">
                 <b className="tieu-de-vua block">{chon(l.ten, l.tenEn)}</b>
                 <span className="mt-2 flex flex-wrap gap-x-4 text-sm text-ink-2">{l.thoiGian && <span>{l.thoiGian}</span>}<span>{t('soDiemDung', { n: diem.length })}</span>
@@ -75,7 +66,6 @@ export function LoTrinhChiTiet() {
   const nhieuNgay = cap.some((x) => x.d.ngay > 1);
   return (
     <div className="animate-page">
-      <ChupDiaHinh chup={{ diem: diem.filter((p) => !p.anh.length), tuyen: [{ id: l.id, diem }] }} />
       <DauTrang tieuDe={chon(l.ten, l.tenEn)} moTa={chon(l.moTa, l.moTaEn) || undefined}
         quayLai={<Link to="/lo-trinh" className="inline-flex min-h-[40px] items-center gap-1.5 text-action"><ArrowLeft className="h-4 w-4" />{t('tatCaLoTrinh')}</Link>}>
         <p className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[15px] text-ink-2">
@@ -96,7 +86,7 @@ export function LoTrinhChiTiet() {
             <li key={p.id + i} ref={(e) => { dsMuc.current[i] = e; }} data-i={i}>
               {nhieuNgay && (i === 0 || d.ngay !== cap[i - 1].d.ngay) && <p className="mb-2 font-serif text-[22px] text-route">{t('ngay')} {d.ngay}</p>}
               <article className={`the overflow-hidden transition-shadow duration-500 ${dang === i ? 'shadow-sh-3 ring-2 ring-route/50' : ''}`}>
-                <div className="relative h-40 bg-sunken"><KhungAnh p={p} />
+                <div className="relative h-40 overflow-hidden bg-sunken"><KhungAnh p={p} sizes="(min-width: 1024px) 40vw, 100vw" />
                   <span className={`absolute bottom-3 left-3 z-[2] grid h-9 w-9 place-items-center bg-route text-sm font-bold text-white shadow-sh-2 ${i === cap.length - 1 ? 'rounded-lg' : 'rounded-full'}`}>{i + 1}</span></div>
                 <div className="p-5">
                   <h2 className="text-[19px] font-semibold leading-snug">{chon(p.ten, p.tenEn)}</h2>

@@ -2,18 +2,10 @@
 import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { Map as IcBanDo, ArrowUpRight, Clock, Bus, Plus } from 'lucide-react';
-import { TieuDeKhoi } from '../du-lich/GiaoDien';
-import { useAnhCanh } from './anhCanh';
+import { AnhTuyen, TieuDeKhoi } from '../du-lich/GiaoDien';
 import { useNN } from '../../i18n/NgonNgu';
 import { chuyenCanh } from '../../utils/hieuUng';
 import type { DiaDiem, LoTrinh } from '../../utils/kieu';
-
-function AnhTuyen({ id }: { id: number }) {
-  const { t } = useNN();
-  const anh = useAnhCanh('tuyen:' + id);
-  return anh ? <><img src={anh} alt="" className="anh-hien fx-anh-troi absolute inset-0 h-full w-full object-cover" /><span className="nhan-anh">{t('anhDiaHinh')}</span></>
-    : <span className="anh-cho" />;
-}
 
 /** Đường kể chuyện: vạch san hô nối các điểm dừng theo thứ tự, ngang trên màn rộng, dọc trên điện thoại. */
 function DuongKe({ diem, ngay }: { diem: DiaDiem[]; ngay: number[] }) {
@@ -55,7 +47,7 @@ export default function LoTrinhNoiBat({ ds, loTrinh, onXemBanDo }: { ds: DiaDiem
         <div className="grid gap-5 lg:grid-cols-12">
           <article className="hien-dan lg:col-span-8" style={{ viewTransitionName: 'tuyen-lon' } as CSSProperties}>
             <div className="fx-the the relative h-full" data-nghieng="3">
-              <div className="relative h-56 overflow-hidden rounded-t-[15px] bg-sunken sm:h-72"><AnhTuyen id={lon.id} /></div>
+              <div className="relative h-56 overflow-hidden rounded-t-[15px] bg-sunken sm:h-72"><AnhTuyen diem={dsLon} sizes="(min-width: 1024px) 60vw, 100vw" /></div>
               <div className="fx-noi-it p-6 sm:p-8">
                 <h3 className="tieu-de-vua">{chon(lon.ten, lon.tenEn)}</h3>
                 <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-2">
@@ -77,7 +69,7 @@ export default function LoTrinhNoiBat({ ds, loTrinh, onXemBanDo }: { ds: DiaDiem
               <article key={l.id} className="hien-dan w-[80%] shrink-0 snap-start sm:w-[46%] lg:w-auto" style={{ '--i': i + 1, viewTransitionName: 'tuyen-' + l.id } as CSSProperties}>
                 <button type="button" onClick={() => chuyenCanh(() => setLonId(l.id))}
                   className="fx-the the group relative block h-full w-full text-left" data-nghieng="7">
-                  <span className="relative block h-36 overflow-hidden rounded-t-[15px] bg-sunken"><AnhTuyen id={l.id} /></span>
+                  <span className="relative block h-36 overflow-hidden rounded-t-[15px] bg-sunken"><AnhTuyen diem={diemCua(l)} sizes="(min-width: 1024px) 30vw, 80vw" /></span>
                   <span className="fx-noi-it block p-5">
                     <b className="block text-[19px] font-semibold leading-snug">{chon(l.ten, l.tenEn)}</b>
                     <span className="mt-1 block text-sm text-muted">{[l.thoiGian, t('soDiemDung', { n: diemCua(l).length })].filter(Boolean).join(', ')}</span>

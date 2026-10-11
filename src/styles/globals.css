@@ -233,19 +233,34 @@ h1, h2, h3, h4, h5, h6 { line-height: 1.45; }
    TRANG CHỦ
    ========================================================================= */
 
-/* Nền dự phòng của hero (đang tải cảnh 3D, hoặc máy không có WebGL):
-   trời rạng sáng tĩnh cùng tông với cảnh 3D để lúc chuyển không bị giật. */
+/* Nền dự phòng của hero (ảnh chưa tải xong, hoặc chưa có ảnh nào): trời rạng sáng tĩnh. */
 .hero-nen {
   background:
     radial-gradient(55% 38% at 80% 56%, rgb(255 215 161 / .5), transparent 70%),
     linear-gradient(180deg, #0C2925 0%, #16392F 36%, #A9806A 55%, #3A5444 57.5%, #1D3A30 70%, #142B24 100%);
 }
-/* Màn che chức năng: giữ chữ ở góc dưới trái đạt tương phản dù cảnh sau sáng tới đâu. */
+/* Màn che chức năng: giữ chữ ở góc dưới trái đạt tương phản dù ảnh sau sáng tới đâu
+   (ivory cần ≥ 72% màu rừng phía sau để đạt 4.5:1 trên ảnh trắng nhất). */
 .hero-man {
   background:
-    radial-gradient(120% 85% at 0% 100%, rgb(10 30 26 / .82) 0%, rgb(10 30 26 / .55) 38%, transparent 68%),
-    linear-gradient(180deg, rgb(10 30 26 / .45) 0%, transparent 22%);
+    radial-gradient(130% 95% at 0% 100%, rgb(10 30 26 / .86) 0%, rgb(10 30 26 / .62) 40%, transparent 72%),
+    linear-gradient(0deg, rgb(10 30 26 / .55) 0%, transparent 30%),
+    linear-gradient(180deg, rgb(10 30 26 / .5) 0%, transparent 24%);
 }
+/* Ảnh đang chiếu phóng rất chậm (Ken Burns): cảnh tĩnh mà vẫn có hơi thở, như thước phim. */
+.hero-anh img { transform: scale(1.04); transform-origin: 62% 45%; }
+.hero-anh.dang-chieu img { animation: ken-burns 9s cubic-bezier(.33, 0, .2, 1) both; }
+@keyframes ken-burns { from { transform: scale(1.14) translate3d(1.5%, 1%, 0); } to { transform: scale(1.04) translate3d(0, 0, 0); } }
+/* Lớp ảnh trôi chậm hơn trang khi cuộn (thị sai) — chỉ trình duyệt hỗ trợ cuộn điều khiển hoạt ảnh. */
+@supports (animation-timeline: scroll()) {
+  .hero-troi { animation: hero-troi linear both; animation-timeline: scroll(root); animation-range: 0 100vh; }
+  @keyframes hero-troi { to { transform: translate3d(0, 22%, 0); } }
+}
+/* Dòng ghi công ảnh (tác giả, giấy phép) đặt ngay trên ảnh lớn. */
+.ghi-cong { position: absolute; right: 8px; bottom: 8px; z-index: 2; max-width: calc(100% - 16px); padding: 3px 9px; border-radius: 999px;
+  font-size: 11.5px; line-height: 1.35; color: #F7F5EF; background: rgb(12 41 37 / .6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ghi-cong:hover { background: rgb(12 41 37 / .85); }
 /* Hai dòng tiêu đề lật lên từ mặt phẳng nằm (3D), lần lượt. Không cắt khung
    (overflow) nên dấu tiếng Việt không bị xén. */
 .hero-chu { perspective: 900px; }
@@ -256,30 +271,11 @@ h1, h2, h3, h4, h5, h6 { line-height: 1.45; }
 .hero-noi { animation: troi-nhe 7s ease-in-out infinite alternate; }
 @keyframes troi-nhe { from { transform: translateY(0); } to { transform: translateY(-7px); } }
 
-/* Ghim trên cảnh 3D: chấm sáng + tên (tên điểm nổi bật luôn hiện). */
-.ghim-3d { display: flex; align-items: center; gap: 7px; margin: -6px 0 0 -6px; padding: 2px 6px 2px 2px; border-radius: 999px;
-  transition: opacity .4s var(--ease-out); will-change: transform; }
-.ghim-3d-cham { width: 12px; height: 12px; flex: none; border-radius: 50%; background: #F7F5EF; border: 2px solid rgb(18 60 53 / .6);
-  box-shadow: 0 0 0 4px rgb(247 245 239 / .18), 0 3px 10px rgb(0 0 0 / .5); transition: transform var(--dur-fast) var(--ease-out); }
-.ghim-3d.noi-bat .ghim-3d-cham { background: #F17C5B; border-color: #F7F5EF; box-shadow: 0 0 0 5px rgb(241 124 91 / .28), 0 3px 10px rgb(0 0 0 / .5); }
-.ghim-3d-ten { font-size: 13px; font-weight: 600; color: #F7F5EF; white-space: nowrap; letter-spacing: .01em;
-  text-shadow: 0 1px 2px rgb(0 0 0 / .85), 0 0 14px rgb(0 0 0 / .55);
-  opacity: 0; transform: translateX(-4px); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
-.ghim-3d.noi-bat .ghim-3d-ten, .ghim-3d:hover .ghim-3d-ten { opacity: 1; transform: none; }
-.ghim-3d.trong-chu { pointer-events: none; }
-.ghim-3d.nhan-trai { flex-direction: row-reverse; translate: calc(-100% + 12px) 0; padding: 2px 2px 2px 6px; }
-.ghim-3d.nhan-trai .ghim-3d-ten { transform: translateX(4px); }
-.ghim-3d.trong-chu .ghim-3d-ten, .ghim-3d.an-ten .ghim-3d-ten { opacity: 0; }
-.ghim-3d:hover .ghim-3d-cham { transform: scale(1.3); }
-
-/* Khung ảnh: ảnh hiện dần khi có; khung chờ có đường đồng mức; nhãn nói rõ ảnh minh hoạ. */
-.anh-hien { animation: page-fade-in .8s var(--ease-out) both; }
-.anh-cho { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; isolation: isolate;
-  color: rgb(var(--c-muted)); background: rgb(var(--c-sunken)); }
-.anh-cho::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--c-forest) / .12);
+/* Khung ảnh: ảnh hiện dần khi có; khung chờ có đường đồng mức. */
+.anh-cho { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; isolation: isolate; padding-bottom: 22%;
+  color: rgb(247 245 239 / .6); background: radial-gradient(120% 90% at 70% 0%, #2C5248, #16342D 70%); }
+.anh-cho::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(247 245 239 / .1);
   -webkit-mask: url('/nen/dong-muc.svg') center / 900px auto; mask: url('/nen/dong-muc.svg') center / 900px auto; }
-.nhan-anh { position: absolute; left: 10px; top: 10px; z-index: 2; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
-  color: #F7F5EF; background: rgb(12 41 37 / .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 
 /* Thẻ bento: ảnh tràn thẻ, chữ trên màn che đáy, chữ nổi lên khỏi mặt ảnh khi nghiêng. */
 .the-anh { position: relative; display: block; height: 100%; border-radius: 18px; box-shadow: var(--sh-2); background: rgb(var(--c-sunken)); }
@@ -334,7 +330,7 @@ h1, h2, h3, h4, h5, h6 { line-height: 1.45; }
   .fx-the::after { display: none; }
   .fx-anh-troi, .nen-dong-muc::before { animation: none; transform: none; }
   .so-chang { animation: none; }
-  .hero-chu .dong, .hero-hien, .hero-noi { animation: none; }
+  .hero-chu .dong, .hero-hien, .hero-noi, .hero-anh.dang-chieu img, .hero-troi { animation: none; }
   .chon-sao.vua-chon, .hop-thoai { animation: none; }
   .duong-ke-vach, .duong-ke-cham, .thanh-sao { transform: none; opacity: 1; transition: none; }
   .da-hien .duong-ke-vach, .da-hien .duong-ke-cham { animation: none; }

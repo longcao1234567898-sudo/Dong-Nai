@@ -19,7 +19,7 @@ import { useNN } from '../i18n/NgonNgu';
 export default function HomePage() {
   const { t, chon: dich, ngay } = useNN();
   const { data: ds = [], isLoading, isError, error } = useQuery({ queryKey: ['dia-diem'], queryFn: layDiaDiem });
-  const { data: loTrinh = [], isLoading: dangTaiLt } = useQuery({ queryKey: ['lo-trinh'], queryFn: layLoTrinh });
+  const { data: loTrinh = [] } = useQuery({ queryKey: ['lo-trinh'], queryFn: layLoTrinh });
   const { data: tin = [] } = useQuery({ queryKey: ['tin-tuc'], queryFn: layTinTuc });
   const { data: tk } = useQuery({ queryKey: ['thong-ke', ''], queryFn: () => layThongKe() });
   const canhBao = tin.filter((x) => x.loai === 'canh-bao');
@@ -37,7 +37,7 @@ export default function HomePage() {
 
   return (
     <div className="animate-page">
-      <Hero ds={ds} loTrinh={loTrinh} duLieuXong={!isLoading && !dangTaiLt}
+      <Hero ds={ds} loTrinh={loTrinh}
         onTim={(q) => { setTuKhoa(q); cuonToi('kham-pha'); }} onToiBanDo={toiBanDo} onToiLoTrinh={() => cuonToi('lo-trinh')} />
 
       {/* Cảnh báo cán bộ đăng (mưa lũ, đóng cửa…): đặt ngay dưới mở đầu, không che cảnh. */}

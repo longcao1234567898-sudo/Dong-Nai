@@ -32,7 +32,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="container-page flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-5 text-[13px] text-[#B9C7C1]">
-          <span>{t('nguonBanDo')}</span>
+          <span>{t('nguonBanDo')} <Link to="/nguon-anh" className="text-[#F7F5EF] underline underline-offset-4">{t('nguonAnh')}</Link></span>
           <Link to="/dang-nhap" className="inline-flex min-h-[40px] items-center text-[#F7F5EF] underline-offset-4 hover:underline">{t('choCanBo')}</Link>
         </div>
       </div>

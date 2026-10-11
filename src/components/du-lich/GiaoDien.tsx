@@ -2,7 +2,7 @@
 import { useId, type ReactNode } from 'react';
 import { Leaf, Landmark, Tent, BedDouble, UtensilsCrossed, Gift } from 'lucide-react';
 import { anhUrl } from '../../services/api';
-import { useAnhCanh } from '../trang-chu/anhCanh';
+import { anhMacDinh, ghiCong } from '../../utils/anhMacDinh';
 import { useNN } from '../../i18n/NgonNgu';
 import type { DiaDiem, Loai } from '../../utils/kieu';
 
@@ -22,18 +22,20 @@ export function HienSao({ gt, co = 16 }: { gt: number; co?: number }) {
     </span>);
 }
 
-/** Ảnh của điểm: ảnh thật do cán bộ tải lên; chưa có thì ảnh địa hình minh hoạ
- *  do cảnh 3D chụp (có nhãn); chưa có cả hai thì khung chờ có đường đồng mức.
- *  Khung cha phải có position: relative và overflow: hidden. */
-export function KhungAnh({ p }: { p: DiaDiem }) {
-  const { t, chon } = useNN();
-  const tren = useAnhCanh('diem:' + p.id);
+/** Ảnh của điểm: ảnh cán bộ tải lên; chưa có thì ảnh mặc định (ảnh thật, giấy phép tự do,
+ *  xem utils/anhMacDinh.ts); chưa có cả hai thì khung chờ. Khung cha phải có position:
+ *  relative và overflow: hidden. ghiCong: hiện dòng tác giả, giấy phép ngay trên ảnh (ảnh lớn). */
+export function KhungAnh({ p, sizes = '(min-width: 1024px) 50vw, 100vw', ghiCong: coGhiCong = false, uuTien = false }:
+  { p: DiaDiem; sizes?: string; ghiCong?: boolean; uuTien?: boolean }) {
+  const { t, nn, chon } = useNN();
   const a = p.anh?.[0];
-  if (a) return <img src={anhUrl(a.id)} alt={a.chuThich || chon(p.ten, p.tenEn)} loading="lazy" decoding="async"
+  if (a) return <img src={anhUrl(a.id)} alt={a.chuThich || chon(p.ten, p.tenEn)} loading={uuTien ? 'eager' : 'lazy'} decoding="async"
     width={a.rong || undefined} height={a.cao || undefined} className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />;
-  if (tren) return (<>
-    <img src={tren} alt="" className="anh-hien fx-anh-troi absolute inset-0 h-full w-full object-cover" />
-    <span className="nhan-anh">{t('anhDiaHinh')}</span></>);
+  const m = anhMacDinh(p.id);
+  if (m) return (<>
+    <img src={m.nho} srcSet={`${m.nho} 800w, ${m.tep} ${m.rong}w`} sizes={sizes} alt={m.moTa || chon(p.ten, p.tenEn)} width={m.rong} height={m.cao}
+      loading={uuTien ? 'eager' : 'lazy'} decoding="async" className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />
+    {coGhiCong && <a href={m.nguon} target="_blank" rel="noopener noreferrer" className="ghi-cong">{ghiCong(m, nn)}</a>}</>);
   const Ic = IC_LOAI[p.loai] || Leaf;
   return <span className="anh-cho"><Ic className="h-7 w-7" strokeWidth={1.5} /><span className="text-xs font-medium">{t('chuaCoAnh')}</span></span>;
 }
@@ -61,4 +63,12 @@ export function DauTrang({ tieuDe, moTa, phai, quayLai, children }: { tieuDe: Re
         {children}
       </div>
     </header>);
+}
+
+/** Điểm có ảnh để hiện (ảnh cán bộ tải lên hoặc ảnh mặc định). */
+export const coAnh = (p: DiaDiem) => !!p.anh?.length || !!anhMacDinh(p.id);
+/** Ảnh của một lộ trình: ảnh điểm dừng đầu tiên có ảnh. */
+export function AnhTuyen({ diem, sizes }: { diem: DiaDiem[]; sizes?: string }) {
+  const p = diem.find(coAnh) || diem[0];
+  return p ? <KhungAnh p={p} sizes={sizes} /> : <span className="anh-cho" />;
 }
