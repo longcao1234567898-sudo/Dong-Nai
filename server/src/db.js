@@ -20,12 +20,20 @@ function buildSsl() {
   return undefined;
 }
 
-export const pool = mysql.createPool({
+/** Thông số kết nối dùng chung (pool và kết nối riêng để tự nâng cấp cơ sở dữ liệu). */
+export const cauHinhKetNoi = () => ({
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'du_lich_dong_nai',
+  charset: 'utf8mb4_unicode_ci',
+  dateStrings: ['DATE'],
+  ssl: buildSsl(),
+});
+
+export const pool = mysql.createPool({
+  ...cauHinhKetNoi(),
   waitForConnections: true,
   connectionLimit: 10,
   charset: 'utf8mb4_unicode_ci',

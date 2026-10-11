@@ -122,7 +122,7 @@ Các bảng hiện có:
 
 **Bài giới thiệu chi tiết:** mỗi địa điểm có ô *Bài chi tiết* (Quản trị → Địa điểm → Sửa), hiện ở trang riêng của điểm. Dòng `## ` là tiêu đề mục, dòng `- ` là gạch đầu dòng; trong mục *Lịch sử hình thành* mỗi dòng `- Mốc: nội dung` hiện thành dòng thời gian. 15 điểm có sẵn bài tổng hợp (giới thiệu, lịch sử hình thành theo giai đoạn, có gì để xem, đi lại, kinh nghiệm) — **cán bộ đối chiếu nguồn chính thức rồi tích "Đã kiểm tra"**; chỗ ghi "cán bộ bổ sung" là mốc chưa xác minh được năm.
 
-**Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch, bài chi tiết, bảng điểm quan sát 360° cho địa điểm, ảnh và tin nổi bật cho tin tức, cột phương tiện cho lộ trình và cột điểm lấy nét cho ảnh. Thiếu cột thì máy chủ báo ngay lúc khởi động.
+**Cập nhật mã lên bản mới: máy chủ tự nâng cấp cơ sở dữ liệu.** Lúc khởi động, thấy thiếu bảng hoặc cột thì máy chủ tự chạy `database/du_lich_dong_nai.sql` (chạy lại không mất số liệu) và ghi vào nhật ký Render dòng "Đã nâng cấp cơ sở dữ liệu". Muốn tắt: khai `TU_NANG_CAP_CSDL=0`. Chạy tay (HeidiSQL) thì dùng **Tệp → Chạy tệp SQL…** để nạp nguyên tệp; dán vào ô soạn dễ bị cắt mất phần sau.
 
 ## Bảo mật tài khoản
 

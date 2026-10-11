@@ -17,6 +17,7 @@ import quanTriRouter from './routes/quan-tri.js';
 import { requireAuth } from './middleware/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { turnstileEnabled } from './lib/turnstile.js';
+import { tuNangCap } from './lib/nang-cap-csdl.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -61,13 +62,18 @@ const CAN_CO = ['anh_tin', 'diem_quan_sat', 'xa_phuong', 'ky_bao_cao', 'nop_bao_
   'lich_trinh', 'lich_trinh_diem', 'anh_dia_diem', 'phan_anh', 'tin_tuc', 'bao_danh_gia'];
 /* Cột thêm ở các đợt sau: thiếu cột thì trang chủ không đọc được danh sách điểm đến. */
 const CAN_CO_COT = [['dia_diem', 'vung'], ['lich_trinh', 'phuong_tien'], ['anh_dia_diem', 'tieu_diem_x'], ['dia_diem', 'chi_tiet'], ['tin_tuc', 'noi_bat'], ['diem_quan_sat', 'google_url']];
+async function timThieu() {
+  const [rows] = await pool.query('SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()');
+  const co = new Set(rows.map((r) => r.t ?? r.TABLE_NAME));
+  const [cot] = await pool.query('SELECT table_name AS t, column_name AS c FROM information_schema.columns WHERE table_schema = DATABASE()');
+  const coCot = new Set(cot.map((r) => `${r.t ?? r.TABLE_NAME}.${r.c ?? r.COLUMN_NAME}`));
+  return [...CAN_CO.filter((t) => !co.has(t)), ...CAN_CO_COT.filter(([t, c]) => !coCot.has(`${t}.${c}`)).map(([t, c]) => `${t}.${c}`)];
+}
+/* Thiếu bảng/cột thì tự chạy tệp SQL (lib/nang-cap-csdl.js); đặt TU_NANG_CAP_CSDL=0 để tắt. */
 async function kiemCauTruc() {
   try {
-    const [rows] = await pool.query('SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()');
-    const co = new Set(rows.map((r) => r.t ?? r.TABLE_NAME));
-    const [cot] = await pool.query('SELECT table_name AS t, column_name AS c FROM information_schema.columns WHERE table_schema = DATABASE()');
-    const coCot = new Set(cot.map((r) => `${r.t ?? r.TABLE_NAME}.${r.c ?? r.COLUMN_NAME}`));
-    const thieu = [...CAN_CO.filter((t) => !co.has(t)), ...CAN_CO_COT.filter(([t, c]) => !coCot.has(`${t}.${c}`)).map(([t, c]) => `${t}.${c}`)];
+    let thieu = await timThieu();
+    if (thieu.length && process.env.TU_NANG_CAP_CSDL !== '0' && await tuNangCap(thieu.join(', '))) thieu = await timThieu();
     if (thieu.length) console.warn(`⚠️  Cơ sở dữ liệu thiếu bảng hoặc cột: ${thieu.join(', ')}.\n   → Dán lại toàn bộ database/du_lich_dong_nai.sql vào HeidiSQL rồi F9 (chạy lại không mất số liệu).`);
   } catch (e) { console.warn('⚠️  Chưa kiểm được cấu trúc cơ sở dữ liệu:', e.message); }
 }

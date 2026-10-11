@@ -23,8 +23,13 @@ export default function AdminTinTuc() {
   const { data: dd = [] } = useQuery({ queryKey: ['qt-dia-diem'], queryFn: () => adminFetch<{ id: string; ten: string }[]>('/dia-diem') });
   const [f, setF] = useState(TRONG); const [suaId, setSuaId] = useState<number | null>(null); const [loi, setLoi] = useState('');
   const lamMoi = () => { qc.invalidateQueries({ queryKey: ['qt-tin-tuc'] }); qc.invalidateQueries({ queryKey: ['tin-tuc'] }); };
-  const luu = useMutation({ mutationFn: () => adminFetch(suaId ? `/tin-tuc/${suaId}` : '/tin-tuc', { method: suaId ? 'PUT' : 'POST', body: JSON.stringify(f) }),
-    onSuccess: () => { toast.success('Đã lưu.'); setF(TRONG); setSuaId(null); setLoi(''); lamMoi(); }, onError: (e: Error) => setLoi(e.message) });
+  /* Đăng tin mới xong thì ở lại chế độ sửa tin đó: mục Ảnh của tin hiện ngay để thêm ảnh. */
+  const luu = useMutation({ mutationFn: () => adminFetch<{ id?: number }>(suaId ? `/tin-tuc/${suaId}` : '/tin-tuc', { method: suaId ? 'PUT' : 'POST', body: JSON.stringify(f) }),
+    onSuccess: (kq) => {
+      setLoi(''); lamMoi();
+      if (!suaId && kq?.id && f.loai !== 'lien-he') { setSuaId(kq.id); toast.success('Đã đăng tin. Thêm ảnh ở mục "Ảnh của tin" bên dưới.'); return; }
+      toast.success('Đã lưu.'); setF(TRONG); setSuaId(null);
+    }, onError: (e: Error) => setLoi(e.message) });
   const xoa = useMutation({ mutationFn: (id: number) => adminFetch(`/tin-tuc/${id}`, { method: 'DELETE' }), onSuccess: () => { toast.success('Đã xoá.'); lamMoi(); } });
   const dat = (k: keyof typeof TRONG) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF({ ...f, [k]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value });
@@ -49,10 +54,10 @@ export default function AdminTinTuc() {
         <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" className="h-[18px] w-[18px] accent-primary-600" checked={f.hien} onChange={dat('hien')} />Hiện cho người dân</label>
         {f.loai !== 'lien-he' && <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" className="h-[18px] w-[18px] accent-primary-600" checked={f.noiBat} onChange={dat('noiBat')} />
           Tin nổi bật <small className="text-slate-500">— tự lướt ở đầu trang Tin tức; nên có ảnh bìa</small></label>}
-        {suaId ? (f.loai !== 'lien-he' && <QuanLyAnhTin tinId={suaId} />) : f.loai !== 'lien-he' && <p className="mt-3 text-xs text-slate-500">Lưu tin xong, bấm Sửa để thêm ảnh.</p>}
+        {suaId ? (f.loai !== 'lien-he' && <QuanLyAnhTin tinId={suaId} />) : f.loai !== 'lien-he' && <p className="mt-3 text-xs text-slate-500">Bấm Lưu để đăng tin, mục thêm ảnh hiện ra ngay sau đó.</p>}
         {loi && <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{loi}</div>}
         <div className="mt-4 flex gap-2"><button type="button" className={nutChinh} disabled={luu.isPending} onClick={() => luu.mutate()}>Lưu</button>
-          {suaId && <button type="button" className={nutVien + ' min-h-[44px] px-4 text-sm'} onClick={() => { setSuaId(null); setF(TRONG); setLoi(''); }}>Huỷ sửa</button>}</div>
+          {suaId && <button type="button" className={nutVien + ' min-h-[44px] px-4 text-sm'} onClick={() => { setSuaId(null); setF(TRONG); setLoi(''); }}>Xong, đăng tin khác</button>}</div>
       </The>
       <The><h2 className="mb-2 text-[17px] font-bold">Đã đăng ({ds.length})</h2>
         <ul className="divide-y divide-slate-100 dark:divide-slate-800">{ds.map((x) => { const hetHan = !!x.denNgay && x.denNgay < homNay; return (
