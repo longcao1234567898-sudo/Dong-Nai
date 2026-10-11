@@ -45,12 +45,13 @@ router.get('/dia-diem', async (_req, res, next) => {
     const [anh] = await pool.query('SELECT id, dia_diem_id, rong, cao, chu_thich, tieu_diem_x, tieu_diem_y FROM anh_dia_diem ORDER BY dia_diem_id, thu_tu, id');
     /* Điểm quan sát 360° (chỉ thông tin, ảnh tải riêng qua /quan-sat/:id/anh). Bảng chưa có
        (chưa chạy lại tệp SQL) thì coi như chưa có điểm nào, không làm hỏng cả danh sách. */
-    const [qs] = await pool.query('SELECT id, dia_diem_id, ten, ten_en, goc_ngang, huong_dau FROM diem_quan_sat ORDER BY dia_diem_id, thu_tu, id')
+    const [qs] = await pool.query('SELECT id, dia_diem_id, ten, ten_en, nguon, google_url, goc_ngang, huong_dau FROM diem_quan_sat ORDER BY dia_diem_id, thu_tu, id')
       .catch((e) => { if (e.code === 'ER_NO_SUCH_TABLE') return [[]]; throw e; });
     dem = { luc: Date.now(), du: rows.map((r) => ({
       id: r.id, ten: r.ten, tenEn: r.ten_en, loai: r.loai, moTa: r.mo_ta, moTaEn: r.mo_ta_en, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
       anh: anh.filter((a) => a.dia_diem_id === r.id).map((a) => ({ id: a.id, rong: a.rong, cao: a.cao, chuThich: a.chu_thich, tieuDiemX: a.tieu_diem_x ?? 50, tieuDiemY: a.tieu_diem_y ?? 50 })),
-      quanSat: qs.filter((q) => q.dia_diem_id === r.id).map((q) => ({ id: q.id, ten: q.ten, tenEn: q.ten_en, gocNgang: q.goc_ngang, huongDau: q.huong_dau })),
+      quanSat: qs.filter((q) => q.dia_diem_id === r.id).map((q) => ({ id: q.id, ten: q.ten, tenEn: q.ten_en, nguon: q.nguon || 'anh',
+        googleUrl: q.nguon === 'google' ? q.google_url : null, gocNgang: q.goc_ngang, huongDau: q.huong_dau })),
       sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, vung: r.vung ?? null, xa: r.xa ?? null,
       soDanhGia: Number(r.so_dg), saoTb: so(r.sao_tb),
       tieuChi: { canhQuan: so(r.tb_canh_quan), dichVu: so(r.tb_dich_vu), veSinh: so(r.tb_ve_sinh), giaCa: so(r.tb_gia_ca) },
@@ -205,7 +206,7 @@ router.get('/anh/:id', async (req, res, next) => {
 router.get('/quan-sat/:id/anh', async (req, res, next) => {
   try {
     const [[a]] = await pool.query(
-      `SELECT q.du_lieu, q.kieu FROM diem_quan_sat q JOIN dia_diem d ON d.id = q.dia_diem_id WHERE q.id = ? AND d.hien = 1`, [Number(req.params.id) || 0]);
+      `SELECT q.du_lieu, q.kieu FROM diem_quan_sat q JOIN dia_diem d ON d.id = q.dia_diem_id WHERE q.id = ? AND d.hien = 1 AND q.du_lieu IS NOT NULL`, [Number(req.params.id) || 0]);
     if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
     res.setHeader('Content-Type', a.kieu);
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');

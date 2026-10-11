@@ -2,7 +2,8 @@ export type Loai = 'thien-nhien' | 'di-tich' | 'vui-choi' | 'luu-tru' | 'am-thuc
 export type Vung = 'ven-song' | 'mien-dong' | 'phia-bac';
 export interface TieuChi { canhQuan: number | null; dichVu: number | null; veSinh: number | null; giaCa: number | null }
 /** Điểm quan sát 360°: ảnh toàn cảnh chụp tại một vị trí của địa điểm. */
-export interface QuanSat { id: number; ten: string; tenEn: string | null; gocNgang: number; huongDau: number }
+export interface QuanSat { id: number; ten: string; tenEn: string | null; gocNgang: number; huongDau: number;
+  /** 'anh': ảnh cán bộ tải lên; 'google': ảnh 360° trên Google Maps, nhúng qua googleUrl. */ nguon?: 'anh' | 'google'; googleUrl?: string | null }
 export interface AnhDD { id: number; rong: number | null; cao: number | null; chuThich: string | null; tieuDiemX?: number; tieuDiemY?: number }
 export interface DiaDiem {
   id: string; ten: string; tenEn: string | null; loai: Loai; moTa: string | null; moTaEn: string | null; diaChi: string | null; lat: number; lng: number; anh: AnhDD[]; quanSat?: QuanSat[];

@@ -165,10 +165,27 @@ const TOI_DA_QUAN_SAT = 10;
 const nhanAnh360 = express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '6mb' });
 const gocNgang = (v) => { const n = Math.round(Number(v)); return n >= 30 && n <= 360 ? n : null; };
 const huongDau = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= -180 && n <= 180 ? n : null; };
+/** Mã nhúng Google Maps (cả thẻ <iframe> hoặc chỉ đường dẫn) -> đường dẫn nhúng đã kiểm.
+    Chỉ nhận https://www.google.com/maps/embed?pb=… và phải là ảnh 360° (có đoạn !6m của
+    khung xem toàn cảnh), không nhận bản đồ thường hay trang nào khác. */
+export function docNhungGoogle(ma) {
+  const chuoi = String(ma || '').trim();
+  if (!chuoi) return { loi: 'Dán mã nhúng lấy từ Google Maps (Chia sẻ → Nhúng bản đồ → Sao chép HTML).' };
+  const src = (chuoi.match(/src\s*=\s*["']([^"']+)["']/i)?.[1] ?? chuoi).replace(/&amp;/g, '&');
+  let u;
+  try { u = new URL(src); } catch { return { loi: 'Không đọc được mã nhúng. Sao chép lại toàn bộ mã HTML từ Google Maps.' }; }
+  const pb = u.searchParams.get('pb') || '';
+  if (u.protocol !== 'https:' || !/^(www\.)?google\.com$/.test(u.hostname) || u.pathname !== '/maps/embed' || !/^[A-Za-z0-9!._\-:@,+*~]+$/.test(pb) || pb.length > 1500) {
+    return { loi: 'Mã nhúng không phải của Google Maps. Lấy đúng ở Google Maps: Chia sẻ → Nhúng bản đồ → Sao chép HTML.' };
+  }
+  if (!pb.includes('!6m')) return { loi: 'Đây là mã nhúng bản đồ thường, chưa phải ảnh 360°. Mở ảnh Street View hoặc ảnh 360° trước rồi mới bấm Chia sẻ → Nhúng bản đồ.' };
+  return { url: `https://www.google.com/maps/embed?pb=${pb}` };
+}
 router.get('/dia-diem/:id/quan-sat', async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT id, ten, ten_en, rong, cao, goc_ngang, huong_dau, LENGTH(du_lieu) AS co FROM diem_quan_sat WHERE dia_diem_id = ? ORDER BY thu_tu, id', [String(req.params.id)]);
-    res.json(rows.map((r) => ({ id: r.id, ten: r.ten, tenEn: r.ten_en, rong: r.rong, cao: r.cao, gocNgang: r.goc_ngang, huongDau: r.huong_dau, kichThuoc: Number(r.co) })));
+    const [rows] = await pool.query('SELECT id, ten, ten_en, nguon, google_url, rong, cao, goc_ngang, huong_dau, LENGTH(du_lieu) AS co FROM diem_quan_sat WHERE dia_diem_id = ? ORDER BY thu_tu, id', [String(req.params.id)]);
+    res.json(rows.map((r) => ({ id: r.id, ten: r.ten, tenEn: r.ten_en, nguon: r.nguon || 'anh', googleUrl: r.google_url ?? null, rong: r.rong, cao: r.cao,
+      gocNgang: r.goc_ngang, huongDau: r.huong_dau, kichThuoc: Number(r.co || 0) })));
   } catch (e) { next(e); }
 });
 router.post('/dia-diem/:id/quan-sat', nhanAnh360, async (req, res, next) => {
@@ -191,10 +208,28 @@ router.post('/dia-diem/:id/quan-sat', nhanAnh360, async (req, res, next) => {
     next(e);
   }
 });
+/* Ảnh 360° trên Google Maps (Street View, ảnh 360° người dùng đăng): cán bộ mở ảnh trên
+   Google Maps -> Chia sẻ -> Nhúng bản đồ -> Sao chép HTML, dán vào đây. Trang nhúng thẳng
+   khung xem của Google (miễn phí, không cần khoá API), du khách không phải rời trang. */
+router.post('/dia-diem/:id/quan-sat-google', async (req, res, next) => {
+  try {
+    const ten = sanitizeText(String(req.body?.ten || ''), 120);
+    if (!ten) return res.status(400).json({ error: 'Đặt tên cho điểm quan sát, ví dụ "Cổng chính" hay "Bờ hồ".' });
+    const kq = docNhungGoogle(req.body?.ma);
+    if (kq.loi) return res.status(400).json({ error: kq.loi });
+    const [[dd]] = await pool.query('SELECT id FROM dia_diem WHERE id = ?', [String(req.params.id)]);
+    if (!dd) return res.status(404).json({ error: 'Không tìm thấy địa điểm.' });
+    const [[{ so }]] = await pool.query('SELECT COUNT(*) AS so FROM diem_quan_sat WHERE dia_diem_id = ?', [dd.id]);
+    if (Number(so) >= TOI_DA_QUAN_SAT) return res.status(409).json({ error: `Mỗi địa điểm tối đa ${TOI_DA_QUAN_SAT} điểm quan sát.` });
+    const [ins] = await pool.query('INSERT INTO diem_quan_sat SET ?', [{ dia_diem_id: dd.id, ten, nguon: 'google', google_url: kq.url, thu_tu: Number(so) + 1, nguoi_tai: req.staff.id }]);
+    await ghiNhatKy(pool, req, { hanhDong: 'them_quan_sat', loaiDoiTuong: 'dia_diem', doiTuongId: dd.id, chiTiet: { quanSat: ins.insertId, nguon: 'google' } });
+    xoaDemCongKhai(); res.status(201).json({ id: ins.insertId });
+  } catch (e) { next(e); }
+});
 /* Ảnh gốc cho cán bộ xem trước — đọc được cả điểm của địa điểm đang ẩn. */
 router.get('/quan-sat/:id/anh', async (req, res, next) => {
   try {
-    const [[a]] = await pool.query('SELECT du_lieu, kieu FROM diem_quan_sat WHERE id = ?', [Number(req.params.id) || 0]);
+    const [[a]] = await pool.query('SELECT du_lieu, kieu FROM diem_quan_sat WHERE id = ? AND du_lieu IS NOT NULL', [Number(req.params.id) || 0]);
     if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
     res.setHeader('Content-Type', a.kieu); res.setHeader('Cache-Control', 'no-store');
     res.send(a.du_lieu);

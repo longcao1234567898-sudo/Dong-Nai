@@ -1242,13 +1242,17 @@ Suoi Lam is a lake among wooded hills and plantations in the north of the city, 
 -- thoại để nhìn quanh. Ảnh lưu trong cơ sở dữ liệu như ảnh địa điểm.
 --   goc_ngang: góc chụp ngang (360 = ảnh 360° trọn vòng, 180 = ảnh panorama nửa vòng)
 --   huong_dau: hướng nhìn lúc mở (độ, -180..180)
+--   nguon: 'anh' = ảnh cán bộ tải lên (du_lieu), 'google' = ảnh 360° trên Google Maps
+--          (Street View hoặc ảnh 360° người dùng đăng), nhúng thẳng vào trang qua google_url
 CREATE TABLE IF NOT EXISTS diem_quan_sat (
   id           INT PRIMARY KEY AUTO_INCREMENT,
   dia_diem_id  VARCHAR(80) NOT NULL,
   ten          VARCHAR(120) NOT NULL,
   ten_en       VARCHAR(120) NULL,
-  du_lieu      MEDIUMBLOB NOT NULL,
-  kieu         VARCHAR(20) NOT NULL,
+  nguon        ENUM('anh','google') NOT NULL DEFAULT 'anh',
+  du_lieu      MEDIUMBLOB NULL,
+  google_url   VARCHAR(2000) NULL,
+  kieu         VARCHAR(20) NULL,
   rong         SMALLINT UNSIGNED NULL,
   cao          SMALLINT UNSIGNED NULL,
   goc_ngang    SMALLINT UNSIGNED NOT NULL DEFAULT 360,
@@ -1260,6 +1264,10 @@ CREATE TABLE IF NOT EXISTS diem_quan_sat (
   FOREIGN KEY (dia_diem_id) REFERENCES dia_diem(id) ON DELETE CASCADE,
   FOREIGN KEY (nguoi_tai) REFERENCES staff(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Bảng tạo từ bản trước (chưa có nguồn Google Maps): thêm cột.
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'diem_quan_sat' AND COLUMN_NAME = 'google_url');
+SET @lenh := IF(@co = 0, 'ALTER TABLE diem_quan_sat ADD COLUMN nguon ENUM(''anh'',''google'') NOT NULL DEFAULT ''anh'' AFTER ten_en, MODIFY du_lieu MEDIUMBLOB NULL, ADD COLUMN google_url VARCHAR(2000) NULL AFTER du_lieu, MODIFY kieu VARCHAR(20) NULL', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
 
 -- ============================================================================
 -- GIAI ĐOẠN 7 — TIN TỨC CÓ ẢNH, TIN NỔI BẬT, ĐƯỜNG DẪN NGUỒN

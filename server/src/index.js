@@ -60,7 +60,7 @@ const CAN_CO = ['anh_tin', 'diem_quan_sat', 'xa_phuong', 'ky_bao_cao', 'nop_bao_
   'bc_vu_viec', 'bc_phoi_hop', 'bc_van_dong', 'bc_luc_luong', 'bc_quan_so', 'bc_dan_cu', 'bc_vi_pham',
   'lich_trinh', 'lich_trinh_diem', 'anh_dia_diem', 'phan_anh', 'tin_tuc', 'bao_danh_gia'];
 /* Cột thêm ở các đợt sau: thiếu cột thì trang chủ không đọc được danh sách điểm đến. */
-const CAN_CO_COT = [['dia_diem', 'vung'], ['lich_trinh', 'phuong_tien'], ['anh_dia_diem', 'tieu_diem_x'], ['dia_diem', 'chi_tiet'], ['tin_tuc', 'noi_bat']];
+const CAN_CO_COT = [['dia_diem', 'vung'], ['lich_trinh', 'phuong_tien'], ['anh_dia_diem', 'tieu_diem_x'], ['dia_diem', 'chi_tiet'], ['tin_tuc', 'noi_bat'], ['diem_quan_sat', 'google_url']];
 async function kiemCauTruc() {
   try {
     const [rows] = await pool.query('SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()');

@@ -14,7 +14,7 @@ const { signAccessToken } = await import('../src/lib/token.js');
 const { requireAuth } = await import('../src/middleware/auth.js');
 const congKhai = (await import('../src/routes/cong-khai.js')).default;
 const quanTri = (await import('../src/routes/quan-tri.js')).default;
-const { _kieuAnh } = await import('../src/routes/noi-dung.js');
+const { _kieuAnh, docNhungGoogle } = await import('../src/routes/noi-dung.js');
 
 let goi = [];
 pool.query = async (sql, params = []) => {
@@ -181,4 +181,21 @@ test('điểm quan sát 360°: cần tên, chỉ nhận ảnh thật, tối đa 
   assert.equal(sua.status, 200);
   const up = goi.find((g) => /UPDATE diem_quan_sat/i.test(g.sql));
   assert.deepEqual(up.params[0], { ten: 'Bến thuyền', huong_dau: 95 }, 'góc 999 bị bỏ qua');
+});
+
+test('360° từ Google Maps: nhận mã nhúng Street View, từ chối bản đồ thường, trang khác, javascript', async () => {
+  const SV = 'https://www.google.com/maps/embed?pb=!4v1760000000000!6m8!1m7!1sCAoSLEFGMVFpcE1abc-_XYZ!2m2!1d10.9645!2d106.8016!3f75.5!4f0!5f0.78';
+  assert.deepEqual(docNhungGoogle(`<iframe src="${SV.replace(/&/g, '&amp;')}" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"></iframe>`), { url: SV });
+  assert.deepEqual(docNhungGoogle(SV), { url: SV });
+  assert.match(docNhungGoogle('<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919!2d106.8!3d10.96!2m3!1f0!2f0!3f0"></iframe>').loi, /bản đồ thường/);
+  assert.match(docNhungGoogle('<iframe src="https://evil.example/maps/embed?pb=!6m8"></iframe>').loi, /không phải của Google Maps/);
+  assert.match(docNhungGoogle('javascript:alert(1)').loi, /không phải của Google Maps|Không đọc được/);
+  assert.match(docNhungGoogle('https://www.google.com/maps/embed?pb=!6m8"><script>').loi, /không phải của Google Maps/);
+  assert.ok(docNhungGoogle('').loi);
+  goi = [];
+  const r = await fetch(goc + '/api/quan-tri/dia-diem/ho-tri-an/quan-sat-google', { method: 'POST', headers: { Authorization: `Bearer ${ve}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ten: 'Bờ hồ', ma: SV }) });
+  assert.equal(r.status, 201);
+  const ins = goi.find((g) => /INSERT INTO diem_quan_sat/i.test(g.sql)).params[0];
+  assert.equal(ins.nguon, 'google'); assert.equal(ins.google_url, SV); assert.equal(ins.du_lieu, undefined);
 });

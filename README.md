@@ -116,7 +116,9 @@ Các bảng hiện có:
 
 **Tin tức:** cán bộ đăng ở Quản trị → Tin tức, cảnh báo. Mỗi tin có trang riêng `/tin-tuc/<số>` để chia sẻ (nút *Chép đường dẫn*), tối đa 10 ảnh (ảnh đầu là ảnh bìa; lưu tin xong bấm Sửa để thêm ảnh), ô *Đường dẫn nguồn tin* (hiện nút "Xem nguồn tin"). Tích **Tin nổi bật** thì tin lên băng chuyền tự lướt ở đầu trang Tin tức (6 giây một tin, dừng khi rê chuột, có nút tạm dừng, chấm chọn tin, vuốt trên điện thoại; bật "giảm chuyển động" thì không tự lướt) và được ưu tiên ở mục tin trên trang chủ. Tin hết hạn tự thôi hiện trong danh sách nhưng đường dẫn đã chia sẻ vẫn mở được, có ghi "đã hết thời hạn".
 
-**Điểm quan sát 360°:** mỗi địa điểm có tối đa 10 điểm quan sát (Quản trị → Địa điểm → Sửa → *Điểm quan sát 360°*). Cán bộ chụp ảnh 360° tại một vị trí (máy ảnh 360° như Insta360, Ricoh Theta; hoặc chế độ toàn cảnh / Photo Sphere của điện thoại), đặt tên vị trí ("Đỉnh núi", "Cổng chính"…) rồi tải lên — ảnh tự thu về ngang 4096px. Ảnh tỉ lệ 2:1 là 360° trọn vòng; ảnh panorama thường thì chọn góc chụp ngang. Bấm *Xem, đặt hướng* để chọn hướng nhìn lúc mở. Trang riêng của điểm có mục *Quan sát 360°*: kéo chuột hoặc vuốt để nhìn quanh, điện thoại xoay máy để nhìn; luôn kèm nút sang Street View của Google Maps quanh toạ độ điểm. Trình xem là Pannellum (MIT), chỉ tải khi điểm có ảnh 360°.
+**Điểm quan sát 360°:** mỗi địa điểm có tối đa 10 điểm quan sát (Quản trị → Địa điểm → Sửa → *Điểm quan sát 360°*), du khách xem ngay trên trang riêng của điểm (kéo chuột hoặc vuốt để nhìn quanh), không phải rời sang Google Maps. Điểm chưa có ảnh 360° nào thì **không hiện** mục này. Hai nguồn ảnh:
+- **Lấy từ Google Maps** (Street View hoặc ảnh 360° người dùng đăng): mở ảnh 360° trên Google Maps, xoay tới hướng muốn, bấm Chia sẻ → *Nhúng bản đồ* → *Sao chép HTML*, dán vào mục *Lấy ảnh 360° từ Google Maps*. Miễn phí, không cần khoá API. Máy chủ chỉ nhận mã nhúng `https://www.google.com/maps/embed?pb=…` là ảnh 360° (từ chối bản đồ thường và trang khác).
+- **Tự chụp**: máy ảnh 360° (Insta360, Ricoh Theta) hoặc chế độ toàn cảnh / Photo Sphere của điện thoại; ảnh tự thu về ngang 4096px, ảnh tỉ lệ 2:1 là 360° trọn vòng; *Xem, đặt hướng* để chọn hướng nhìn lúc mở. Trình xem là Pannellum (MIT), chỉ tải khi cần.
 
 **Bài giới thiệu chi tiết:** mỗi địa điểm có ô *Bài chi tiết* (Quản trị → Địa điểm → Sửa), hiện ở trang riêng của điểm. Dòng `## ` là tiêu đề mục, dòng `- ` là gạch đầu dòng; trong mục *Lịch sử hình thành* mỗi dòng `- Mốc: nội dung` hiện thành dòng thời gian. 15 điểm có sẵn bài tổng hợp (giới thiệu, lịch sử hình thành theo giai đoạn, có gì để xem, đi lại, kinh nghiệm) — **cán bộ đối chiếu nguồn chính thức rồi tích "Đã kiểm tra"**; chỗ ghi "cán bộ bổ sung" là mốc chưa xác minh được năm.
 
@@ -146,6 +148,6 @@ Trang xem (địa điểm, lộ trình, tin tức) vẫn mở cho mọi người
 ## Kiểm thử
 
 ```
-cd server && npm test     # 64 bài, không cần MySQL
+cd server && npm test     # 65 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```
