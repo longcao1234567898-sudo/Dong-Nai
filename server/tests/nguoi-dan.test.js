@@ -23,8 +23,10 @@ pool.query = async (sql, params = []) => {
   if (/SELECT id, xa_phuong_id FROM dia_diem WHERE id = \? AND hien = 1/i.test(sql)) return [params[0] === 'ho-tri-an' ? [{ id: 'ho-tri-an', xa_phuong_id: 5 }] : []];
   if (/SELECT id FROM danh_gia WHERE id = \? AND bi_an = 0/i.test(sql)) return [[{ id: params[0] }]];
   if (/SELECT id FROM dia_diem WHERE id IN/i.test(sql)) return [[{ id: 'ho-tri-an' }, { id: 'cu-lao-pho' }]];
+  if (/SELECT id FROM dia_diem WHERE id = \?/i.test(sql) && params[0] === 'day') return [[{ id: 'day' }]];
   if (/SELECT id FROM dia_diem WHERE id = \?/i.test(sql)) return [[{ id: 'ho-tri-an' }]];
   if (/COUNT\(\*\) AS so FROM anh_dia_diem/i.test(sql)) return [[{ so: 0 }]];
+  if (/COUNT\(\*\) AS so FROM diem_quan_sat/i.test(sql)) return [[{ so: params[0] === 'day' ? 10 : 0 }]];
   if (/SELECT id, dia_diem_id, chu_thich, thu_tu, tieu_diem_x/i.test(sql)) return [params[0] === 5 ? [{ id: 5, dia_diem_id: 'ho-tri-an', chu_thich: 'Hoàng hôn', thu_tu: 2, tieu_diem_x: 30, tieu_diem_y: 70 }] : []];
   if (/FROM danh_gia g JOIN dia_diem d/i.test(sql)) return [[{ id: 3, dia_diem_id: 'ho-tri-an', ten: 'Hồ Trị An', ten_en: 'Tri An Lake', sao: 5,
     di_cung: 'gia-dinh', thoi_diem: '2026-08', nhan_xet: 'Hoàng hôn trên hồ rất đẹp.', ten_hien_thi: null, updated_at: '2026-09-01 10:00:00' }]];
@@ -142,4 +144,24 @@ test('chỉnh ảnh: điểm lấy nét chỉ nhận 0–100; thay ảnh tạo m
   assert.ok(goi.some((g) => /DELETE FROM anh_dia_diem WHERE id = \?/i.test(g.sql) && g.params[0] === 5));
   assert.equal((await api('/api/quan-tri/anh/9/tep', { method: 'PUT', token: ve, raw: jpeg, kieu: 'image/jpeg' })).status, 404);
   assert.equal((await api('/api/quan-tri/anh/5/tep', { method: 'PUT', token: ve, raw: Buffer.from('<html>khong phai anh</html>'), kieu: 'image/jpeg' })).status, 400);
+});
+
+test('điểm quan sát 360°: cần tên, chỉ nhận ảnh thật, tối đa 10 điểm; sửa góc và hướng trong giới hạn', async () => {
+  const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40)]);
+  const gui = (duong, body, kieu = 'image/jpeg') => fetch(goc + '/api/quan-tri' + duong, { method: 'POST', body,
+    headers: { Authorization: `Bearer ${ve}`, 'Content-Type': kieu } });
+  assert.equal((await gui('/dia-diem/ho-tri-an/quan-sat?rong=4096&cao=2048', jpg)).status, 400, 'thiếu tên');
+  assert.equal((await gui('/dia-diem/ho-tri-an/quan-sat?ten=x', Buffer.from('khong phai anh 1234567'), 'image/jpeg')).status, 400);
+  goi = [];
+  const r = await gui('/dia-diem/ho-tri-an/quan-sat?ten=' + encodeURIComponent('Đập tràn') + '&rong=4096&cao=2048&gocNgang=360', jpg);
+  assert.equal(r.status, 201);
+  const ins = goi.find((g) => /INSERT INTO diem_quan_sat/i.test(g.sql));
+  assert.equal(ins.params[0].ten, 'Đập tràn'); assert.equal(ins.params[0].goc_ngang, 360);
+  assert.equal((await gui('/dia-diem/day/quan-sat?ten=x', jpg)).status, 409, 'quá 10 điểm');
+  goi = [];
+  const sua = await fetch(goc + '/api/quan-tri/quan-sat/3', { method: 'PATCH', headers: { Authorization: `Bearer ${ve}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ huongDau: 95, gocNgang: 999, ten: 'Bến thuyền' }) });
+  assert.equal(sua.status, 200);
+  const up = goi.find((g) => /UPDATE diem_quan_sat/i.test(g.sql));
+  assert.deepEqual(up.params[0], { ten: 'Bến thuyền', huong_dau: 95 }, 'góc 999 bị bỏ qua');
 });

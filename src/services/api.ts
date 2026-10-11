@@ -68,3 +68,5 @@ export const guiPhanAnh = (d: { loai: string; diaDiemId?: string; noiDung: strin
 export const baoDanhGia = (id: number, lyDo = 'khac') => goi<{ ok: true }>(`/danh-gia/${id}/bao`, { method: 'POST', body: JSON.stringify({ lyDo }) });
 /** Địa chỉ ảnh địa điểm — ảnh nhớ đệm lâu trên trình duyệt. */
 export const anhUrl = (id: number) => `${API_URL}/api/cong-khai/anh/${id}`;
+/** Ảnh 360° của điểm quan sát. */
+export const anhQuanSatUrl = (id: number) => `${API_URL}/api/cong-khai/quan-sat/${id}/anh`;

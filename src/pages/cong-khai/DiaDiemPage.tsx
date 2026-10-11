@@ -7,6 +7,7 @@ import BanDo from '../../components/du-lich/BanDo';
 import { ThongTinDiaDiem } from '../../components/du-lich/ChiTiet';
 import BoAnh from '../../components/du-lich/BoAnh';
 import BaiChiTiet from '../../components/du-lich/BaiChiTiet';
+import QuanSat360 from '../../components/du-lich/QuanSat360';
 import { KhungAnh } from '../../components/du-lich/GiaoDien';
 import { layDiaDiem } from '../../services/api';
 import { useNN } from '../../i18n/NgonNgu';
@@ -26,7 +27,7 @@ export default function DiaDiemPage() {
         <div className="mt-4 grid gap-8 lg:grid-cols-12">
           {/* Điện thoại: ảnh đại diện lên đầu, trước phần chữ. Màn rộng: ảnh nằm cột phải. */}
           <div className="relative aspect-[3/2] overflow-hidden rounded-[20px] bg-sunken shadow-sh-2 lg:hidden"><KhungAnh p={p} uuTien sizes="100vw" /></div>
-          <article className="hien-dan the min-w-0 p-6 sm:p-8 lg:col-span-7"><ThongTinDiaDiem p={p} trangRieng giua={<><BoAnh p={p} /><BaiChiTiet id={p.id} /></>} /></article>
+          <article className="hien-dan the min-w-0 p-6 sm:p-8 lg:col-span-7"><ThongTinDiaDiem p={p} trangRieng giua={<><QuanSat360 p={p} /><BoAnh p={p} /><BaiChiTiet id={p.id} /></>} /></article>
           <aside className="space-y-4 lg:col-span-5">
             {/* Ảnh: ảnh cán bộ tải lên, không thì ảnh mặc định của điểm. */}
             <div className="hien-dan relative hidden aspect-[3/2] overflow-hidden rounded-[20px] bg-sunken shadow-sh-2 lg:block"><KhungAnh p={p} uuTien sizes="40vw" /></div>

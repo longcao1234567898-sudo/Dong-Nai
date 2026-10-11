@@ -1234,4 +1234,31 @@ Suoi Lam is a lake among wooded hills and plantations in the north of the city, 
 - Do not swim where there is no sign allowing it — the lake is deep with steep banks.
 - Combine with Ba Ra Mountain or Bom Bo village in the north.' WHERE id = 'ho-suoi-lam' AND chi_tiet IS NULL;
 
+-- ============================================================================
+-- GIAI ĐOẠN 6 — ĐIỂM QUAN SÁT 360°
+-- ============================================================================
+-- Mỗi điểm quan sát là một ảnh toàn cảnh 360° chụp tại một vị trí của địa
+-- điểm (đỉnh núi, cổng chính, bến thuyền…): du khách kéo chuột hoặc xoay điện
+-- thoại để nhìn quanh. Ảnh lưu trong cơ sở dữ liệu như ảnh địa điểm.
+--   goc_ngang: góc chụp ngang (360 = ảnh 360° trọn vòng, 180 = ảnh panorama nửa vòng)
+--   huong_dau: hướng nhìn lúc mở (độ, -180..180)
+CREATE TABLE IF NOT EXISTS diem_quan_sat (
+  id           INT PRIMARY KEY AUTO_INCREMENT,
+  dia_diem_id  VARCHAR(80) NOT NULL,
+  ten          VARCHAR(120) NOT NULL,
+  ten_en       VARCHAR(120) NULL,
+  du_lieu      MEDIUMBLOB NOT NULL,
+  kieu         VARCHAR(20) NOT NULL,
+  rong         SMALLINT UNSIGNED NULL,
+  cao          SMALLINT UNSIGNED NULL,
+  goc_ngang    SMALLINT UNSIGNED NOT NULL DEFAULT 360,
+  huong_dau    SMALLINT NOT NULL DEFAULT 0,
+  thu_tu       SMALLINT NOT NULL DEFAULT 0,
+  nguoi_tai    INT NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_diem (dia_diem_id, thu_tu),
+  FOREIGN KEY (dia_diem_id) REFERENCES dia_diem(id) ON DELETE CASCADE,
+  FOREIGN KEY (nguoi_tai) REFERENCES staff(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

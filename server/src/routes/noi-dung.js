@@ -159,6 +159,70 @@ router.delete('/anh/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* ================================================================ ĐIỂM QUAN SÁT 360° */
+const TOI_DA_QUAN_SAT = 10;
+/* Ảnh 360° thu nhỏ trên trình duyệt về ngang 4096px (giới hạn ảnh của nhiều điện thoại) — vài MB. */
+const nhanAnh360 = express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '6mb' });
+const gocNgang = (v) => { const n = Math.round(Number(v)); return n >= 30 && n <= 360 ? n : null; };
+const huongDau = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= -180 && n <= 180 ? n : null; };
+router.get('/dia-diem/:id/quan-sat', async (req, res, next) => {
+  try {
+    const [rows] = await pool.query('SELECT id, ten, ten_en, rong, cao, goc_ngang, huong_dau, LENGTH(du_lieu) AS co FROM diem_quan_sat WHERE dia_diem_id = ? ORDER BY thu_tu, id', [String(req.params.id)]);
+    res.json(rows.map((r) => ({ id: r.id, ten: r.ten, tenEn: r.ten_en, rong: r.rong, cao: r.cao, gocNgang: r.goc_ngang, huongDau: r.huong_dau, kichThuoc: Number(r.co) })));
+  } catch (e) { next(e); }
+});
+router.post('/dia-diem/:id/quan-sat', nhanAnh360, async (req, res, next) => {
+  try {
+    const kieu = kieuAnh(req.body);
+    if (!kieu) return res.status(400).json({ error: 'Chỉ nhận ảnh JPG, PNG hoặc WEBP.' });
+    const ten = sanitizeText(String(req.query.ten || ''), 120);
+    if (!ten) return res.status(400).json({ error: 'Đặt tên cho điểm quan sát, ví dụ "Đỉnh núi" hay "Cổng chính".' });
+    const [[dd]] = await pool.query('SELECT id FROM dia_diem WHERE id = ?', [String(req.params.id)]);
+    if (!dd) return res.status(404).json({ error: 'Không tìm thấy địa điểm.' });
+    const [[{ so }]] = await pool.query('SELECT COUNT(*) AS so FROM diem_quan_sat WHERE dia_diem_id = ?', [dd.id]);
+    if (Number(so) >= TOI_DA_QUAN_SAT) return res.status(409).json({ error: `Mỗi địa điểm tối đa ${TOI_DA_QUAN_SAT} điểm quan sát.` });
+    const kichCo = (v) => { const n = Math.floor(Number(v)); return n > 0 && n < 20000 ? n : null; };
+    const [kq] = await pool.query('INSERT INTO diem_quan_sat SET ?', [{ dia_diem_id: dd.id, ten, du_lieu: req.body, kieu, rong: kichCo(req.query.rong), cao: kichCo(req.query.cao),
+      goc_ngang: gocNgang(req.query.gocNgang) ?? 360, huong_dau: 0, thu_tu: Number(so) + 1, nguoi_tai: req.staff.id }]);
+    await ghiNhatKy(pool, req, { hanhDong: 'them_quan_sat', loaiDoiTuong: 'dia_diem', doiTuongId: dd.id, chiTiet: { quanSat: kq.insertId, kb: Math.round(req.body.length / 1024) } });
+    xoaDemCongKhai(); res.status(201).json({ id: kq.insertId });
+  } catch (e) {
+    if (e.type === 'entity.too.large') return res.status(413).json({ error: 'Ảnh lớn hơn 6 MB.' });
+    next(e);
+  }
+});
+/* Ảnh gốc cho cán bộ xem trước — đọc được cả điểm của địa điểm đang ẩn. */
+router.get('/quan-sat/:id/anh', async (req, res, next) => {
+  try {
+    const [[a]] = await pool.query('SELECT du_lieu, kieu FROM diem_quan_sat WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!a) return res.status(404).json({ error: 'Không tìm thấy ảnh.' });
+    res.setHeader('Content-Type', a.kieu); res.setHeader('Cache-Control', 'no-store');
+    res.send(a.du_lieu);
+  } catch (e) { next(e); }
+});
+router.patch('/quan-sat/:id', async (req, res, next) => {
+  try {
+    const b = req.body || {}, doi = {};
+    if (b.ten !== undefined) { const t = sanitizeText(String(b.ten), 120); if (!t) return res.status(400).json({ error: 'Tên điểm quan sát không được trống.' }); doi.ten = t; }
+    if (b.tenEn !== undefined) doi.ten_en = sanitizeText(String(b.tenEn), 120) || null;
+    if (b.gocNgang !== undefined && gocNgang(b.gocNgang) !== null) doi.goc_ngang = gocNgang(b.gocNgang);
+    if (b.huongDau !== undefined && huongDau(b.huongDau) !== null) doi.huong_dau = huongDau(b.huongDau);
+    if (Number.isInteger(b.thuTu)) doi.thu_tu = b.thuTu;
+    if (!Object.keys(doi).length) return res.status(400).json({ error: 'Không có gì để đổi.' });
+    await pool.query('UPDATE diem_quan_sat SET ? WHERE id = ?', [doi, Number(req.params.id) || 0]);
+    xoaDemCongKhai(); res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+router.delete('/quan-sat/:id', async (req, res, next) => {
+  try {
+    const [[q]] = await pool.query('SELECT dia_diem_id FROM diem_quan_sat WHERE id = ?', [Number(req.params.id) || 0]);
+    if (!q) return res.status(404).json({ error: 'Không tìm thấy điểm quan sát.' });
+    await pool.query('DELETE FROM diem_quan_sat WHERE id = ?', [Number(req.params.id)]);
+    await ghiNhatKy(pool, req, { hanhDong: 'xoa_quan_sat', loaiDoiTuong: 'dia_diem', doiTuongId: q.dia_diem_id });
+    xoaDemCongKhai(); res.json({ ok: true });
+  } catch (e) { next(e); }
+});
+
 /* ================================================================ TIN TỨC */
 const LOAI_TIN = ['canh-bao', 'su-kien', 'thong-bao', 'lien-he'];
 router.get('/tin-tuc', async (_req, res, next) => {

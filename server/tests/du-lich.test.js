@@ -27,6 +27,7 @@ pool.query = async (sql, params = []) => {
   if (/FROM dia_diem d LEFT JOIN danh_gia/i.test(sql)) return [[{ id: 'ho-tri-an', ten: 'Hồ Trị An', loai: 'thien-nhien', mo_ta: 'Hồ', dia_chi: 'Xã La Ngà',
     lat: '11.18', lng: '107.15', sdt: null, web: null, gio_mo: null, noi_bat: 1, so_dg: 2, sao_tb: '4.5', tb_canh_quan: '5', tb_dich_vu: null, tb_ve_sinh: null, tb_gia_ca: null, s5: 1, s4: 1, s3: 0, s2: 0, s1: 0 }]];
   if (/FROM anh_dia_diem/i.test(sql)) return [[]];
+  if (/FROM diem_quan_sat/i.test(sql)) return [[]];
   if (/SELECT id FROM dia_diem WHERE id = \? AND hien = 1/i.test(sql)) return [params[0] === 'ho-tri-an' ? [{ id: 'ho-tri-an' }] : []];
   if (/SELECT id FROM dia_diem WHERE id = \?/i.test(sql)) return [[]];
   if (/FROM danh_gia WHERE dia_diem_id = \? AND ma_thiet_bi/i.test(sql)) return [[]];

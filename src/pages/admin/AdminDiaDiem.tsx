@@ -6,6 +6,7 @@ import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../compon
 import { LOAI, VUNG } from '../../utils/hangSo';
 import { useCauHinh } from '../../utils/phuLuc';
 import QuanLyAnh from '../../components/common/QuanLyAnh';
+import QuanLyQuanSat from '../../components/common/QuanLyQuanSat';
 import type { Loai } from '../../utils/kieu';
 
 interface DD { id: string; ten: string; loai: Loai; moTa: string | null; diaChi: string | null; lat: number; lng: number; sdt: string | null; web: string | null;
@@ -61,7 +62,7 @@ export default function AdminDiaDiem() {
           <label className={nhan}>Trang web<input className={o} type="url" value={f.web} onChange={dat('web')} placeholder="https://" /></label></div>
         {([['noiBat', 'Đưa lên nổi bật'], ['hien', 'Hiện cho du khách xem'], ['daKiemTra', 'Cán bộ đã kiểm tra thông tin']] as const).map(([k, t]) => (
           <label key={k} className="mt-2.5 flex items-center gap-2 text-sm"><input type="checkbox" className="h-[18px] w-[18px] accent-primary-600" checked={f[k]} onChange={dat(k)} />{t}</label>))}
-        {suaId ? <QuanLyAnh diaDiemId={suaId} dangHien={f.hien} tenGoiY={f.ten} /> : <p className="mt-3 text-xs text-slate-500">Lưu địa điểm xong, bấm Sửa để thêm ảnh.</p>}
+        {suaId ? <><QuanLyAnh diaDiemId={suaId} dangHien={f.hien} tenGoiY={f.ten} /><QuanLyQuanSat diaDiemId={suaId} /></> : <p className="mt-3 text-xs text-slate-500">Lưu địa điểm xong, bấm Sửa để thêm ảnh và điểm quan sát 360°.</p>}
         {loi && <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">{loi}</div>}
         <div className="mt-4 flex gap-2"><button type="button" className={nutChinh} disabled={luu.isPending} onClick={() => luu.mutate()}>{luu.isPending ? 'Đang lưu…' : 'Lưu địa điểm'}</button>
           {suaId && <button type="button" className={nutVien + ' min-h-[44px] px-4 text-sm'} onClick={() => { setSuaId(null); setF(TRONG); setLoi(''); }}>Huỷ sửa</button>}</div>
