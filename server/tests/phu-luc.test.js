@@ -9,7 +9,7 @@ import ExcelJS from 'exceljs';
 import { datBienMoiTruongHopLe } from './helpers-test.js';
 
 datBienMoiTruongHopLe();
-const { docSo, docNgay, docDong, layBang, tachTenXa, raDong } = await import('../src/lib/phu-luc.js');
+const { docSo, docNgay, docDong, layBang, tachTenXa, raDong, chuanHoaChu } = await import('../src/lib/phu-luc.js');
 const { docTepExcel, taoTepMau } = await import('../src/lib/excel-nhap.js');
 const { dungBang, xuatExcel, xuatWord } = await import('../src/lib/xuat-phu-luc.js');
 const { pool } = await import('../src/db.js');
@@ -51,6 +51,18 @@ test('tách tên xã/phường, bắt buộc ghi rõ loại đơn vị', () => {
 });
 
 /* ======================= KIỂM TRA DÒNG ======================= */
+test('chữ dán từ Word được dọn tự động, giữ nguyên lời cán bộ viết', () => {
+  assert.equal(chuanHoaChu('Hiệp Tiến – Tân Hải'), 'Hiệp Tiến - Tân Hải');
+  assert.equal(chuanHoaChu('“Tổ liên gia an toàn PCCC” , “Camera an ninh”…'), '"Tổ liên gia an toàn PCCC", "Camera an ninh"...');
+  assert.equal(chuanHoaChu('Radisson Resort Phan Thiet\n(thuộc Nova)'), 'Radisson Resort Phan Thiet (thuộc Nova)');
+  assert.equal(chuanHoaChu('Trương Quang Minh;\nNguyễn Thị Thùy Dương'), 'Trương Quang Minh; Nguyễn Thị Thùy Dương');
+  assert.equal(chuanHoaChu('• Camera an ninh;\n\n•  Tổ liên gia  PCCC', { nhieuDong: true }), '- Camera an ninh;\n- Tổ liên gia PCCC');
+  assert.equal(chuanHoaChu('1.854,4 tỷ đồng'), '1.854,4 tỷ đồng');
+  const r = docDong(layBang('du-an'), { ten: '  Khu du lịch  Đất Lành ', dia_chi: 'Hiệp Tiến – Tân Hải' });
+  assert.equal(r.du.ten, 'Khu du lịch Đất Lành');
+  assert.equal(r.du.dia_chi, 'Hiệp Tiến - Tân Hải');
+});
+
 test('bảng khách: thiếu số khách bị chặn; tổng do máy tính, không nhận từ người nhập', () => {
   const b = layBang('khach');
   assert.match(docDong(b, { quoc_te: '10' }).loi, /khách nội địa/);

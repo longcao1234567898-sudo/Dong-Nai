@@ -298,6 +298,34 @@ export function docNgay(v) {
   return { gt: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` };
 }
 
+/* ============================================================================
+   CHUẨN HOÁ CHỮ: giữ nguyên lời cán bộ viết, chỉ dọn những ký tự gõ/dán từ
+   Word làm bảng khó đọc — ngoặc kép cong, gạch dài, dấu ba chấm liền, dấu đầu
+   dòng tròn, khoảng trắng thừa, dấu cách trước dấu phẩy. Ô một dòng (tên, địa
+   chỉ) thì nối các dòng lại; ô nhiều dòng (diễn biến, nội dung) giữ xuống dòng.
+   ============================================================================ */
+export function chuanHoaChu(v, { max = 255, nhieuDong = false } = {}) {
+  let s = String(v ?? '').normalize('NFC')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u00A0\u2007\u202F\t]/g, ' ')
+    .replace(/[\u201C\u201D\u201E\u00AB\u00BB]/g, '"')
+    .replace(/[\u2018\u2019\u201A]/g, "'")
+    .replace(/[\u2013\u2014\u2212]/g, '-')
+    .replace(/\u2026/g, '...');
+  let dong = s.split('\n')
+    .map((d) => d.replace(/^\s*[\u2022\u25CF\u25AA\u25E6\u00B7\u2023\u2043]\s*/, '- ')
+      .replace(/ {2,}/g, ' ')
+      .replace(/ +([,.;:!?)])/g, '$1')
+      .replace(/\( +/g, '(')
+      .replace(/([,;])(?=\p{L})/gu, '$1 ')
+      .trim())
+    .filter(Boolean);
+  if (!nhieuDong) {
+    s = dong.reduce((a, d) => (!a ? d : /^[(\-]/.test(d) || /[,;:]$/.test(a) ? `${a} ${d}` : `${a}; ${d}`), '');
+  } else s = dong.join('\n');
+  return sanitizeText(s, max);
+}
+
 const CO = ['x', 'co', '1', 'true', 'yes', 'dung'];
 const KHONG = ['', '0', 'khong', 'false', 'no', 'sai'];
 
@@ -305,7 +333,7 @@ const KHONG = ['', '0', 'khong', 'false', 'no', 'sai'];
 export function docO(t, v) {
   if (v !== null && typeof v === 'object' && !(v instanceof Date)) v = null;   // chặn mảng, đối tượng lạ
   switch (t.kieu) {
-    case 'chu': return { gt: sanitizeText(String(v ?? ''), t.max || 255) || null };
+    case 'chu': return { gt: chuanHoaChu(v, { max: t.max || 255, nhieuDong: (t.dong || 1) > 1 }) || null };
     case 'so': return docSo(v, { m2: t.m2 });
     case 'nguyen': {
       const r = docSo(v);
