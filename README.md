@@ -5,7 +5,7 @@ Trang du lịch thành phố Đồng Nai cho hai nhóm người dùng:
 - **Người dân, du khách** (không cần đăng nhập, có tiếng Anh): bản đồ điểm đến, trang riêng từng địa điểm có ảnh, lộ trình gợi ý và tự tạo lộ trình, đánh giá theo 4 tiêu chí, gửi phản ánh, resort đạt chuẩn, tin tức – cảnh báo – số điện thoại cần biết, hướng dẫn cho khách nước ngoài, thống kê.
 - **Cán bộ** (đăng nhập riêng): quản lý địa điểm và đánh giá, **phụ lục thống kê** theo xã/phường và kỳ báo cáo — nhập tay hoặc nhập Excel, chốt báo cáo, xuất phụ lục đúng mẫu ra Word/Excel, biểu đồ thống kê.
 
-Cùng kiến trúc với Điểm Chạm An Ninh — giao diện React + TypeScript + Vite (Netlify), máy chủ Node.js + Express (Render), cơ sở dữ liệu MySQL 8. Phần đăng nhập cán bộ dùng lại nguyên bản đã kiểm chứng: bcrypt, JWT, đếm sai theo tài khoản, sai 3 lần bật Cloudflare Turnstile, giới hạn 5 lần trong 15 phút.
+Cùng kiến trúc với Điểm Chạm An Ninh — giao diện React + TypeScript + Vite (Netlify), máy chủ Node.js + Express (Render), cơ sở dữ liệu MySQL 8. Phần đăng nhập cán bộ dùng lại nguyên bản đã kiểm chứng: bcrypt, JWT, đếm sai theo tài khoản, giới hạn 5 lần trong 15 phút; chống người máy bằng Cloudflare Turnstile ở cổng vào (xem mục Chống người máy).
 
 > Tên gọi đúng là **thành phố Đồng Nai**: theo Nghị quyết 30/2026/QH16, từ 30/4/2026 Đồng Nai là thành phố trực thuộc Trung ương.
 
@@ -120,16 +120,24 @@ Các bảng hiện có:
 
 - **Xác thực hai lớp (tự nguyện):** mỗi cán bộ tự bật ở mục *Tài khoản của tôi* — quét mã QR bằng Google Authenticator hoặc Microsoft Authenticator. Từ đó đăng nhập cần cả mật khẩu và mã 6 số; mã đã dùng không dùng lại được. Mất điện thoại: đồng nghiệp bấm *Tắt hai lớp* ở mục Tài khoản cán bộ (ghi nhật ký), hoặc chạy `node scripts-them-can-bo.js --tat-2fa <tên>`.
 - **Tự đổi mật khẩu** ở *Tài khoản của tôi*; đổi xong mọi phiên ở máy khác bị đăng xuất.
-- **Chống dò mật khẩu:** tối đa 5 lần đăng nhập **sai** mỗi 15 phút mỗi địa chỉ IP (lần đúng không bị đếm, nên nhiều cán bộ dùng chung mạng trụ sở không bị chặn nhau); sai 3 lần bắt qua ô xác minh.
+- **Chống dò mật khẩu:** tối đa 5 lần đăng nhập **sai** mỗi 15 phút mỗi địa chỉ IP (lần đúng không bị đếm, nên nhiều cán bộ dùng chung mạng trụ sở không bị chặn nhau). Tài khoản bị gõ sai từ 3 lần thì phải qua lại cổng kiểm tra chống người máy (vé phải mới trong 10 phút) — không khoá tài khoản, để kẻ xấu không cố ý gõ sai mà khoá được cán bộ thật.
 - **Sao lưu mã hoá:** khai `KHOA_SAO_LUU` trong `server/.env` thì `node scripts-sao-luu.js` ra tệp `.sql.mahoa` (AES-256-GCM). Mở lại: `node scripts-giai-ma-sao-luu.js sao-luu/<tệp>.sql.mahoa`. Ghi khoá ra giấy cất riêng — mất khoá là không mở được.
 
 ## Bảo vệ đánh giá khỏi phá hoại
 
-Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là sửa bài cũ. Mỗi địa chỉ IP gửi tối đa 10 lần mỗi giờ. Khi khai khoá Turnstile thì mọi lần gửi phải qua ô xác minh. Mã thiết bị và IP chỉ lưu dạng băm có `HASH_PEPPER`. Cán bộ ẩn được đánh giá vi phạm — ẩn chứ không xoá, để còn đối chiếu khi có khiếu nại.
+Mỗi thiết bị chỉ một đánh giá cho mỗi điểm — gửi lại là sửa bài cũ. Mỗi địa chỉ IP gửi tối đa 10 lần mỗi giờ. Khi khai khoá Turnstile thì mọi lần gửi phải có vé xác minh lấy ở cổng vào. Mã thiết bị và IP chỉ lưu dạng băm có `HASH_PEPPER`. Cán bộ ẩn được đánh giá vi phạm — ẩn chứ không xoá, để còn đối chiếu khi có khiếu nại.
+
+## Chống người máy (Cloudflare Turnstile)
+
+Ô kiểm tra "không phải người máy" chỉ có **một chỗ: cổng vào**, hiện ngay khi mở trang (cả trang du khách lẫn trang đăng nhập cán bộ). Thường tự xong sau vài giây, không phải bấm gì. Qua cổng thì máy chủ cấp **vé 12 giờ** có chữ ký, gắn với địa chỉ IP (IPv6 tính theo dải /64). Đánh giá, phản ánh, báo vi phạm và đăng nhập không còn ô tích riêng: máy chủ chỉ kiểm vé. Vé hết hạn hoặc người dùng đổi mạng thì cổng hiện lại đè lên trang, nội dung đã gõ vẫn giữ, xong bấm gửi lại.
+
+Cần khai **cặp khoá cùng một tài khoản Cloudflare**: `TURNSTILE_SECRET_KEY` trên Render và `VITE_TURNSTILE_SITE_KEY` trên Netlify (khai xong phải dựng lại Netlify). Để trống cả hai thì tắt hẳn cổng. Chỉ khai khoá bí mật mà thiếu site key thì không ai gửi hay đăng nhập được — trang báo rõ lỗi cấu hình này. Trong Cloudflare nhớ khai đúng tên miền Netlify của trang.
+
+Trang xem (địa điểm, lộ trình, tin tức) vẫn mở cho mọi người, chỉ các thao tác gửi mới cần vé. Lưu ý: cổng vào che nội dung với máy tìm kiếm (Google) khi chúng mở trang, nên trang có thể khó lên kết quả tìm kiếm hơn.
 
 ## Kiểm thử
 
 ```
-cd server && npm test     # 57 bài, không cần MySQL
+cd server && npm test     # 63 bài, không cần MySQL
 npx tsc --noEmit          # ở thư mục gốc
 ```

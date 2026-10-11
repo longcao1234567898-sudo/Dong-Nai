@@ -15,6 +15,8 @@ Người dùng thấy cảnh 3D và ảnh địa hình vẽ máy "mờ, nhựa",
 - **Cỡ ảnh**: Commons chỉ phục vụ ảnh thu nhỏ theo cỡ chuẩn, nên ảnh mặc định có hai bản 1920px (đầu trang) và 960px (thẻ). Ảnh CC0 đúng địa điểm hiếm, nên nhận từ 700px; ảnh hẹp hơn 1280px chỉ dùng cho thẻ và trang chi tiết, không lên trình chiếu đầu trang chủ hay nền trang đăng nhập (phóng cả màn hình sẽ nhoè).
 - **Điểm lấy nét**: cán bộ bấm vào phần quan trọng của ảnh (Quản trị → Địa điểm → Sửa → Chỉnh). Mọi chỗ cắt ảnh cho vừa khung (`object-fit: cover`) dùng điểm này làm `object-position`, trình chiếu dùng thêm làm tâm phóng chậm. Trình chỉnh có khung xem trước ba kiểu cắt: thẻ 3:2, đầu trang màn rộng 16:7, đầu trang điện thoại 9:16.
 
+**Cổng kiểm tra chống người máy** (`CongXacMinh.tsx`): màn toàn khung nền rừng đêm có đường đồng mức, tiêu đề chữ serif lớn "Kiểm tra nhanh trước khi vào trang", một câu giải thích, ô Cloudflare; màn rộng thêm một ảnh thật của điểm nổi bật bên phải. Có nút đổi Tiếng Việt / English. Trang dựng sẵn phía sau (khoá thao tác) nên qua cổng là thấy nội dung ngay. Vé hết hạn giữa chừng thì cổng hiện lại với tiêu đề "Kiểm tra lại một chút". Đây là chỗ duy nhất có ô Turnstile.
+
 Các chuyển động không dính tới 3D vẫn giữ: thẻ nghiêng theo chuột, hiện khi cuộn, đường kể chuyện của lộ trình, View Transitions.
 
 ## Đã dựng: bản 3D (đã thay, giữ để tham khảo)
@@ -382,7 +384,7 @@ Chỉ hiện đánh giá thật của du khách. Mỗi máy được đánh giá
 ```
 
 - Số tổng hợp lấy từ `/api/thong-ke` (`danhGia.so`, `saoTb`, `phanBo`, `tieuChi`). Danh sách thẻ lấy từ endpoint mới `GET /api/danh-gia/moi-nhat` (xem phụ lục).
-- "Viết đánh giá": mở hộp thoại, bước 1 chọn điểm đến (ô chọn có tìm kiếm), bước 2 là form đánh giá hiện có trong `ChiTiet.tsx` (sao, 4 tiêu chí, đi cùng ai, tháng đi, nhận xét, tên hiển thị, Turnstile).
+- "Viết đánh giá": mở hộp thoại, bước 1 chọn điểm đến (ô chọn có tìm kiếm), bước 2 là form đánh giá hiện có trong `ChiTiet.tsx` (sao, 4 tiêu chí, đi cùng ai, tháng đi, nhận xét, tên hiển thị; ô Turnstile đã chuyển về cổng vào).
 - **Trạng thái trống (là trạng thái thật hiện nay, phải thiết kế kỹ):**
 
 ```

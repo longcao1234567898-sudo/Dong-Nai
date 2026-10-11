@@ -4,7 +4,8 @@
  * ⚠️ Đánh giá là chỗ dễ bị phá nhất (chấm 1 sao hàng loạt, quảng cáo). Ba lớp:
  *    1. Mỗi thiết bị chỉ MỘT đánh giá cho mỗi điểm — gửi lại là sửa bài cũ.
  *    2. Giới hạn 10 lần gửi mỗi giờ trên một địa chỉ IP.
- *    3. Ô xác minh Turnstile khi máy chủ đã khai khoá Cloudflare.
+ *    3. Vé xác minh: người xem qua ô Turnstile một lần ở cổng vào (POST /xac-minh),
+ *       mọi đường GỬI đòi vé đó (khi máy chủ đã khai khoá Cloudflare).
  *    Mã thiết bị và IP chỉ lưu dạng băm có HASH_PEPPER, không lưu bản thô.
  */
 import { Router } from 'express';
@@ -13,7 +14,7 @@ import rateLimit from 'express-rate-limit';
 import { pool } from '../db.js';
 import { layIpThat, generateTrackingCode } from '../lib/helpers.js';
 import { sanitizeText, containsProfanity } from '../lib/security.js';
-import { verifyTurnstile, turnstileEnabled } from '../lib/turnstile.js';
+import { verifyTurnstile, turnstileEnabled, capVe, canVeXacMinh } from '../lib/turnstile.js';
 
 const router = Router();
 const PEPPER = process.env.HASH_PEPPER || '';
@@ -96,17 +97,13 @@ router.get('/dia-diem/:id/cua-toi', async (req, res, next) => {
 const gioiHanDanhGia = rateLimit({ windowMs: 60 * 60_000, max: 10, standardHeaders: true, legacyHeaders: false,
   keyGenerator: (req) => layIpThat(req), message: { error: 'Bạn gửi đánh giá quá nhiều trong một giờ. Thử lại sau.' } });
 
-router.post('/danh-gia', gioiHanDanhGia, async (req, res, next) => {
+router.post('/danh-gia', canVeXacMinh, gioiHanDanhGia, async (req, res, next) => {
   try {
     const b = req.body || {};
     const may = String(req.get('X-Ma-Thiet-Bi') || '');
     if (!/^[a-f0-9-]{20,64}$/i.test(may)) return res.status(400).json({ error: 'Thiếu mã thiết bị. Tải lại trang rồi gửi lại.' });
     const sao = diem(b.sao);
     if (!sao) return res.status(400).json({ error: 'Chọn số sao đánh giá chung từ 1 đến 5.' });
-    if (turnstileEnabled()) {
-      const kq = await verifyTurnstile(b.captchaToken, layIpThat(req));
-      if (!kq.ok) return res.status(400).json({ error: kq.error || 'Chưa qua bước xác minh.', canCaptcha: true });
-    }
     const [[dd]] = await pool.query('SELECT id FROM dia_diem WHERE id = ? AND hien = 1', [String(b.diaDiemId || '')]);
     if (!dd) return res.status(404).json({ error: 'Không tìm thấy địa điểm.' });
     const tc = b.tieuChi || {};
@@ -229,17 +226,13 @@ export const LOAI_PHAN_ANH = ['gia-ca', 'an-ninh', 've-sinh', 'dich-vu', 'an-toa
 const gioiHanPhanAnh = rateLimit({ windowMs: 60 * 60_000, max: 5, standardHeaders: true, legacyHeaders: false,
   keyGenerator: (req) => layIpThat(req), message: { error: 'Bạn đã gửi nhiều phản ánh trong một giờ. Thử lại sau, hoặc gọi số khẩn cấp nếu đang nguy hiểm.' } });
 
-router.post('/phan-anh', gioiHanPhanAnh, async (req, res, next) => {
+router.post('/phan-anh', canVeXacMinh, gioiHanPhanAnh, async (req, res, next) => {
   try {
     const b = req.body || {};
     if (!LOAI_PHAN_ANH.includes(b.loai)) return res.status(400).json({ error: 'Chọn loại phản ánh.' });
     const noiDung = sanitizeText(String(b.noiDung || ''), 2000);
     if (noiDung.length < 15) return res.status(400).json({ error: 'Mô tả cụ thể hơn (ít nhất 15 ký tự): chuyện gì, ở đâu, lúc nào.' });
     if (containsProfanity(noiDung)) return res.status(400).json({ error: 'Nội dung có từ ngữ không phù hợp. Sửa lại giúp cán bộ dễ xử lý.' });
-    if (turnstileEnabled()) {
-      const kq = await verifyTurnstile(b.captchaToken, layIpThat(req));
-      if (!kq.ok) return res.status(400).json({ error: kq.error || 'Chưa qua bước xác minh.', canCaptcha: true });
-    }
     let diaDiem = null;
     if (b.diaDiemId) {
       [[diaDiem]] = await pool.query('SELECT id, xa_phuong_id FROM dia_diem WHERE id = ? AND hien = 1', [String(b.diaDiemId)]);
@@ -262,10 +255,24 @@ router.post('/phan-anh', gioiHanPhanAnh, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+/* ---------------- Cổng vào: đổi mã Turnstile lấy vé xác minh 12 giờ ---------------- */
+const gioiHanXacMinh = rateLimit({ windowMs: 10 * 60_000, max: 30, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => layIpThat(req),
+  message: { error: 'Kiểm tra quá nhiều lần. Đợi vài phút rồi tải lại trang.' } });
+router.post('/xac-minh', gioiHanXacMinh, async (req, res, next) => {
+  try {
+    /* Máy chủ chưa khai khoá bí mật: không kiểm được, báo giao diện cho qua. */
+    if (!turnstileEnabled()) return res.json({ ve: null, tat: true });
+    const ip = layIpThat(req);
+    const kq = await verifyTurnstile(String(req.body?.token || ''), ip);
+    if (!kq.ok) return res.status(400).json({ error: kq.error });
+    res.json(capVe(ip));
+  } catch (e) { next(e); }
+});
+
 /* ---------------- Báo đánh giá sai phạm ---------------- */
 const gioiHanBao = rateLimit({ windowMs: 60 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false, keyGenerator: (req) => layIpThat(req),
   message: { error: 'Bạn đã báo nhiều lần trong một giờ.' } });
-router.post('/danh-gia/:id/bao', gioiHanBao, async (req, res, next) => {
+router.post('/danh-gia/:id/bao', canVeXacMinh, gioiHanBao, async (req, res, next) => {
   try {
     const may = String(req.get('X-Ma-Thiet-Bi') || '');
     if (!/^[a-f0-9-]{20,64}$/i.test(may)) return res.status(400).json({ error: 'Thiếu mã thiết bị. Tải lại trang rồi thử lại.' });

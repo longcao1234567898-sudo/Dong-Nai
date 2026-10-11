@@ -74,6 +74,6 @@ async function kiemCauTruc() {
 
 app.listen(PORT, () => {
   console.log(`🌿 Du lịch Đồng Nai — máy chủ chạy tại cổng ${PORT}`);
-  if (!turnstileEnabled()) console.warn('⚠️  Chưa khai TURNSTILE_SECRET_KEY: ô xác minh chống người máy đang tắt.');
+  if (!turnstileEnabled()) console.warn('⚠️  Chưa khai TURNSTILE_SECRET_KEY: cổng kiểm tra chống người máy đang tắt.');
   kiemCauTruc();
 });

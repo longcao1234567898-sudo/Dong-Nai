@@ -11,9 +11,9 @@
  *   nhưng máy chủ luôn báo sai, không ai gửi được ý kiến.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { SITE_KEY, captchaEnabled } from '../../services/xacMinh';
 
-const SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY || '').trim();
-export const captchaEnabled = Boolean(SITE_KEY);
+export { captchaEnabled };
 
 declare global {
   interface Window { turnstile?: any }
@@ -48,9 +48,13 @@ function giaiNghiaLoi(ma: string): string {
 
 interface Props {
   onToken: (token: string) => void;
+  /** Ngôn ngữ ô kiểm tra của Cloudflare. */
+  ngonNgu?: 'vi' | 'en';
+  /** Bỏ dòng chú thích dưới ô (cổng vào đã tự giải thích). */
+  gon?: boolean;
 }
 
-export default function Turnstile({ onToken }: Props) {
+export default function Turnstile({ onToken, ngonNgu = 'vi', gon = false }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
 
@@ -89,7 +93,7 @@ export default function Turnstile({ onToken }: Props) {
     try {
       widgetId.current = window.turnstile.render(ref.current, {
         sitekey: SITE_KEY,
-        language: 'vi',
+        language: ngonNgu,
         callback: (token: string) => { setDangTai(false); setLoi(''); onTokenRef.current(token); },
         'expired-callback': () => {
           onTokenRef.current('');
@@ -109,7 +113,8 @@ export default function Turnstile({ onToken }: Props) {
       setLoi('Không dựng được ô xác minh.');
       console.error('[Turnstile]', e);
     }
-  }, []);   // <- KHÔNG phụ thuộc gì: hàm ổn định, effect chỉ chạy một lần
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);   // <- KHÔNG phụ thuộc gì: hàm ổn định, effect chỉ chạy một lần (đổi ngôn ngữ thì cha đổi key)
 
   useEffect(() => {
     if (!captchaEnabled) return;
@@ -164,10 +169,10 @@ export default function Turnstile({ onToken }: Props) {
   if (!captchaEnabled) return null;
 
   return (
-    <div className="mt-4">
+    <div className={gon ? '' : 'mt-4'}>
       <div ref={ref} />
 
-      {dangTai && !loi && (
+      {dangTai && !loi && !gon && (
         <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
           Đang tải ô xác minh…
         </p>
@@ -192,7 +197,7 @@ export default function Turnstile({ onToken }: Props) {
         </div>
       )}
 
-      {!loi && !dangTai && (
+      {!loi && !dangTai && !gon && (
         <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
           Bước xác minh này giúp ngăn máy tự động gửi tin rác.
         </p>

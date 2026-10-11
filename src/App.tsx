@@ -10,6 +10,7 @@ import { AdminAuthProvider, useAdminAuth } from './hooks/useAdminAuth';
 import { NgonNguProvider, useNN } from './i18n/NgonNgu';
 import { batHienDan, batNghieng } from './utils/hieuUng';
 import { cheDoMinhHoa } from './minh-hoa/cheDo';
+import CongXacMinh from './components/common/CongXacMinh';
 
 /* Trang thống kê và trang quản trị tách gói riêng: du khách mở trang chủ
    không phải tải thư viện biểu đồ hay mã quản trị. */
@@ -62,6 +63,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <NgonNguProvider>
       <AdminAuthProvider>
+        <CongXacMinh>
         <BrowserRouter>
           <Routes>
             <Route element={<KhungChung />}>
@@ -97,6 +99,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </CongXacMinh>
         <Toaster position="top-center" toastOptions={{ style: { borderRadius: 14, fontFamily: 'inherit', background: '#FFFEFB', color: '#192522', boxShadow: '0 4px 10px rgb(18 60 53 / .08), 0 24px 50px -20px rgb(18 60 53 / .4)' } }} />
       </AdminAuthProvider>
       </NgonNguProvider>

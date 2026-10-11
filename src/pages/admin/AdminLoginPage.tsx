@@ -3,11 +3,9 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Lock, User, Loader2, Smartphone } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
-import Turnstile, { captchaEnabled } from '../../components/common/Turnstile';
 import { LoginError } from '../../services/adminService';
 import { ANH_MAC_DINH, srcSetMacDinh } from '../../utils/anhMacDinh';
 
-/* Nền: một ảnh thật của địa điểm (ưu tiên rừng Cát Tiên), không có thì nền rạng sáng tĩnh. */
 /* Nền trang đăng nhập: ảnh mặc định đủ rộng cho cả màn hình, ưu tiên Cát Tiên. */
 const ANH_NEN = [...(ANH_MAC_DINH['vuon-quoc-gia-cat-tien'] || []), ...Object.values(ANH_MAC_DINH).flat()].find((a) => a.rong >= 1280);
 
@@ -19,28 +17,13 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  /* ==========================================================================
-     Ô XÁC MINH CHỈ HIỆN KHI MÁY CHỦ YÊU CẦU
-
-     ⚠️ ĐÂY LÀ LỖI KHOÁ CỬA CÁN BỘ: máy chủ bắt CAPTCHA sau 3 lần sai mật khẩu
-     và trả về cờ canCaptcha để giao diện dựng ô xác minh. Nhưng trang này
-     TRƯỚC ĐÂY KHÔNG HỀ VẼ Ô CAPTCHA NÀO. Cán bộ gõ sai ba lần là mắc kẹt hẳn:
-     màn hình bảo "vui lòng tích vào ô xác minh" mà chẳng có ô nào để tích,
-     nhập đúng mật khẩu cũng vô ích, phải đợi hết giờ đếm lùi mới vào lại được.
-
-     Nay cờ canCaptcha bật lên thì ô hiện ngay dưới ô mật khẩu.
-
-     `khoaOXacMinh` dùng để DỰNG LẠI ô sau mỗi lần đăng nhập hỏng: mã Turnstile
-     chỉ dùng được MỘT lần, gửi lại mã cũ thì Cloudflare từ chối. Đổi key là
-     React gỡ ô cũ dựng ô mới, người dùng tích lại lấy mã mới.
-     ========================================================================== */
-  const [canCaptcha, setCanCaptcha] = useState(false);
+  /* Ô "không phải người máy" chỉ ở cổng vào (CongXacMinh). Tài khoản vừa bị gõ
+     sai nhiều lần thì máy chủ đòi qua cổng lần nữa: cổng tự hiện đè lên trang,
+     tên và mật khẩu đã gõ vẫn giữ, xong bấm Đăng nhập lại. */
   /* Xác thực hai lớp: mật khẩu đúng thì máy chủ báo canOtp -> hiện ô mã 6 số,
      giữ nguyên tên và mật khẩu đã gõ, gửi lại kèm mã. */
   const [canOtp, setCanOtp] = useState(false);
   const [maOtp, setMaOtp] = useState('');
-  const [captchaToken, setCaptchaToken] = useState('');
-  const [khoaOXacMinh, setKhoaOXacMinh] = useState(0);
 
   async function handleSubmit() {
     if (!username.trim() || !password) {
@@ -53,24 +36,16 @@ export default function AdminLoginPage() {
       setError('Nhập đủ 6 chữ số đang hiện trên ứng dụng xác thực.');
       return;
     }
-    if (canCaptcha && captchaEnabled && !captchaToken) {
-      setError('Bà con vui lòng tích vào ô xác minh "Tôi không phải là người máy" bên dưới.');
-      return;
-    }
     setLoading(true);
     setError('');
     try {
-      await login(username.trim(), password, captchaToken || undefined, canOtp ? maOtp.replace(/\s/g, '') : undefined);
+      await login(username.trim(), password, canOtp ? maOtp.replace(/\s/g, '') : undefined);
       navigate('/quan-tri');
     } catch (e) {
       /* Lần đầu máy chủ hỏi mã 6 số không phải lỗi — ô nhập mã đã tự giải thích, không hiện khung đỏ. */
       const hoiMaLanDau = e instanceof LoginError && e.canOtp && !canOtp;
       setError(hoiMaLanDau ? '' : e instanceof Error ? e.message : 'Đăng nhập thất bại.');
-      if (e instanceof LoginError && e.canCaptcha) setCanCaptcha(true);
       if (e instanceof LoginError && e.canOtp) { setCanOtp(true); setMaOtp(''); }
-      /* Mã xác minh đã tiêu — dựng ô mới cho lần thử sau */
-      setCaptchaToken('');
-      setKhoaOXacMinh((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -154,26 +129,6 @@ export default function AdminLoginPage() {
           </div>
           <p className="mb-6 text-xs text-slate-500">Mở ứng dụng xác thực (Google Authenticator, Microsoft Authenticator…) trên điện thoại, nhập mã đang hiện. Mất điện thoại thì nhờ đồng nghiệp tắt hai lớp hộ ở mục Tài khoản cán bộ.</p>
         </>)}
-
-        {canCaptcha && (
-          <div className="mb-6">
-            {captchaEnabled ? (
-              <Turnstile key={khoaOXacMinh} onToken={setCaptchaToken} />
-            ) : (
-              /* Máy chủ đòi CAPTCHA mà trình duyệt chưa có site key thì không
-                 ai đăng nhập được nữa. Nói thẳng nguyên nhân cho quản trị viên
-                 thay vì để màn hình bảo tích một ô không tồn tại. */
-              <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-900/25 dark:text-amber-200">
-                <p className="font-semibold">Chưa cấu hình ô xác minh</p>
-                <p className="mt-1">
-                  Máy chủ đang yêu cầu xác minh chống người máy, nhưng trang web chưa khai
-                  biến <span className="font-mono">VITE_TURNSTILE_SITE_KEY</span>. Cần khai
-                  biến này trên Netlify rồi dựng lại, hoặc chờ hết thời gian đếm lùi.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
 
         <button
           onClick={handleSubmit}

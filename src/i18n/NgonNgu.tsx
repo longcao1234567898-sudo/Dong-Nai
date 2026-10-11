@@ -84,7 +84,16 @@ const TU: Record<string, [string, string]> = {
   dangGui: ['Đang gửi…', 'Sending…'],
   daGuiDanhGia: ['Đã gửi đánh giá. Cảm ơn bạn đã chia sẻ.', 'Review sent. Thank you for sharing.'],
   chonSao: ['Chọn số sao đánh giá chung trước khi gửi.', 'Choose an overall star rating first.'],
-  tichXacMinh: ['Vui lòng tích ô "Tôi không phải là người máy".', 'Please tick "I am not a robot".'],
+  // ---------- cổng kiểm tra chống người máy (chỗ duy nhất có ô Turnstile)
+  xmTieuDe: ['Kiểm tra nhanh trước khi vào trang', 'A quick check before you enter'],
+  xmMoTa: ['Bước này chặn máy tự động gửi đánh giá và phản ánh rác. Thường tự xong sau vài giây, không cần bấm gì.',
+    'This keeps bots from posting spam reviews and reports. It usually finishes on its own in a few seconds.'],
+  xmLaiTieuDe: ['Kiểm tra lại một chút', 'One more quick check'],
+  xmLaiMoTa: ['Phiên kiểm tra đã hết hạn hoặc bạn vừa đổi mạng. Xong bước này thì bấm gửi lại, nội dung đã gõ vẫn còn nguyên.',
+    'Your check expired or your network changed. When this is done, press send again. What you typed is still there.'],
+  xmDangMo: ['Đang mở trang…', 'Opening the site…'],
+  xmLoi: ['Chưa kiểm tra được. Thử lại.', 'The check did not go through. Try again.'],
+  xmThuLai: ['Thử lại', 'Try again'],
   sao: ['sao', 'stars'],
   // ---------- lộ trình
   loTrinhTieuDe: ['Lộ trình du lịch', 'Travel itineraries'],

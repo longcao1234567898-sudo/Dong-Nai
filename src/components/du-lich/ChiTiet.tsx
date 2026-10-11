@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, MapPin, Star, Phone, Globe, Clock, Loader2, ExternalLink, MessageSquareWarning, Flag, Navigation } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Turnstile, { captchaEnabled } from '../common/Turnstile';
 import { HienSao, KhungAnh } from './GiaoDien';
 import { layDanhGia, layDanhGiaCuaToi, guiDanhGia, baoDanhGia, anhUrl } from '../../services/api';
 import { LOAI, VUNG, TIEU_CHI, DI_CUNG, webAnToan } from '../../utils/hangSo';
@@ -45,20 +44,19 @@ function FormDanhGia({ p, onXong }: { p: DiaDiem; onXong: () => void }) {
   const [diCung, setDiCung] = useState('');
   const [thang, setThang] = useState(new Date().toISOString().slice(0, 7));
   const [ten, setTen] = useState(''); const [nhanXet, setNhanXet] = useState('');
-  const [token, setToken] = useState(''); const [khoaXm, setKhoaXm] = useState(0); const [loi, setLoi] = useState('');
+  const [loi, setLoi] = useState('');
   useEffect(() => { if (cu) { setSao(cu.sao); setTc(cu.tieuChi || {}); setDiCung(cu.diCung || ''); setThang(cu.thoiDiem || thang); setTen(cu.ten || ''); setNhanXet(cu.nhanXet || ''); } },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [cu]);
   const gui = useMutation({
-    mutationFn: () => guiDanhGia({ diaDiemId: p.id, sao, tieuChi: tc, diCung: diCung || null, thoiDiem: thang || null, nhanXet: nhanXet.trim() || null, ten: ten.trim() || null, captchaToken: token || undefined }),
+    mutationFn: () => guiDanhGia({ diaDiemId: p.id, sao, tieuChi: tc, diCung: diCung || null, thoiDiem: thang || null, nhanXet: nhanXet.trim() || null, ten: ten.trim() || null }),
     onSuccess: () => { toast.success(t('daGuiDanhGia')); ['dia-diem', 'danh-gia-moi', 'thong-ke'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
       qc.invalidateQueries({ queryKey: ['danh-gia', p.id] }); qc.invalidateQueries({ queryKey: ['cua-toi', p.id] }); onXong(); },
-    onError: (e: Error) => { setLoi(e.message); setToken(''); setKhoaXm((k) => k + 1); },
+    onError: (e: Error) => setLoi(e.message),
   });
   const nop = () => {
     setLoi('');
     if (!sao) return setLoi(t('chonSao'));
-    if (captchaEnabled && !token) return setLoi(t('tichXacMinh'));
     gui.mutate();
   };
   const nhan = 'text-sm font-semibold text-ink-2';
@@ -82,7 +80,6 @@ function FormDanhGia({ p, onXong }: { p: DiaDiem; onXong: () => void }) {
       </div>
       <label className={`mt-3 block ${nhan}`}>{t('nhanXet')}
         <textarea maxLength={500} rows={3} value={nhanXet} onChange={(e) => setNhanXet(e.target.value)} placeholder={t('nhanXetGoiY')} className="o-nhap mt-1 font-normal" /></label>
-      {captchaEnabled && <div className="mt-3"><Turnstile key={khoaXm} onToken={setToken} /></div>}
       {loi && <div role="alert" className="mt-3 rounded-xl bg-[#FDECEA] px-4 py-3 text-sm text-[#B42318]">{loi}</div>}
       <button type="button" onClick={nop} disabled={gui.isPending} className="nut nut-chinh mt-4">
         {gui.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{gui.isPending ? t('dangGui') : t('guiDanhGia')}</button>

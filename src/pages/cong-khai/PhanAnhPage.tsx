@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Phone, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
-import Turnstile, { captchaEnabled } from '../../components/common/Turnstile';
 import { DauTrang } from '../../components/du-lich/GiaoDien';
 import { layDiaDiem, guiPhanAnh } from '../../services/api';
 import { useNN, DS_LOAI_PA } from '../../i18n/NgonNgu';
@@ -16,14 +15,12 @@ export default function PhanAnhPage() {
   const [tham] = useSearchParams();
   const { data: ds = [] } = useQuery({ queryKey: ['dia-diem'], queryFn: layDiaDiem });
   const [f, setF] = useState({ ...TRONG, diaDiemId: tham.get('diem') || '' });
-  const [token, setToken] = useState(''); const [khoaXm, setKhoaXm] = useState(0);
   const [loi, setLoi] = useState(''); const [daGui, setDaGui] = useState(false);
-  const gui = useMutation({ mutationFn: () => guiPhanAnh({ ...f, diaDiemId: f.diaDiemId || undefined, lienHe: f.lienHe || undefined, captchaToken: token || undefined }),
+  const gui = useMutation({ mutationFn: () => guiPhanAnh({ ...f, diaDiemId: f.diaDiemId || undefined, lienHe: f.lienHe || undefined }),
     onSuccess: () => { setDaGui(true); setLoi(''); setF(TRONG); },
-    onError: (e: Error) => { setLoi(e.message); setToken(''); setKhoaXm((k) => k + 1); } });
+    onError: (e: Error) => setLoi(e.message) });
   const nop = () => {
     if (!f.loai) return setLoi(t('chonLoaiPhanAnh'));
-    if (captchaEnabled && !token) return setLoi(t('tichXacMinh'));
     gui.mutate();
   };
   return (
@@ -46,7 +43,6 @@ export default function PhanAnhPage() {
               <option value="">—</option>{ds.map((p) => <option key={p.id} value={p.id}>{chon(p.ten, p.tenEn)}</option>)}</select></label>
             <label className={nhan}>{t('noiDungPhanAnh')}<textarea className="o-nhap mt-1 font-normal" rows={5} maxLength={2000} value={f.noiDung} onChange={(e) => setF({ ...f, noiDung: e.target.value })} /></label>
             <label className={nhan}>{t('lienHe')}<input className="o-nhap mt-1 font-normal" maxLength={100} value={f.lienHe} onChange={(e) => setF({ ...f, lienHe: e.target.value })} /></label>
-            {captchaEnabled && <div className="mt-4"><Turnstile key={khoaXm} onToken={setToken} /></div>}
             {loi && <div role="alert" className="mt-4 rounded-xl bg-[#FDECEA] px-4 py-3 text-sm text-[#B42318]">{loi}</div>}
             <button type="button" onClick={nop} disabled={gui.isPending} className="nut nut-chinh mt-6">
               {gui.isPending && <Loader2 className="h-4 w-4 animate-spin" />}{gui.isPending ? t('dangGui') : t('guiPhanAnh')}</button>
