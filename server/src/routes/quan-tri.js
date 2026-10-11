@@ -30,6 +30,7 @@ function slug(s) {
   return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
 }
+export const VUNG = ['ven-song', 'mien-dong', 'phia-bac'];
 function docDiaDiem(b) {
   const lat = Number(b.lat), lng = Number(b.lng);
   const loi = !String(b.ten || '').trim() ? 'Thiếu tên địa điểm.'
@@ -44,6 +45,7 @@ function docDiaDiem(b) {
     sdt: String(b.sdt || '').replace(/[^0-9+ .()-]/g, '').slice(0, 20) || null, web: String(b.web || '').slice(0, 200) || null,
     gio_mo: sanitizeText(String(b.gioMo || ''), 80) || null, noi_bat: !!b.noiBat, hien: b.hien !== false, da_kiem_tra: !!b.daKiemTra,
     xa_phuong_id: Number(b.xaPhuongId) > 0 ? Number(b.xaPhuongId) : null,
+    vung: VUNG.includes(b.vung) ? b.vung : null,
   } };
 }
 
@@ -83,7 +85,7 @@ router.get('/dia-diem', async (_req, res, next) => {
   try {
     const [rows] = await pool.query('SELECT * FROM dia_diem ORDER BY ten');
     res.json(rows.map((r) => ({ id: r.id, ten: r.ten, loai: r.loai, moTa: r.mo_ta, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
-      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null, tenEn: r.ten_en ?? null, moTaEn: r.mo_ta_en ?? null })));
+      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, hien: !!r.hien, daKiemTra: !!r.da_kiem_tra, nguon: r.nguon, xaPhuongId: r.xa_phuong_id ?? null, tenEn: r.ten_en ?? null, moTaEn: r.mo_ta_en ?? null, vung: r.vung ?? null })));
   } catch (e) { next(e); }
 });
 router.post('/dia-diem', async (req, res, next) => {

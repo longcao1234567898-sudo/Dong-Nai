@@ -3,14 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { adminFetch } from '../../services/adminService';
 import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../components/common/KhoiQt';
-import { LOAI } from '../../utils/hangSo';
+import { LOAI, VUNG } from '../../utils/hangSo';
 import { useCauHinh } from '../../utils/phuLuc';
 import QuanLyAnh from '../../components/common/QuanLyAnh';
 import type { Loai } from '../../utils/kieu';
 
 interface DD { id: string; ten: string; loai: Loai; moTa: string | null; diaChi: string | null; lat: number; lng: number; sdt: string | null; web: string | null;
-  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null; tenEn: string | null; moTaEn: string | null }
-const TRONG = { ten: '', tenEn: '', loai: 'thien-nhien' as Loai, moTa: '', moTaEn: '', diaChi: '', xaPhuongId: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
+  gioMo: string | null; noiBat: boolean; hien: boolean; daKiemTra: boolean; xaPhuongId: number | null; tenEn: string | null; moTaEn: string | null; vung: string | null }
+const TRONG = { ten: '', tenEn: '', loai: 'thien-nhien' as Loai, moTa: '', moTaEn: '', diaChi: '', xaPhuongId: '', vung: '', lat: '', lng: '', sdt: '', web: '', gioMo: '', noiBat: false, hien: true, daKiemTra: false };
 
 export default function AdminDiaDiem() {
   const qc = useQueryClient();
@@ -25,7 +25,7 @@ export default function AdminDiaDiem() {
   });
   const anHien = useMutation({ mutationFn: (p: DD) => adminFetch(`/dia-diem/${p.id}/hien`, { method: 'PATCH', body: JSON.stringify({ hien: !p.hien }) }), onSuccess: lamMoi,
     onError: (e: Error) => toast.error(e.message) });
-  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '', tenEn: p.tenEn || '', moTaEn: p.moTaEn || '' });
+  const sua = (p: DD) => { setSuaId(p.id); setLoi(''); setF({ ...TRONG, ...p, moTa: p.moTa || '', diaChi: p.diaChi || '', sdt: p.sdt || '', web: p.web || '', gioMo: p.gioMo || '', lat: String(p.lat), lng: String(p.lng), xaPhuongId: p.xaPhuongId ? String(p.xaPhuongId) : '', vung: p.vung || '', tenEn: p.tenEn || '', moTaEn: p.moTaEn || '' });
     window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const dat = (k: keyof typeof TRONG) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setF((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value }));
@@ -46,6 +46,8 @@ export default function AdminDiaDiem() {
           <label className={nhan}>Địa chỉ<input className={o} value={f.diaChi} onChange={dat('diaChi')} maxLength={200} /></label>
           <label className={nhan}>Xã/phường<select className={o} value={f.xaPhuongId} onChange={dat('xaPhuongId')}>
             <option value="">— Chưa chọn —</option>{ch?.xaPhuong.filter((x) => x.hien || String(x.id) === f.xaPhuongId).map((x) => <option key={x.id} value={x.id}>{x.ten}</option>)}</select></label></div>
+        <label className={nhan}>Vùng du lịch <small className="font-normal text-slate-500">(để du khách lọc ở trang chủ)</small><select className={o} value={f.vung} onChange={dat('vung')}>
+          <option value="">— Chưa chọn —</option>{Object.entries(VUNG).map(([k, v]) => <option key={k} value={k}>{v.ten}</option>)}</select></label>
         <div className="grid grid-cols-2 gap-3">
           <label className={nhan}>Vĩ độ<input className={o} inputMode="decimal" value={f.lat} onChange={dat('lat')} /></label>
           <label className={nhan}>Kinh độ<input className={o} inputMode="decimal" value={f.lng} onChange={dat('lng')} /></label>

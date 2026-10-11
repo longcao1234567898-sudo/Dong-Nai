@@ -20,7 +20,7 @@ router.get('/lo-trinh', async (_req, res, next) => {
   try {
     const [lt] = await pool.query('SELECT * FROM lich_trinh ORDER BY thu_tu, id');
     const [diem] = await pool.query('SELECT * FROM lich_trinh_diem ORDER BY lich_trinh_id, thu_tu');
-    res.json(lt.map((t) => ({ id: t.id, ten: t.ten, tenEn: t.ten_en, thoiGian: t.thoi_gian, moTa: t.mo_ta, moTaEn: t.mo_ta_en, hien: !!t.hien, thuTu: t.thu_tu,
+    res.json(lt.map((t) => ({ id: t.id, ten: t.ten, tenEn: t.ten_en, thoiGian: t.thoi_gian, phuongTien: t.phuong_tien ?? null, phuongTienEn: t.phuong_tien_en ?? null, moTa: t.mo_ta, moTaEn: t.mo_ta_en, hien: !!t.hien, thuTu: t.thu_tu,
       diem: diem.filter((d) => d.lich_trinh_id === t.id).map((d) => ({ id: d.dia_diem_id, ngay: d.ngay, ghiChu: d.ghi_chu })) })));
   } catch (e) { next(e); }
 });
@@ -34,6 +34,7 @@ async function docLoTrinh(b) {
   const thieu = diem.find((d) => !co.some((c) => c.id === String(d.id)));
   if (thieu) return { loi: `Không có địa điểm mã "${thieu.id}".` };
   return { du: { ten, ten_en: sanitizeText(String(b.tenEn || ''), 120) || null, thoi_gian: sanitizeText(String(b.thoiGian || ''), 40) || null,
+    phuong_tien: sanitizeText(String(b.phuongTien || ''), 60) || null, phuong_tien_en: sanitizeText(String(b.phuongTienEn || ''), 60) || null,
     mo_ta: sanitizeText(String(b.moTa || ''), 600) || null, mo_ta_en: sanitizeText(String(b.moTaEn || ''), 600) || null,
     hien: b.hien !== false, thu_tu: Number.isInteger(Number(b.thuTu)) ? Number(b.thuTu) : 0 },
   diem: diem.map((d, i) => [i + 1, String(d.id), Math.min(Math.max(Math.floor(Number(d.ngay)) || 1, 1), 30), sanitizeText(String(d.ghiChu || ''), 300) || null]) };

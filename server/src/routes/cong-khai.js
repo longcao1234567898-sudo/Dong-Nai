@@ -30,11 +30,11 @@ router.get('/dia-diem', async (_req, res, next) => {
   try {
     if (dem.du && Date.now() - dem.luc < 30_000) return res.json(dem.du);
     const [rows] = await pool.query(
-      `SELECT d.id, d.ten, d.ten_en, d.loai, d.mo_ta, d.mo_ta_en, d.dia_chi, d.lat, d.lng, d.sdt, d.web, d.gio_mo, d.noi_bat,
+      `SELECT d.id, d.ten, d.ten_en, d.loai, d.mo_ta, d.mo_ta_en, d.dia_chi, d.lat, d.lng, d.sdt, d.web, d.gio_mo, d.noi_bat, d.vung, x.ten AS xa,
               COUNT(g.id) AS so_dg, AVG(g.sao) AS sao_tb,
               AVG(g.canh_quan) AS tb_canh_quan, AVG(g.dich_vu) AS tb_dich_vu, AVG(g.ve_sinh) AS tb_ve_sinh, AVG(g.gia_ca) AS tb_gia_ca,
               SUM(g.sao = 5) AS s5, SUM(g.sao = 4) AS s4, SUM(g.sao = 3) AS s3, SUM(g.sao = 2) AS s2, SUM(g.sao = 1) AS s1
-         FROM dia_diem d LEFT JOIN danh_gia g ON g.dia_diem_id = d.id AND g.bi_an = 0
+         FROM dia_diem d LEFT JOIN danh_gia g ON g.dia_diem_id = d.id AND g.bi_an = 0 LEFT JOIN xa_phuong x ON x.id = d.xa_phuong_id
         WHERE d.hien = 1
         GROUP BY d.id
         ORDER BY d.noi_bat DESC, d.ten`
@@ -45,7 +45,7 @@ router.get('/dia-diem', async (_req, res, next) => {
     dem = { luc: Date.now(), du: rows.map((r) => ({
       id: r.id, ten: r.ten, tenEn: r.ten_en, loai: r.loai, moTa: r.mo_ta, moTaEn: r.mo_ta_en, diaChi: r.dia_chi, lat: Number(r.lat), lng: Number(r.lng),
       anh: anh.filter((a) => a.dia_diem_id === r.id).map((a) => ({ id: a.id, rong: a.rong, cao: a.cao, chuThich: a.chu_thich })),
-      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat,
+      sdt: r.sdt, web: r.web, gioMo: r.gio_mo, noiBat: !!r.noi_bat, vung: r.vung ?? null, xa: r.xa ?? null,
       soDanhGia: Number(r.so_dg), saoTb: so(r.sao_tb),
       tieuChi: { canhQuan: so(r.tb_canh_quan), dichVu: so(r.tb_dich_vu), veSinh: so(r.tb_ve_sinh), giaCa: so(r.tb_gia_ca) },
       phanBo: [5, 4, 3, 2, 1].map((n) => Number(r['s' + n] || 0)),
@@ -62,6 +62,21 @@ router.get('/dia-diem/:id/danh-gia', async (req, res, next) => {
          FROM danh_gia WHERE dia_diem_id = ? AND bi_an = 0 ORDER BY ${sx} LIMIT 50`, [String(req.params.id)]);
     res.json(rows.map((r) => ({ id: r.id, sao: r.sao, tieuChi: { canhQuan: r.canh_quan, dichVu: r.dich_vu, veSinh: r.ve_sinh, giaCa: r.gia_ca },
       diCung: r.di_cung, thoiDiem: r.thoi_diem, nhanXet: r.nhan_xet, ten: r.ten_hien_thi, luc: r.updated_at })));
+  } catch (e) { next(e); }
+});
+
+/* Đánh giá mới nhất trên mọi điểm đến — khối "Đánh giá của du khách" ở trang chủ.
+   Chỉ đánh giá có nhận xét, chưa bị cán bộ ẩn, của điểm đang hiện. */
+router.get('/danh-gia/moi-nhat', async (req, res, next) => {
+  try {
+    const gioiHan = Math.min(Math.max(Number.parseInt(req.query.gioiHan, 10) || 6, 1), 12);
+    const [rows] = await pool.query(
+      `SELECT g.id, g.dia_diem_id, d.ten, d.ten_en, g.sao, g.di_cung, g.thoi_diem, g.nhan_xet, g.ten_hien_thi, g.updated_at
+         FROM danh_gia g JOIN dia_diem d ON d.id = g.dia_diem_id
+        WHERE g.bi_an = 0 AND d.hien = 1 AND g.nhan_xet IS NOT NULL AND g.nhan_xet <> ''
+        ORDER BY g.updated_at DESC, g.id DESC LIMIT ?`, [gioiHan]);
+    res.json(rows.map((r) => ({ id: r.id, diaDiemId: r.dia_diem_id, tenDiem: r.ten, tenDiemEn: r.ten_en, sao: r.sao, diCung: r.di_cung,
+      thoiDiem: r.thoi_diem, nhanXet: r.nhan_xet, ten: r.ten_hien_thi, luc: r.updated_at })));
   } catch (e) { next(e); }
 });
 
@@ -176,11 +191,12 @@ router.get('/anh/:id', async (req, res, next) => {
 
 router.get('/lo-trinh', async (_req, res, next) => {
   try {
-    const [lt] = await pool.query('SELECT id, ten, ten_en, thoi_gian, mo_ta, mo_ta_en FROM lich_trinh WHERE hien = 1 ORDER BY thu_tu, id');
+    const [lt] = await pool.query('SELECT id, ten, ten_en, thoi_gian, phuong_tien, phuong_tien_en, mo_ta, mo_ta_en FROM lich_trinh WHERE hien = 1 ORDER BY thu_tu, id');
     const [diem] = await pool.query(
       `SELECT ld.lich_trinh_id, ld.dia_diem_id, ld.ngay, ld.ghi_chu FROM lich_trinh_diem ld JOIN dia_diem d ON d.id = ld.dia_diem_id
         WHERE d.hien = 1 ORDER BY ld.lich_trinh_id, ld.thu_tu`);
-    res.json(lt.map((t) => ({ id: t.id, ten: t.ten, tenEn: t.ten_en, thoiGian: t.thoi_gian, moTa: t.mo_ta, moTaEn: t.mo_ta_en,
+    res.json(lt.map((t) => ({ id: t.id, ten: t.ten, tenEn: t.ten_en, thoiGian: t.thoi_gian, phuongTien: t.phuong_tien ?? null, phuongTienEn: t.phuong_tien_en ?? null,
+      moTa: t.mo_ta, moTaEn: t.mo_ta_en,
       diem: diem.filter((d) => d.lich_trinh_id === t.id).map((d) => ({ id: d.dia_diem_id, ngay: d.ngay, ghiChu: d.ghi_chu })) })));
   } catch (e) { next(e); }
 });

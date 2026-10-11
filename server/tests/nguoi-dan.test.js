@@ -25,6 +25,8 @@ pool.query = async (sql, params = []) => {
   if (/SELECT id FROM dia_diem WHERE id IN/i.test(sql)) return [[{ id: 'ho-tri-an' }, { id: 'cu-lao-pho' }]];
   if (/SELECT id FROM dia_diem WHERE id = \?/i.test(sql)) return [[{ id: 'ho-tri-an' }]];
   if (/COUNT\(\*\) AS so FROM anh_dia_diem/i.test(sql)) return [[{ so: 0 }]];
+  if (/FROM danh_gia g JOIN dia_diem d/i.test(sql)) return [[{ id: 3, dia_diem_id: 'ho-tri-an', ten: 'Hồ Trị An', ten_en: 'Tri An Lake', sao: 5,
+    di_cung: 'gia-dinh', thoi_diem: '2026-08', nhan_xet: 'Hoàng hôn trên hồ rất đẹp.', ten_hien_thi: null, updated_at: '2026-09-01 10:00:00' }]];
   return [{ affectedRows: 1, insertId: 7 }];
 };
 pool.getConnection = async () => ({ query: pool.query, beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release: () => {} });
@@ -100,4 +102,27 @@ test('báo đánh giá: lưu bản băm mã thiết bị, không lưu mã thô',
   assert.equal(r.status, 200);
   const ghi = goi.find((g) => /INSERT IGNORE INTO bao_danh_gia/i.test(g.sql));
   assert.ok(!ghi.params.includes(may)); assert.match(ghi.params[1], /^[a-f0-9]{64}$/);
+});
+
+test('đánh giá mới nhất: chỉ bài chưa ẩn, có nhận xét, của điểm đang hiện; giới hạn tối đa 12', async () => {
+  goi = [];
+  const r = await api('/api/cong-khai/danh-gia/moi-nhat?gioiHan=999');
+  assert.equal(r.status, 200);
+  const [x] = await r.json();
+  assert.deepEqual(Object.keys(x).sort(), ['diCung', 'diaDiemId', 'id', 'luc', 'nhanXet', 'sao', 'ten', 'tenDiem', 'tenDiemEn', 'thoiDiem'],
+    'không trả mã thiết bị hay IP băm');
+  const q = goi.find((g) => /FROM danh_gia g JOIN dia_diem d/i.test(g.sql));
+  assert.match(q.sql, /g\.bi_an = 0/); assert.match(q.sql, /d\.hien = 1/);
+  assert.deepEqual(q.params, [12]);
+});
+
+test('lộ trình lưu phương tiện; địa điểm chỉ nhận vùng hợp lệ', async () => {
+  goi = [];
+  await api('/api/quan-tri/lo-trinh', { method: 'POST', token: ve, body: { ten: 'Sông nước', phuongTien: 'Ô tô hoặc xe máy', diem: [{ id: 'cu-lao-pho' }, { id: 'ho-tri-an' }] } });
+  assert.equal(goi.find((g) => /INSERT INTO lich_trinh SET/i.test(g.sql)).params[0].phuong_tien, 'Ô tô hoặc xe máy');
+  const sua = async (vung) => { goi = [];
+    await api('/api/quan-tri/dia-diem/ho-tri-an', { method: 'PUT', token: ve, body: { ten: 'Hồ Trị An', loai: 'thien-nhien', lat: 11.18, lng: 107.15, vung } });
+    return goi.find((g) => /UPDATE dia_diem SET/i.test(g.sql)).params[0].vung; };
+  assert.equal(await sua('phia-bac'), 'phia-bac');
+  assert.equal(await sua('vung-la'), null);
 });

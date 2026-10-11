@@ -1,0 +1,70 @@
+/* ==========================================================================
+   TOKEN THIẾT KẾ — một nguồn cho màu, chữ, khoảng cách, bóng, chuyển động.
+   Màu ghi dạng "R G B" rời để Tailwind ghép độ mờ (bg-forest/80).
+   Tỉ lệ tương phản đã đo: docs/THIET-KE-GIAO-DIEN.md, mục 2.1.
+   ========================================================================== */
+:root {
+  --c-forest: 18 60 53;          /* #123C35 mảng tối, tiêu đề */
+  --c-forest-raised: 28 56 49;   /* #1C3831 */
+  --c-emerald: 28 140 114;       /* #1C8C72 icon, chữ ≥ 24px */
+  --c-action: 21 122 99;         /* #157A63 link, nút chính */
+  --c-action-hover: 17 101 83;   /* #116553 */
+  --c-on-action: 255 255 255;
+  --c-bg: 247 245 239;           /* #F7F5EF ivory */
+  --c-surface: 255 254 251;      /* giấy ấm, không trắng tinh — trắng tinh là thứ làm giao diện trông như nhựa */
+  --c-sunken: 239 235 225;       /* #EFEBE1 */
+  --c-ink: 25 37 34;             /* #192522 */
+  --c-ink-2: 62 76 72;           /* #3E4C48 */
+  --c-muted: 91 107 102;         /* #5B6B66 */
+  --c-line: 221 216 204;         /* #DDD8CC chỉ để trang trí */
+  --c-line-strong: 124 138 133;  /* #7C8A85 viền ô nhập (≥ 3:1) */
+  --c-coral: 241 124 91;         /* #F17C5B nút "lộ trình" (chữ ink) */
+  --c-route: 212 85 47;          /* #D4552F tuyến đường trên nền sáng */
+  --c-star: 154 107 18;          /* #9A6B12 viền sao trên nền sáng */
+  --c-gold: 234 191 103;         /* #EABF67 ruột sao */
+  --c-danger: 180 35 24;
+  --c-danger-bg: 253 236 234;
+  --c-warning-bg: 252 239 199;
+
+  --font-serif: Newsreader, "Noto Serif Display", Georgia, serif;
+  --font-sans: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+
+  /* Bóng: lớp tiếp xúc sát + lớp ánh sáng môi trường toả xa, nhuộm màu rừng */
+  --sh-1: 0 1px 1px rgb(18 60 53 / .05), 0 2px 6px rgb(18 60 53 / .06);
+  --sh-2: 0 2px 4px rgb(18 60 53 / .06), 0 18px 40px -16px rgb(18 60 53 / .32);
+  --sh-3: 0 4px 10px rgb(18 60 53 / .08), 0 34px 70px -24px rgb(18 60 53 / .45);
+  --vien-sang: inset 0 1px 0 rgb(255 255 255 / .7);   /* mép trên bắt sáng: mặt giấy có độ dày */
+
+  --dur-instant: 100ms; --dur-fast: 180ms; --dur-base: 280ms; --dur-slow: 600ms; --dur-cinema: 1100ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1);
+  --ease-expo: cubic-bezier(.16, 1, .3, 1);
+  --ease-in-out: cubic-bezier(.65, 0, .35, 1);
+  --ease-pop: cubic-bezier(.34, 1.56, .64, 1);
+
+  /* Hạt giấy: nhiễu fractal, không màu, chỉ kênh trong suốt */
+  --hat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --hat-dam: .07;
+  --dm-mau: rgb(18 60 53 / .07);   /* màu đường đồng mức trên nền sáng */
+}
+
+.dark {
+  --c-bg: 14 31 27;              /* #0E1F1B */
+  --c-surface: 24 46 40;
+  --c-sunken: 20 40 35;
+  --c-ink: 247 245 239;
+  --c-ink-2: 214 222 218;
+  --c-muted: 169 184 178;        /* #A9B8B2 */
+  --c-line: 44 74 66;
+  --c-line-strong: 120 140 133;
+  --c-action: 69 184 151;        /* #45B897 */
+  --c-action-hover: 98 201 171;
+  --c-on-action: 25 37 34;       /* chữ ink trên nút sáng */
+  --c-star: 234 191 103;
+  --sh-1: 0 1px 1px rgb(0 0 0 / .25), 0 2px 6px rgb(0 0 0 / .2);
+  --sh-2: 0 2px 4px rgb(0 0 0 / .25), 0 18px 40px -16px rgb(0 0 0 / .6);
+  --sh-3: 0 4px 10px rgb(0 0 0 / .3), 0 34px 70px -24px rgb(0 0 0 / .7);
+  --vien-sang: inset 0 1px 0 rgb(255 255 255 / .06);
+  --hat-dam: .05;
+  --dm-mau: rgb(247 245 239 / .05);
+  /* --c-route giữ nguyên: nền bản đồ OSM vẫn sáng */
+}

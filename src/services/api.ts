@@ -1,6 +1,6 @@
 /** Gọi máy chủ phía du khách. */
 import { API_URL } from './adminService';
-import type { DiaDiem, DanhGia, ThongKe, DanhGiaGui, LoTrinh, TinTuc, LuuTru } from '../utils/kieu';
+import type { DiaDiem, DanhGia, DanhGiaMoi, ThongKe, DanhGiaGui, LoTrinh, TinTuc, LuuTru } from '../utils/kieu';
 
 /* Mã thiết bị ngẫu nhiên lưu trong trình duyệt: mỗi thiết bị một đánh giá cho
    mỗi điểm, gửi lại là sửa bài cũ. Máy chủ chỉ lưu bản băm của mã này. */
@@ -35,6 +35,7 @@ export const layDanhGiaCuaToi = (id: string) => goi<DanhGiaGui | null>(`/dia-die
 export const guiDanhGia = (d: DanhGiaGui & { diaDiemId: string; captchaToken?: string }) => goi<{ ok: true }>('/danh-gia', { method: 'POST', body: JSON.stringify(d) });
 export const layThongKe = (nam?: string) => goi<ThongKe>(`/thong-ke${nam ? `?nam=${nam}` : ''}`);
 export const layLoTrinh = () => goi<LoTrinh[]>('/lo-trinh');
+export const layDanhGiaMoiNhat = (gioiHan = 6) => goi<DanhGiaMoi[]>(`/danh-gia/moi-nhat?gioiHan=${gioiHan}`);
 export const layTinTuc = () => goi<TinTuc[]>('/tin-tuc');
 export const layLuuTru = () => goi<LuuTru[]>('/luu-tru');
 export const guiPhanAnh = (d: { loai: string; diaDiemId?: string; noiDung: string; lienHe?: string; captchaToken?: string }) =>

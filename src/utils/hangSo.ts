@@ -1,12 +1,18 @@
-import type { Loai, TieuChi } from './kieu';
+import type { Loai, TieuChi, Vung } from './kieu';
 
 export const LOAI: Record<Loai, { ten: string; en: string; mau: string }> = {
-  'thien-nhien': { ten: 'Thiên nhiên – sinh thái', en: 'Nature & eco-tourism', mau: '#1B5E20' },
-  'di-tich':     { ten: 'Di tích – văn hoá',       en: 'Heritage & culture',   mau: '#1E3A5F' },
-  'vui-choi':    { ten: 'Vui chơi – nghỉ dưỡng',   en: 'Leisure & resorts',    mau: '#d97706' },
-  'luu-tru':     { ten: 'Lưu trú',                 en: 'Accommodation',        mau: '#7c3aed' },
-  'am-thuc':     { ten: 'Ẩm thực',                 en: 'Food',                 mau: '#be123c' },
-  'dac-san':     { ten: 'Làng nghề – đặc sản',     en: 'Crafts & specialties', mau: '#0891b2' },
+  'thien-nhien': { ten: 'Thiên nhiên – sinh thái', en: 'Nature & eco-tourism', mau: '#1C8C72' },
+  'di-tich':     { ten: 'Di tích – văn hoá',       en: 'Heritage & culture',   mau: '#7A5C2E' },
+  'vui-choi':    { ten: 'Vui chơi – nghỉ dưỡng',   en: 'Leisure & resorts',    mau: '#2F6F8F' },
+  'luu-tru':     { ten: 'Lưu trú',                 en: 'Accommodation',        mau: '#5B6B66' },
+  'am-thuc':     { ten: 'Ẩm thực',                 en: 'Food',                 mau: '#9A6B12' },
+  'dac-san':     { ten: 'Làng nghề – đặc sản',     en: 'Crafts & specialties', mau: '#6B4E7A' },
+};
+/* Vùng du lịch — cán bộ gán cho từng điểm ở khu quản trị (cột dia_diem.vung). */
+export const VUNG: Record<Vung, { ten: string; en: string }> = {
+  'ven-song':  { ten: 'Ven sông Đồng Nai',         en: 'Along the Dong Nai River' },
+  'mien-dong': { ten: 'Hồ, rừng và núi miền đông', en: 'Eastern lakes, forests and hills' },
+  'phia-bac':  { ten: 'Miền đất đỏ phía bắc',      en: 'The red-soil north' },
 };
 export const TIEU_CHI: [keyof TieuChi, string, string][] = [['canhQuan', 'Cảnh quan', 'Scenery'], ['dichVu', 'Dịch vụ', 'Service'], ['veSinh', 'Vệ sinh', 'Cleanliness'], ['giaCa', 'Giá cả', 'Price']];
 export const DI_CUNG: Record<string, [string, string]> = { 'gia-dinh': ['Gia đình', 'Family'], 'ban-be': ['Bạn bè', 'Friends'], 'cap-doi': ['Cặp đôi', 'Couple'], 'mot-minh': ['Một mình', 'Solo'] };

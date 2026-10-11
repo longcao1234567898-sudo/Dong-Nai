@@ -59,12 +59,16 @@ app.use(errorHandler);
 const CAN_CO = ['xa_phuong', 'ky_bao_cao', 'nop_bao_cao', 'khong_phat_sinh', 'lich_su_sua', 'bc_khach', 'bc_du_an', 'bc_luu_tru',
   'bc_vu_viec', 'bc_phoi_hop', 'bc_van_dong', 'bc_luc_luong', 'bc_quan_so', 'bc_dan_cu', 'bc_vi_pham',
   'lich_trinh', 'lich_trinh_diem', 'anh_dia_diem', 'phan_anh', 'tin_tuc', 'bao_danh_gia'];
+/* Cột thêm ở các đợt sau: thiếu cột thì trang chủ không đọc được danh sách điểm đến. */
+const CAN_CO_COT = [['dia_diem', 'vung'], ['lich_trinh', 'phuong_tien']];
 async function kiemCauTruc() {
   try {
     const [rows] = await pool.query('SELECT table_name AS t FROM information_schema.tables WHERE table_schema = DATABASE()');
     const co = new Set(rows.map((r) => r.t ?? r.TABLE_NAME));
-    const thieu = CAN_CO.filter((t) => !co.has(t));
-    if (thieu.length) console.warn(`⚠️  Cơ sở dữ liệu thiếu bảng: ${thieu.join(', ')}.\n   → Dán lại toàn bộ database/du_lich_dong_nai.sql vào HeidiSQL rồi F9 (chạy lại không mất số liệu).`);
+    const [cot] = await pool.query('SELECT table_name AS t, column_name AS c FROM information_schema.columns WHERE table_schema = DATABASE()');
+    const coCot = new Set(cot.map((r) => `${r.t ?? r.TABLE_NAME}.${r.c ?? r.COLUMN_NAME}`));
+    const thieu = [...CAN_CO.filter((t) => !co.has(t)), ...CAN_CO_COT.filter(([t, c]) => !coCot.has(`${t}.${c}`)).map(([t, c]) => `${t}.${c}`)];
+    if (thieu.length) console.warn(`⚠️  Cơ sở dữ liệu thiếu bảng hoặc cột: ${thieu.join(', ')}.\n   → Dán lại toàn bộ database/du_lich_dong_nai.sql vào HeidiSQL rồi F9 (chạy lại không mất số liệu).`);
   } catch (e) { console.warn('⚠️  Chưa kiểm được cấu trúc cơ sở dữ liệu:', e.message); }
 }
 

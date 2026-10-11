@@ -5,7 +5,6 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, Cart
 import { layThongKe } from '../services/api';
 import DemSo from '../components/du-lich/DemSo';
 import { TIEU_CHI, so } from '../utils/hangSo';
-import { useHienDan } from '../hooks/useHienDan';
 import { useNN } from '../i18n/NgonNgu';
 
 const Khung = ({ tieuDe, moTa, rong = false, children }: { tieuDe: string; moTa: string; rong?: boolean; children: React.ReactElement }) => (
@@ -33,7 +32,6 @@ export default function ThongKePage() {
   const c = (k: string) => CHU[k][nn === 'en' ? 1 : 0];
   const [nam, setNam] = useState<string>();
   const { data: tk, isLoading, error } = useQuery({ queryKey: ['thong-ke', nam || ''], queryFn: () => layThongKe(nam) });
-  useHienDan([isLoading]);
   if (error) return <div className="container-page py-20 text-center text-sm text-amber-800 dark:text-amber-200"><b className="block">{c('chuaTai')}</b>{(error as Error).message}</div>;
   if (isLoading || !tk) return <div className="container-page py-20 text-center text-slate-500">{c('dangTai')}</div>;
   const tongNd = tk.thang.reduce((s, t) => s + t.noiDia, 0), tongQt = tk.thang.reduce((s, t) => s + t.quocTe, 0);

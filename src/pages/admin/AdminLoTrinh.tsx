@@ -7,8 +7,8 @@ import { adminFetch } from '../../services/adminService';
 import { TieuDeQt, The, The_nho, o, nhan, nutChinh, nutVien } from '../../components/common/KhoiQt';
 
 interface Diem { id: string; ngay: number; ghiChu: string | null }
-interface LT { id: number; ten: string; tenEn: string | null; thoiGian: string | null; moTa: string | null; moTaEn: string | null; hien: boolean; thuTu: number; diem: Diem[] }
-const TRONG = { ten: '', tenEn: '', thoiGian: '', moTa: '', moTaEn: '', hien: true, thuTu: 0, diem: [] as Diem[] };
+interface LT { id: number; ten: string; tenEn: string | null; thoiGian: string | null; phuongTien: string | null; phuongTienEn: string | null; moTa: string | null; moTaEn: string | null; hien: boolean; thuTu: number; diem: Diem[] }
+const TRONG = { ten: '', tenEn: '', thoiGian: '', phuongTien: '', phuongTienEn: '', moTa: '', moTaEn: '', hien: true, thuTu: 0, diem: [] as Diem[] };
 
 export default function AdminLoTrinh() {
   const qc = useQueryClient();
@@ -32,6 +32,8 @@ export default function AdminLoTrinh() {
           <label className={nhan}>Tên tiếng Anh <small className="font-normal text-slate-500">(không bắt buộc)</small><input className={o} value={f.tenEn} maxLength={120} onChange={dat('tenEn')} /></label>
           <label className={nhan}>Thời gian<input className={o} value={f.thoiGian} maxLength={40} placeholder="2 ngày 1 đêm" onChange={dat('thoiGian')} /></label>
           <label className={nhan}>Thứ tự hiện<input className={o} type="number" value={f.thuTu} onChange={dat('thuTu')} /></label>
+          <label className={nhan}>Phương tiện <small className="font-normal text-slate-500">(để trống thì không hiện)</small><input className={o} value={f.phuongTien} maxLength={60} placeholder="Ô tô hoặc xe máy" onChange={dat('phuongTien')} /></label>
+          <label className={nhan}>Phương tiện tiếng Anh<input className={o} value={f.phuongTienEn} maxLength={60} placeholder="Car or motorbike" onChange={dat('phuongTienEn')} /></label>
         </div>
         <label className={nhan}>Mô tả<textarea className={o} rows={2} maxLength={600} value={f.moTa} onChange={dat('moTa')} /></label>
         <label className={nhan}>Mô tả tiếng Anh<textarea className={o} rows={2} maxLength={600} value={f.moTaEn} onChange={dat('moTaEn')} /></label>
@@ -56,7 +58,7 @@ export default function AdminLoTrinh() {
           <li key={l.id} className="flex flex-wrap items-start justify-between gap-2 py-3">
             <div className="min-w-0"><b>{l.ten}</b> {!l.hien && <The_nho mau="xam">Đang ẩn</The_nho>}{l.thoiGian && <small className="ml-1 text-slate-500">· {l.thoiGian}</small>}
               <p className="text-xs text-slate-500">{l.diem.map((d) => ten(d.id)).join(' → ')}</p></div>
-            <div className="whitespace-nowrap"><button type="button" className={nutVien} onClick={() => { setSuaId(l.id); setLoi(''); setF({ ten: l.ten, tenEn: l.tenEn || '', thoiGian: l.thoiGian || '', moTa: l.moTa || '', moTaEn: l.moTaEn || '', hien: l.hien, thuTu: l.thuTu, diem: l.diem }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Sửa</button>{' '}
+            <div className="whitespace-nowrap"><button type="button" className={nutVien} onClick={() => { setSuaId(l.id); setLoi(''); setF({ ten: l.ten, tenEn: l.tenEn || '', thoiGian: l.thoiGian || '', phuongTien: l.phuongTien || '', phuongTienEn: l.phuongTienEn || '', moTa: l.moTa || '', moTaEn: l.moTaEn || '', hien: l.hien, thuTu: l.thuTu, diem: l.diem }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Sửa</button>{' '}
               <button type="button" className={nutVien} onClick={() => window.confirm(`Xoá lộ trình "${l.ten}"? Muốn tạm cất thì bỏ dấu "Hiện cho người dân" thay vì xoá.`) && xoa.mutate(l.id)}>Xoá</button></div>
           </li>))}</ul></The>
     </div>

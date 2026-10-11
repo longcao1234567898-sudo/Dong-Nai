@@ -649,4 +649,28 @@ CREATE TABLE IF NOT EXISTS bao_danh_gia (
   FOREIGN KEY (danh_gia_id) REFERENCES danh_gia(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================================================
+-- GIAI ĐOẠN 4 — GIAO DIỆN MỚI: VÙNG DU LỊCH, PHƯƠNG TIỆN CỦA LỘ TRÌNH
+-- ============================================================================
+-- Vùng: để du khách lọc điểm đến theo miền. Gán sẵn theo toạ độ thật của
+-- 15 điểm; cán bộ đổi được ở mục Địa điểm. Không suy ra vùng phía giao diện
+-- (dễ sai, cán bộ không sửa được).
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'dia_diem' AND COLUMN_NAME = 'vung');
+SET @lenh := IF(@co = 0, 'ALTER TABLE dia_diem ADD COLUMN vung ENUM(''ven-song'',''mien-dong'',''phia-bac'') NULL COMMENT ''Vùng du lịch, để lọc'' AFTER xa_phuong_id', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
+UPDATE dia_diem SET vung = CASE
+    WHEN id IN ('van-mieu-tran-bien','den-tho-nguyen-huu-canh','khu-du-lich-buu-long','cu-lao-pho','khu-du-lich-bo-cap-vang','thac-giang-dien') THEN 'ven-song'
+    WHEN id IN ('ho-tri-an','vuon-quoc-gia-cat-tien','khu-du-lich-suoi-mo','nui-chua-chan') THEN 'mien-dong'
+    WHEN id IN ('nui-ba-ra','soc-bom-bo','thac-dak-mai','vuon-quoc-gia-bu-gia-map','ho-suoi-lam') THEN 'phia-bac'
+  END
+WHERE vung IS NULL AND id IN ('van-mieu-tran-bien','den-tho-nguyen-huu-canh','khu-du-lich-buu-long','cu-lao-pho','khu-du-lich-bo-cap-vang','thac-giang-dien',
+  'ho-tri-an','vuon-quoc-gia-cat-tien','khu-du-lich-suoi-mo','nui-chua-chan','nui-ba-ra','soc-bom-bo','thac-dak-mai','vuon-quoc-gia-bu-gia-map','ho-suoi-lam');
+
+-- Phương tiện gợi ý cho lộ trình (ô tô, xe máy…). Để trống cho cán bộ điền:
+-- giao diện không hiện dòng này khi chưa có, không tự đoán.
+SET @co := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lich_trinh' AND COLUMN_NAME = 'phuong_tien');
+SET @lenh := IF(@co = 0, 'ALTER TABLE lich_trinh ADD COLUMN phuong_tien VARCHAR(60) NULL AFTER thoi_gian, ADD COLUMN phuong_tien_en VARCHAR(60) NULL AFTER phuong_tien', 'DO 0');
+PREPARE lenh FROM @lenh; EXECUTE lenh; DEALLOCATE PREPARE lenh;
+
 SELECT COUNT(*) AS so_dia_diem, (SELECT COUNT(*) FROM xa_phuong) AS so_xa_phuong FROM dia_diem;

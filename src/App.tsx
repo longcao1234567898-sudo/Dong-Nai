@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -7,7 +7,9 @@ import Footer from './components/layout/Footer';
 import AdminLayout from './components/layout/AdminLayout';
 import HomePage from './pages/HomePage';
 import { AdminAuthProvider, useAdminAuth } from './hooks/useAdminAuth';
-import { NgonNguProvider } from './i18n/NgonNgu';
+import { NgonNguProvider, useNN } from './i18n/NgonNgu';
+import { batHienDan, batNghieng } from './utils/hieuUng';
+import { cheDoMinhHoa } from './minh-hoa/cheDo';
 
 /* Trang thống kê và trang quản trị tách gói riêng: du khách mở trang chủ
    không phải tải thư viện biểu đồ hay mã quản trị. */
@@ -39,8 +41,13 @@ const AdminTaiKhoan = lazy(() => import('./pages/admin/AdminTaiKhoan'));
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } } });
 
 function KhungChung() {
-  return (<div className="flex min-h-screen flex-col bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100">
-    <Header /><main className="flex-1"><Suspense fallback={<div className="py-20 text-center text-slate-500">Đang tải…</div>}><Outlet /></Suspense></main><Footer /></div>);
+  const { t } = useNN();
+  /* Chuyển động dùng chung: hiện khi cuộn (3D) và thẻ nghiêng theo chuột — bật một lần cho cả trang. */
+  useEffect(() => { const a = batHienDan(), b = batNghieng(); return () => { a(); b(); }; }, []);
+  return (<div className="flex min-h-screen flex-col text-ink">
+    <a href="#noi-dung" className="sr-only z-[2000] rounded-xl bg-paper px-4 py-3 font-semibold text-ink shadow-sh-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">{t('boQuaNoiDung')}</a>
+    {cheDoMinhHoa && <div role="status" className="bg-[#FCEFC7] px-4 py-2 text-center text-sm font-semibold text-[#192522]">{t('dangXemMinhHoa')}</div>}
+    <Header /><main id="noi-dung" tabIndex={-1} className="flex-1 outline-none"><Suspense fallback={<div className="py-20 text-center text-muted">{t('dangTai')}</div>}><Outlet /></Suspense></main><Footer /></div>);
 }
 /** Chỉ cho vào khu quản trị khi đã khôi phục được phiên đăng nhập. */
 function CanDangNhap() {
@@ -88,7 +95,7 @@ export default function App() {
             </Route>
           </Routes>
         </BrowserRouter>
-        <Toaster position="top-center" toastOptions={{ style: { borderRadius: 12, fontFamily: 'inherit' } }} />
+        <Toaster position="top-center" toastOptions={{ style: { borderRadius: 14, fontFamily: 'inherit', background: '#FFFEFB', color: '#192522', boxShadow: '0 4px 10px rgb(18 60 53 / .08), 0 24px 50px -20px rgb(18 60 53 / .4)' } }} />
       </AdminAuthProvider>
       </NgonNguProvider>
     </QueryClientProvider>

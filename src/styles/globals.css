@@ -1,410 +1,341 @@
+@import './tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ---------------------------------------------------------------------------
-   HIỆN LẠI THÂN TRANG SAU KHI ĐỊNH DẠNG ĐÃ ÁP DỤNG
 
-   Cặp với quy tắc ẩn viết thẳng trong index.html. Trình duyệt đọc được dòng
-   này nghĩa là tệp định dạng đã tải xong — lúc đó mới cho hiện, nên không còn
-   cảnh chữ thô tràn màn hình rồi mới nhảy về chỗ.
-   --------------------------------------------------------------------------- */
-#root { visibility: visible; }
-
-/* ---------- Nền tảng ---------- */
+/* =========================================================================
+   NỀN TẢNG
+   ========================================================================= */
 @layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* ==========================================================================
-     CHẾ ĐỘ CHỮ LỚN — cho người lớn tuổi, người mắt kém
-
-     Phóng cỡ chữ gốc lên 125%. Vì gần như toàn bộ giao diện dùng đơn vị rem
-     (Tailwind: text-sm, text-base, p-4...), đổi một dòng font-size ở <html> là
-     mọi thứ to lên theo tỉ lệ — chữ, khoảng cách, nút bấm — mà không phải sửa
-     từng thành phần. Đây là lý do dùng rem thay vì px ngay từ đầu.
-
-     Không đụng tới các cỡ px cố định (viền, bóng) nên bố cục không vỡ. */
-  html.chu-lon {
-    font-size: 125%;
-  }
+  html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+  /* Chế độ chữ lớn: mọi kích thước dùng rem nên to theo một dòng này. */
+  html.chu-lon { font-size: 125%; }
 
   body {
     @apply antialiased;
+    font-family: var(--font-sans);
+    color: rgb(var(--c-ink));
+    background-color: rgb(var(--c-bg));
+    /* Hạt giấy: mặt nền phẳng lì là thứ đầu tiên làm trang trông như nhựa. */
+    background-image: var(--hat);
+    background-size: 220px;
   }
-  /* Tôn trọng người dùng tắt animation (accessibility) */
+  ::selection { background: rgb(var(--c-coral) / .35); }
+
+  /* Viền focus luôn thấy được, không bị bóng hay ảnh che. */
+  :focus-visible { outline: 2px solid rgb(var(--c-action)); outline-offset: 2px; }
+
+  /* Tôn trọng người dùng tắt chuyển động. Ngoại lệ !important duy nhất. */
   @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
       animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
   }
 }
 
-/* ---------- Component dùng chung ---------- */
+/* Tiêu đề: chiều cao dòng đủ cho dấu tiếng Việt hai tầng (Ố, Ộ, Ữ). Lớp
+   tiện ích (leading-*) vẫn ghi đè được vì selector lớp mạnh hơn selector thẻ. */
+h1, h2, h3, h4, h5, h6 { line-height: 1.45; }
+.uppercase { line-height: 1.5; }
+
+/* =========================================================================
+   THÀNH PHẦN DÙNG CHUNG
+   ========================================================================= */
 @layer components {
-  /* Hiệu ứng glassmorphism nhẹ */
-  /* Glass: nền trắng đục 92% KHÔNG dùng backdrop-blur — backdrop-blur bắt GPU
-     làm mờ lại toàn bộ nền sau mỗi khung hình khi cuộn, là thủ phạm chính gây giật */
-  .glass {
-    @apply bg-white/[.92] border border-white/60 dark:bg-slate-900/[.92] dark:border-slate-700/50;
+  .container-page { @apply mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8; }
+
+  /* Tiêu đề serif: chỉ dùng từ 24px trở lên. Line-height 1.12 là mức thấp
+     nhất không cắt dấu chồng tiếng Việt. */
+  .tieu-de-lon { font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.02em; line-height: 1.12;
+    font-size: clamp(2.75rem, 1.5rem + 4.4vw, 5.25rem); }
+  .tieu-de-muc { font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.015em; line-height: 1.15;
+    font-size: clamp(2rem, 1.45rem + 2vw, 3rem); }
+  .tieu-de-vua { font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.01em; line-height: 1.2;
+    font-size: clamp(1.5rem, 1.3rem + 0.8vw, 1.875rem); }
+  .so-lon { font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.02em; line-height: 1;
+    font-size: clamp(2.5rem, 2rem + 2vw, 3.5rem); font-variant-numeric: tabular-nums; }
+
+  /* Mặt giấy: không trắng tinh, mép trên bắt sáng, bóng hai lớp. */
+  .the {
+    background-color: rgb(var(--c-surface));
+    border: 1px solid rgb(var(--c-line) / .7);
+    border-radius: 16px;
+    box-shadow: var(--sh-1), var(--vien-sang);
   }
-  /* Khung nội dung trang */
-  .container-page {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+
+  /* Nút. Cao tối thiểu 44px để dễ chạm. */
+  .nut {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[10px] px-5 text-[15px] font-semibold;
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-base) var(--ease-out), transform var(--dur-instant) var(--ease-out);
   }
-  /* Loading skeleton */
-  .skeleton {
-    @apply animate-pulse rounded-md bg-slate-200 dark:bg-slate-700/60;
+  .nut:active:not(:disabled) { transform: scale(.97); }
+  .nut:disabled { opacity: .55; cursor: default; }
+  .nut-chinh { background: rgb(var(--c-action)); color: rgb(var(--c-on-action)); box-shadow: 0 1px 0 rgb(255 255 255 / .18) inset, 0 6px 16px -8px rgb(var(--c-action) / .8); }
+  .nut-chinh:hover:not(:disabled) { background: rgb(var(--c-action-hover)); }
+  .nut-coral { background: rgb(var(--c-coral)); color: #192522; box-shadow: 0 1px 0 rgb(255 255 255 / .3) inset, 0 6px 16px -8px rgb(212 85 47 / .7); }
+  .nut-coral:hover:not(:disabled) { background: #F48D70; }
+  .nut-vien { border: 1px solid rgb(var(--c-line-strong) / .6); color: rgb(var(--c-ink)); background: rgb(var(--c-surface) / .6); }
+  .nut-vien:hover:not(:disabled) { background: rgb(var(--c-sunken)); }
+  .nut-tren-toi { border: 1px solid rgb(247 245 239 / .45); color: #F7F5EF; }
+  .nut-tren-toi:hover:not(:disabled) { background: rgb(247 245 239 / .1); }
+
+  /* Chip lọc: chọn rồi có nền đặc + dấu chọn, không chỉ đổi màu. */
+  .chip {
+    @apply inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium;
+    border: 1px solid rgb(var(--c-line-strong) / .55); color: rgb(var(--c-ink-2)); background: rgb(var(--c-surface) / .7);
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   }
-  /* Pattern hình học subtle cho hero */
-  .hero-pattern {
-    background-image: radial-gradient(rgba(27, 94, 32, 0.1) 1px, transparent 1px);
-    background-size: 22px 22px;
+  .chip:hover:not(:disabled) { border-color: rgb(var(--c-ink-2)); }
+  .chip[aria-pressed='true'] { background: rgb(var(--c-forest)); border-color: rgb(var(--c-forest)); color: #F7F5EF; }
+  .dark .chip[aria-pressed='true'] { background: rgb(var(--c-action)); border-color: rgb(var(--c-action)); color: #192522; }
+  .chip:disabled { opacity: .45; cursor: default; }
+  .chip .chip-so { font-size: 12px; font-variant-numeric: tabular-nums; opacity: .7; }
+
+  /* Kính mờ: CHỈ cho ô tìm kiếm trên hero và nút điều khiển bản đồ. Độ đục
+     ≥ .86 để chữ phụ vẫn đạt tương phản trên nền tối nhất. */
+  .kinh {
+    background: rgb(247 245 239 / .86);
+    -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgb(255 255 255 / .4);
+    color: #192522;
   }
-  .dark .hero-pattern {
-    background-image: radial-gradient(rgba(52, 211, 153, 0.12) 1px, transparent 1px);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .kinh { background: #F7F5EF; } }
+
+  .o-nhap {
+    @apply w-full rounded-[10px] px-3 py-2.5 text-[15px] outline-none;
+    background: rgb(var(--c-surface)); border: 1px solid rgb(var(--c-line-strong) / .7);
+    transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
   }
+  .o-nhap:focus { border-color: rgb(var(--c-action)); box-shadow: 0 0 0 3px rgb(var(--c-action) / .18); }
+
+  .skeleton { background: rgb(var(--c-sunken)); border-radius: 12px; }
 }
 
-/* ---------- Thanh cuộn ---------- */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-slate-300 dark:bg-slate-600;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
+/* =========================================================================
+   NỀN CÓ CHIỀU SÂU
+   ========================================================================= */
+
+/* Đường đồng mức: hình tạo từ scripts/tao-nen-dong-muc.py, dùng làm mặt nạ
+   nên tô màu theo token. Trôi chậm hơn nội dung khi cuộn (thị sai). */
+.nen-dong-muc { position: relative; isolation: isolate; }
+.nen-dong-muc::before {
+  content: ''; position: absolute; inset: -60px 0; z-index: -1; pointer-events: none;
+  background: var(--dm-mau);
+  -webkit-mask: url('/nen/dong-muc.svg') center / cover no-repeat; mask: url('/nen/dong-muc.svg') center / cover no-repeat;
 }
 
-/* ---------- Nội dung markdown trong chat ---------- */
-.chat-markdown p {
-  @apply mb-2 last:mb-0;
+/* Mảng tối: rừng đêm, một vùng sáng ấm như nắng chiều rọi từ góc, có hạt. */
+.nen-toi {
+  --dm-mau: rgb(247 245 239 / .075);
+  color: #F7F5EF;
+  background-color: rgb(18 60 53);
+  background-image:
+    radial-gradient(900px 520px at 85% -8%, rgb(241 124 91 / .16), transparent 62%),
+    radial-gradient(700px 480px at 0% 110%, rgb(28 140 114 / .22), transparent 60%),
+    var(--hat);
+  background-size: auto, auto, 220px;
 }
-.chat-markdown ul,
-.chat-markdown ol {
-  @apply mb-2 ml-4 list-disc space-y-1;
-}
-.chat-markdown ol {
-  @apply list-decimal;
-}
-.chat-markdown code {
-  @apply rounded bg-slate-200/80 px-1 py-0.5 text-[0.85em] dark:bg-slate-700;
-}
-.chat-markdown strong {
-  @apply font-semibold;
-}
+.dark .nen-toi { background-color: rgb(11 27 23); }
 
-/* ---------- Hiệu ứng sống động ---------- */
-@layer components {
-  /* Chữ gradient chuyển động (dùng cho tiêu đề hero) */
-  .text-gradient {
-    @apply bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-500 bg-clip-text text-transparent;
-    background-size: 200% auto;
-  }
-}
+/* =========================================================================
+   CHUYỂN ĐỘNG 3D
+   Trang trí mang tiền tố fx-, tắt tập trung ở cuối tệp khi giảm chuyển động.
+   ========================================================================= */
 
-/* ---------- Chuyển trang bằng CSS thuần ---------- */
-@keyframes page-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.animate-page {
-  animation: page-fade-in 0.18s ease-out both;
-}
-
-/* =====================================================================
-   HIỆU ỨNG LÀM ĐẸP GIAO DIỆN (V6)
-   ===================================================================== */
-
-/* ---------- Thẻ nổi lên khi rê chuột (mượt hơn bản cũ) ---------- */
-.card-lift {
-  transition: transform 0.35s cubic-bezier(0.21, 0.65, 0.36, 1),
-              box-shadow 0.35s cubic-bezier(0.21, 0.65, 0.36, 1);
-}
-.card-lift:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 18px 40px -14px rgba(27, 94, 32, 0.28);
-}
-
-/* ---------- Vệt sáng lướt qua nút khi rê chuột ---------- */
-.btn-shine {
-  position: relative;
-  overflow: hidden;
-}
-.btn-shine::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -80%;
-  width: 55%;
-  height: 100%;
-  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.35), transparent);
-  transform: skewX(-20deg);
-  transition: left 0.55s ease;
-  pointer-events: none;
-}
-.btn-shine:hover::after {
-  left: 130%;
-}
-
-/* ---------- Icon lơ lửng nhẹ nhàng (dùng cho hero, khối nổi bật) ---------- */
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
-}
-.animate-float {
-  animation: float-soft 3.6s ease-in-out infinite;
-}
-
-/* ---------- Vầng sáng thở quanh phần tử nhấn mạnh ---------- */
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(27, 94, 32, 0.35); }
-  50%      { box-shadow: 0 0 0 12px rgba(27, 94, 32, 0); }
-}
-.animate-glow {
-  animation: glow-pulse 2.6s ease-in-out infinite;
-}
-
-/* ---------- Gạch chân lan ra khi rê chuột (link đẹp) ---------- */
-.link-underline {
-  position: relative;
-}
-.link-underline::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-  width: 0;
-  height: 2px;
-  background: currentColor;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-.link-underline:hover::after {
-  width: 100%;
-}
-
-/* ---------- Tôn trọng người dùng bật "giảm chuyển động" ---------- */
-@media (prefers-reduced-motion: reduce) {
-  .card-lift,
-  .btn-shine::after,
-  .animate-float,
-  .animate-glow {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
-  }
-}
-
-/* =====================================================================
-   BỘ HIỆU ỨNG NÂNG CAO (V7)
-   ===================================================================== */
-
-/* ---------- Viền sáng chạy quanh thẻ nổi bật ---------- */
-@keyframes border-spin {
-  to { --angle: 360deg; }
-}
-@property --angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-.border-glow {
-  position: relative;
-  isolation: isolate;
-}
-.border-glow::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  padding: 2px;
-  background: conic-gradient(from var(--angle),
-              transparent 55%, rgb(27, 94, 32), rgb(217, 119, 6), transparent 85%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: border-spin 4s linear infinite;
+/* Hiện khi cuộn: nội dung đứng dậy từ mặt phẳng nghiêng ra xa, không chỉ
+   trượt lên phẳng. --i là thứ tự để các phần tử lần lượt hiện. */
+.hien-dan, .fx-reveal {
   opacity: 0;
-  transition: opacity 0.4s ease;
-  z-index: -1;
+  transform: perspective(1400px) translate3d(0, 56px, -90px) rotateX(11deg);
+  transform-origin: 50% 100%;
+  transition: opacity .9s var(--ease-expo), transform 1.1s var(--ease-expo);
+  transition-delay: calc(var(--i, 0) * 80ms);
 }
-.border-glow:hover::before { opacity: 1; }
+.hien-dan.da-hien, .fx-reveal.da-hien { opacity: 1; transform: none; }
 
-/* ---------- Thẻ nghiêng theo con trỏ (3D tilt nhẹ) ---------- */
-.tilt-3d {
+/* Thẻ nghiêng theo con trỏ, có vệt sáng chạy theo — vật thể dưới ánh đèn chứ
+   không phải mảng màu phẳng. Biến --rx, --ry, --gx, --gy do nghieng.ts đặt. */
+.fx-the {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0);
   transform-style: preserve-3d;
-  transition: transform 0.4s cubic-bezier(0.21, 0.65, 0.36, 1),
-              box-shadow 0.4s ease;
+  transition: transform .6s var(--ease-expo), box-shadow .6s var(--ease-expo);
+  will-change: transform;
 }
-.tilt-3d:hover {
-  transform: perspective(900px) rotateX(2.5deg) rotateY(-2.5deg) translateY(-6px) scale(1.015);
-  box-shadow: 0 22px 45px -18px rgba(27, 94, 32, 0.35);
+.fx-the.dang-nghieng { transition: transform .12s linear, box-shadow .6s var(--ease-expo); }
+.fx-the::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  background: radial-gradient(520px circle at var(--gx, 50%) var(--gy, 0%), rgb(255 250 235 / .26), transparent 45%);
+  opacity: 0; transition: opacity .5s var(--ease-out);
+}
+.fx-the.dang-nghieng::after { opacity: 1; }
+/* Lớp nổi trong thẻ: tách khỏi mặt thẻ theo trục Z. */
+.fx-noi { transform: translateZ(36px); }
+.fx-noi-it { transform: translateZ(18px); }
+
+/* Ảnh trong khung trôi ngược chiều cuộn: khung là cửa sổ, ảnh nằm sâu phía sau. */
+@supports (animation-timeline: view()) {
+  .fx-anh-troi { animation: anh-troi linear both; animation-timeline: view(); }
+  @keyframes anh-troi { from { transform: translateY(-7%) scale(1.16); } to { transform: translateY(7%) scale(1.16); } }
+  .nen-dong-muc::before { animation: nen-troi linear both; animation-timeline: view(); }
+  @keyframes nen-troi { from { transform: translateY(-40px); } to { transform: translateY(40px); } }
 }
 
-/* ---------- Icon nảy nhẹ khi rê chuột vào thẻ cha ---------- */
-.group:hover .icon-pop {
-  transform: scale(1.15) rotate(-6deg);
-}
-.icon-pop {
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
+/* Đổi chỗ khi lọc / chọn: View Transitions, thẻ bay tới chỗ mới. */
+::view-transition-group(*) { animation-duration: .55s; animation-timing-function: var(--ease-expo); }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 
-/* ---------- Chữ đổ dần từng dòng (dùng cùng Reveal) ---------- */
-@keyframes text-rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-text-rise {
-  animation: text-rise 0.6s cubic-bezier(0.21, 0.65, 0.36, 1) both;
-}
+@keyframes page-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.animate-page { animation: page-fade-in .18s ease-out both; }
 
-/* ---------- Nền chuyển màu chầm chậm (khối nhấn mạnh) ---------- */
-@keyframes gradient-drift {
-  0%, 100% { background-position: 0% 50%; }
-  50%      { background-position: 100% 50%; }
-}
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: gradient-drift 8s ease infinite;
-}
-
-/* ---------- Vòng sóng lan (dùng cho nút khẩn cấp 113) ---------- */
-@keyframes ripple-out {
-  0%   { transform: scale(1);   opacity: 0.6; }
-  100% { transform: scale(1.6); opacity: 0; }
-}
-.animate-ripple::before,
-.animate-ripple::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  border: 2px solid currentColor;
-  animation: ripple-out 2s ease-out infinite;
-  pointer-events: none;
-}
-.animate-ripple::after { animation-delay: 1s; }
-
-/* ---------- Skeleton lấp lánh (thay vì nhấp nháy đơn điệu) ---------- */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-.animate-shimmer {
-  background: linear-gradient(90deg,
-              rgba(226, 232, 240, 0.35) 25%,
-              rgba(226, 232, 240, 0.75) 50%,
-              rgba(226, 232, 240, 0.35) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.6s linear infinite;
-}
-
-/* ---------- Thanh tiến trình các bước: vệt sáng chạy ---------- */
-@keyframes progress-flow {
-  from { background-position: 0 0; }
-  to   { background-position: 40px 0; }
-}
-.animate-progress {
-  background-image: linear-gradient(45deg,
-              rgba(255,255,255,0.22) 25%, transparent 25%,
-              transparent 50%, rgba(255,255,255,0.22) 50%,
-              rgba(255,255,255,0.22) 75%, transparent 75%);
-  background-size: 40px 40px;
-  animation: progress-flow 1s linear infinite;
-}
-
-/* ---------- Giảm chuyển động ---------- */
-@media (prefers-reduced-motion: reduce) {
-  .border-glow::before,
-  .tilt-3d,
-  .icon-pop,
-  .animate-text-rise,
-  .animate-gradient,
-  .animate-ripple::before,
-  .animate-ripple::after,
-  .animate-shimmer,
-  .animate-progress {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
-  }
-}
-
-/* =====================================================================
-   SỬA LỖI CẮT DẤU CHỮ HOA TIẾNG VIỆT
-   =====================================================================
-   Chữ HOA tiếng Việt có dấu CHỒNG 2 TẦNG: Ố = Ô + dấu sắc, Ộ = Ô + dấu nặng,
-   Ế = Ê + dấu sắc... Dấu tầng trên vượt CAO hơn chiều cao chữ hoa thông thường.
-
-   Nếu line-height quá chặt (leading-none = 1, leading-tight = 1.25),
-   trình duyệt CẮT MẤT dấu tầng trên:
-       "HỘP THƯ AN NINH SỐ"  ->  hiện thành  "HỘP THƯ AN NINH SÔ"   ❌
-
-   Cách sửa: mọi khối chữ HOA phải có chiều cao dòng tối thiểu 1.4,
-   và không được overflow:hidden cắt phần trên.
-   ===================================================================== */
-
-.uppercase {
-  line-height: 1.5;
-}
-
-/* Tiện ích: dùng cho bất kỳ chữ HOA tiếng Việt nào để chắc chắn không cắt dấu */
-.vn-caps {
-  line-height: 1.5;
-  padding-top: 0.08em;   /* chừa chỗ cho dấu tầng trên */
-}
-
-/* =====================================================================
-   CHỐNG CẮT DẤU TIẾNG VIỆT — bản triệt để
-   =====================================================================
-   Chữ HOA có dấu 2 tầng: Ố = Ô + dấu sắc · Ộ = Ô + nặng · Ế, Ữ, Ằ...
-   Dấu tầng 2 vươn CAO hơn đỉnh chữ hoa thường -> dễ bị:
-     1. line-height chặt cắt cụt
-     2. container overflow:hidden cắt mất
-   ===================================================================== */
-
-/* Tiêu đề: chiều cao dòng đủ rộng cho dấu tiếng Việt */
-h1, h2, h3, h4, h5, h6 {
-  line-height: 1.45;
-}
-
-/* Chữ HOA cỡ nhỏ (logo, nhãn) — dấu càng dễ bị cắt, nới rộng nhất */
-.vn-caps {
-  line-height: 1.6;
-  padding-top: 0.15em;
-  overflow: visible;
-}
-
-/* ================= DU LỊCH ĐỒNG NAI — hiệu ứng riêng ================= */
-.may, .may2, .chim, .chim2 { transform-box: view-box; }
-@keyframes dl-troi { from { transform: translateX(-15%); } to { transform: translateX(115%); } }
-@keyframes dl-bay { 0% { transform: translate(-8%, 0); } 50% { transform: translate(50%, -6%); } 100% { transform: translate(110%, 2%); } }
-@keyframes dl-song { to { stroke-dashoffset: -48; } }
-@keyframes dl-nhip { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(2.7); opacity: 0; } }
-@keyframes dl-mo { from { transform: scaleX(0); } }
-.may { animation: dl-troi 70s linear infinite; }
-.may2 { animation: dl-troi 95s linear infinite; animation-delay: -40s; }
-.chim { animation: dl-bay 26s linear infinite; }
-.chim2 { animation: dl-bay 34s linear infinite; animation-delay: -15s; }
-.dong-song { stroke-dasharray: 16 12; animation: dl-song 3.2s linear infinite; }
-.tuyen { stroke-dasharray: 10 10; animation: dl-song 1.4s linear infinite; }
-.ghim { position: relative; display: block; width: 100%; height: 100%; border-radius: 9999px; background: var(--m);
-  border: 2.5px solid #fff; box-shadow: 0 2px 6px rgb(0 0 0 / .3); cursor: pointer; }
-.ghim.noi::after { content: ""; position: absolute; inset: -3px; border-radius: 9999px; border: 2px solid var(--m); animation: dl-nhip 1.9s ease-out infinite; }
-.so-chang { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 9999px; background: #1E3A5F; color: #fff;
-  font-size: 12px; font-weight: 800; border: 2px solid #fff; box-shadow: 0 2px 6px rgb(0 0 0 / .3); }
+/* =========================================================================
+   BẢN ĐỒ (Leaflet)
+   ========================================================================= */
+/* Leaflet nạp CSS của nó sau tệp này, nên các luật ở đây cần selector mạnh hơn (không dùng !important). */
+.ban-do-khung.leaflet-container { font-family: var(--font-sans); background: rgb(var(--c-sunken)); }
+.leaflet-tile-pane { filter: saturate(.7) contrast(.97); }
 .leaflet-div-icon { background: none; border: 0; }
-.thanh-mo { transform-origin: left; animation: dl-mo .9s ease-out both; }
-.hien-dan { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
-.hien-dan.da-hien { opacity: 1; transform: none; }
+.ghim {
+  position: relative; display: grid; place-items: center; width: 100%; height: 100%; border-radius: 9999px;
+  background: #123C35; color: #F7F5EF; border: 2px solid #F7F5EF; cursor: pointer;
+  box-shadow: 0 2px 0 rgb(0 0 0 / .12), 0 6px 14px -4px rgb(18 60 53 / .7);
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-base) var(--ease-out), background-color var(--dur-fast);
+}
+.ghim svg { width: 58%; height: 58%; }
+.ghim:hover { transform: scale(1.15) translateY(-2px); }
+.ghim.dang-chon { background: rgb(21 122 99); border-width: 3px; transform: scale(1.18); }
+.ghim.mo { opacity: .4; }
+.so-chang {
+  display: grid; place-items: center; width: 100%; height: 100%; border-radius: 9999px;
+  background: #D4552F; color: #fff; font-size: 12px; font-weight: 700; border: 2px solid #fff;
+  box-shadow: 0 6px 14px -4px rgb(212 85 47 / .8);
+  animation: chang-hien .26s var(--ease-out) both; animation-delay: var(--tre, 0ms);
+}
+.so-chang.dau { outline: 2px solid #D4552F; outline-offset: 2px; }
+.so-chang.cuoi { border-radius: 6px; }
+@keyframes chang-hien { from { opacity: 0; transform: scale(.5); } }
+.tuyen { stroke-linecap: round; stroke-linejoin: round; }
+
+/* Nút điều khiển bản đồ (kính mờ) */
+.ban-do-khung .leaflet-control-zoom.leaflet-bar { border: 0; box-shadow: var(--sh-2); border-radius: 12px; overflow: hidden; }
+.ban-do-khung .leaflet-bar.leaflet-control-zoom a { width: 40px; height: 40px; line-height: 40px; color: #192522;
+  background: rgb(247 245 239 / .86); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom-color: rgb(18 60 53 / .12); }
+.ban-do-khung .leaflet-bar.leaflet-control-zoom a:hover { background: #F7F5EF; }
+.ban-do-khung .leaflet-control-attribution { background: rgb(247 245 239 / .8); font-size: 11px; }
+
+/* =========================================================================
+   TRANG CHỦ
+   ========================================================================= */
+
+/* Nền dự phòng của hero (đang tải cảnh 3D, hoặc máy không có WebGL):
+   trời rạng sáng tĩnh cùng tông với cảnh 3D để lúc chuyển không bị giật. */
+.hero-nen {
+  background:
+    radial-gradient(55% 38% at 80% 56%, rgb(255 215 161 / .5), transparent 70%),
+    linear-gradient(180deg, #0C2925 0%, #16392F 36%, #A9806A 55%, #3A5444 57.5%, #1D3A30 70%, #142B24 100%);
+}
+/* Màn che chức năng: giữ chữ ở góc dưới trái đạt tương phản dù cảnh sau sáng tới đâu. */
+.hero-man {
+  background:
+    radial-gradient(120% 85% at 0% 100%, rgb(10 30 26 / .82) 0%, rgb(10 30 26 / .55) 38%, transparent 68%),
+    linear-gradient(180deg, rgb(10 30 26 / .45) 0%, transparent 22%);
+}
+/* Hai dòng tiêu đề lật lên từ mặt phẳng nằm (3D), lần lượt. Không cắt khung
+   (overflow) nên dấu tiếng Việt không bị xén. */
+.hero-chu { perspective: 900px; }
+.hero-chu .dong { display: block; transform-origin: 50% 100%; animation: chu-dung 1.1s var(--ease-expo) both; animation-delay: var(--tre, 0ms); }
+@keyframes chu-dung { from { opacity: 0; transform: translateY(42%) rotateX(-62deg); } }
+.hero-hien { animation: hien-len .9s var(--ease-expo) both; animation-delay: var(--tre, 0ms); }
+@keyframes hien-len { from { opacity: 0; transform: translateY(18px); } }
+.hero-noi { animation: troi-nhe 7s ease-in-out infinite alternate; }
+@keyframes troi-nhe { from { transform: translateY(0); } to { transform: translateY(-7px); } }
+
+/* Ghim trên cảnh 3D: chấm sáng + tên (tên điểm nổi bật luôn hiện). */
+.ghim-3d { display: flex; align-items: center; gap: 7px; margin: -6px 0 0 -6px; padding: 2px 6px 2px 2px; border-radius: 999px;
+  transition: opacity .4s var(--ease-out); will-change: transform; }
+.ghim-3d-cham { width: 12px; height: 12px; flex: none; border-radius: 50%; background: #F7F5EF; border: 2px solid rgb(18 60 53 / .6);
+  box-shadow: 0 0 0 4px rgb(247 245 239 / .18), 0 3px 10px rgb(0 0 0 / .5); transition: transform var(--dur-fast) var(--ease-out); }
+.ghim-3d.noi-bat .ghim-3d-cham { background: #F17C5B; border-color: #F7F5EF; box-shadow: 0 0 0 5px rgb(241 124 91 / .28), 0 3px 10px rgb(0 0 0 / .5); }
+.ghim-3d-ten { font-size: 13px; font-weight: 600; color: #F7F5EF; white-space: nowrap; letter-spacing: .01em;
+  text-shadow: 0 1px 2px rgb(0 0 0 / .85), 0 0 14px rgb(0 0 0 / .55);
+  opacity: 0; transform: translateX(-4px); transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out); }
+.ghim-3d.noi-bat .ghim-3d-ten, .ghim-3d:hover .ghim-3d-ten { opacity: 1; transform: none; }
+.ghim-3d.trong-chu { pointer-events: none; }
+.ghim-3d.nhan-trai { flex-direction: row-reverse; translate: calc(-100% + 12px) 0; padding: 2px 2px 2px 6px; }
+.ghim-3d.nhan-trai .ghim-3d-ten { transform: translateX(4px); }
+.ghim-3d.trong-chu .ghim-3d-ten { opacity: 0; }
+.ghim-3d:hover .ghim-3d-cham { transform: scale(1.3); }
+
+/* Khung ảnh: ảnh hiện dần khi có; khung chờ có đường đồng mức; nhãn nói rõ ảnh minh hoạ. */
+.anh-hien { animation: page-fade-in .8s var(--ease-out) both; }
+.anh-cho { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; isolation: isolate;
+  color: rgb(var(--c-muted)); background: rgb(var(--c-sunken)); }
+.anh-cho::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgb(var(--c-forest) / .12);
+  -webkit-mask: url('/nen/dong-muc.svg') center / 900px auto; mask: url('/nen/dong-muc.svg') center / 900px auto; }
+.nhan-anh { position: absolute; left: 10px; top: 10px; z-index: 2; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  color: #F7F5EF; background: rgb(12 41 37 / .62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+
+/* Thẻ bento: ảnh tràn thẻ, chữ trên màn che đáy, chữ nổi lên khỏi mặt ảnh khi nghiêng. */
+.the-anh { position: relative; display: block; height: 100%; border-radius: 18px; box-shadow: var(--sh-2); background: rgb(var(--c-sunken)); }
+.the-anh .khung { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.the-anh .man { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(0deg, rgb(10 30 26 / .88) 0%, rgb(10 30 26 / .5) 34%, transparent 62%); }
+.the-anh:hover, .fx-the.dang-nghieng .the-anh { box-shadow: var(--sh-3); }
+
+/* Đường kể chuyện của lộ trình: vạch san hô "vẽ" ra khi khối hiện, điểm dừng nảy lên theo sau.
+   Dùng animation (không phải transition) để đổi lộ trình là vẽ lại từ đầu. */
+.duong-ke-vach { transform-origin: left center; transform: scaleX(0); }
+.duong-ke.doc .duong-ke-vach { transform-origin: center top; transform: scaleY(0); }
+.da-hien .duong-ke-vach { animation: ve-vach-ngang 1.3s var(--ease-in-out) .25s both; }
+.da-hien .duong-ke.doc .duong-ke-vach { animation-name: ve-vach-doc; }
+@keyframes ve-vach-ngang { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ve-vach-doc { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.duong-ke-cham { opacity: 0; transform: scale(.4); }
+.da-hien .duong-ke-cham { animation: cham-nay .45s var(--ease-pop) both; animation-delay: calc(.35s + var(--i, 0) * 180ms); }
+@keyframes cham-nay { from { opacity: 0; transform: scale(.4); } to { opacity: 1; transform: none; } }
+
+/* Thanh phân bố sao */
+.thanh-sao { transform-origin: left; transform: scaleX(0); transition: transform .9s var(--ease-expo); transition-delay: calc(var(--i, 0) * 70ms); }
+.da-hien .thanh-sao { transform: none; }
+
+/* Khung bản đồ đứng dậy từ mặt nằm khi cuộn tới, rồi phẳng hẳn để thao tác bình thường. */
+.khung-nghieng.hien-dan { transform: perspective(1600px) translate3d(0, 90px, -60px) rotateX(24deg); }
+.khung-nghieng.hien-dan.da-hien { transform: none; }
+
+/* Ô chọn sao và hộp thoại */
+.chon-sao { transition: transform var(--dur-fast) var(--ease-out); }
+.chon-sao:hover { transform: scale(1.1); }
+.chon-sao.vua-chon { animation: sao-nay .28s var(--ease-pop); }
+@keyframes sao-nay { 50% { transform: scale(1.28); } }
+.hop-thoai { transform-origin: 50% 100%; animation: hop-vao .6s var(--ease-expo) both; }
+@keyframes hop-vao { from { opacity: 0; transform: perspective(1200px) translateY(56px) rotateX(10deg); } }
+
+/* =========================================================================
+   THANH CUỘN
+   ========================================================================= */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { border-radius: 9999px; border: 3px solid transparent; background: rgb(var(--c-line-strong) / .5) padding-box; }
+::-webkit-scrollbar-track { background: transparent; }
+.khong-thanh-cuon { scrollbar-width: none; }
+.khong-thanh-cuon::-webkit-scrollbar { display: none; }
+
+/* =========================================================================
+   GIẢM CHUYỂN ĐỘNG: mọi thứ hiện ngay, không nghiêng, không trôi.
+   ========================================================================= */
 @media (prefers-reduced-motion: reduce) {
-  .may, .may2, .chim, .chim2, .dong-song, .tuyen, .ghim.noi::after, .thanh-mo { animation: none !important; }
-  .hien-dan { opacity: 1; transform: none; transition: none; }
+  .hien-dan, .fx-reveal { opacity: 1; transform: none; transition: none; }
+  .fx-the, .fx-the.dang-nghieng { transform: none; transition: none; }
+  .fx-the::after { display: none; }
+  .fx-anh-troi, .nen-dong-muc::before { animation: none; transform: none; }
+  .so-chang { animation: none; }
+  .hero-chu .dong, .hero-hien, .hero-noi { animation: none; }
+  .chon-sao.vua-chon, .hop-thoai { animation: none; }
+  .duong-ke-vach, .duong-ke-cham, .thanh-sao { transform: none; opacity: 1; transition: none; }
+  .da-hien .duong-ke-vach, .da-hien .duong-ke-cham { animation: none; }
+  ::view-transition-group(*) { animation: none; }
 }
