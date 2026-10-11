@@ -26,7 +26,7 @@ node scripts-kiem-ket-noi.js    # phải thấy NỐI THÀNH CÔNG
 npm run dev
 ```
 
-**3. Tạo tài khoản cán bộ.** Không có tài khoản mặc định. Tạo bằng lệnh trên máy chủ:
+**3. Tạo tài khoản cán bộ.** Không có tài khoản mặc định. Máy không cài Node: mở tệp `cong-cu/tao-tai-khoan.html` bằng trình duyệt (bấm đúp, không cần mạng), điền họ tên, tên đăng nhập, mật khẩu — trang mã hoá mật khẩu ngay trên máy và đưa câu lệnh SQL để dán vào HeidiSQL (hoặc công cụ MySQL bất kỳ) rồi chạy. Cùng trang đó có mục *Cấp lại mật khẩu* cho cán bộ quên mật khẩu. Máy có Node thì dùng lệnh trên máy chủ:
 
 ```
 node scripts-them-can-bo.js lan.tt Suoi-Mo#2026-Ta "Trần Thị Lan"
