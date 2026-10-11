@@ -112,7 +112,7 @@ Các bảng hiện có:
 
 **Giao diện:** trang chủ mở bằng trình chiếu ảnh thật các điểm nổi bật (có nút tạm dừng); thẻ, trang địa điểm, lộ trình dùng ảnh thật. Thiết kế và các quyết định: [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md). Xem thử bố cục khi có đánh giá: chạy `npm run dev` rồi mở `/?minh-hoa=1` (dữ liệu minh hoạ chỉ có ở máy phát triển, không vào bản build).
 
-**Ảnh địa điểm:** ảnh cán bộ tải lên (Quản trị → Địa điểm → Sửa) luôn hiện trước. Chưa có thì dùng ảnh mặc định trong `public/anh/dia-diem/`, lấy từ Wikimedia Commons bằng `node scripts/tai-anh-dia-diem.mjs goi-y` (xem ứng viên, chép tên tệp vào `scripts/anh-dia-diem.json`) rồi `node scripts/tai-anh-dia-diem.mjs tai`. Script chỉ nhận ảnh CC0 hoặc phạm vi công cộng, vì trang người dân không hiện tác giả; nguồn từng ảnh xem ở Quản trị → Nguồn ảnh.
+**Ảnh địa điểm:** ảnh cán bộ tải lên (Quản trị → Địa điểm → Sửa) luôn hiện trước. Ở đó có nút **Tìm ảnh trên Wikimedia**: gõ tên điểm, xem ảnh (chỉ hiện ảnh CC0 hoặc phạm vi công cộng, dùng tự do không phải ghi tác giả), bấm *Dùng ảnh này* là ảnh được thu nhỏ và lưu như ảnh tự tải lên. Chưa có thì dùng ảnh mặc định trong `public/anh/dia-diem/`, lấy từ Wikimedia Commons bằng `node scripts/tai-anh-dia-diem.mjs goi-y` (xem ứng viên, chép tên tệp vào `scripts/anh-dia-diem.json`) rồi `node scripts/tai-anh-dia-diem.mjs tai`. Script chỉ nhận ảnh CC0 hoặc phạm vi công cộng, vì trang người dân không hiện tác giả; nguồn từng ảnh xem ở Quản trị → Nguồn ảnh.
 
 **Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch cho địa điểm và cột phương tiện cho lộ trình. Thiếu cột thì máy chủ báo ngay lúc khởi động.
 
