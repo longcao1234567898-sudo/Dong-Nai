@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ShieldCheck, LayoutDashboard, MapPin, Activity, Star, Users, FileText, Home, LogOut, ClipboardCheck, Table2, BarChart3, Building2, EyeOff, UserCog, Route, Newspaper, MessageSquareWarning } from 'lucide-react';
+import { Image as ImageIcon, ShieldCheck, LayoutDashboard, MapPin, Activity, Star, Users, FileText, Home, LogOut, ClipboardCheck, Table2, BarChart3, Building2, EyeOff, UserCog, Route, Newspaper, MessageSquareWarning } from 'lucide-react';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import { useCauHinh } from '../../utils/phuLuc';
 
@@ -21,7 +21,8 @@ export default function AdminLayout() {
     { nhom: 'Người dân', ds: [
       { to: '/quan-tri/phan-anh', ten: 'Phản ánh', ic: MessageSquareWarning },
       { to: '/quan-tri/lo-trinh', ten: 'Lộ trình', ic: Route },
-      { to: '/quan-tri/tin-tuc', ten: 'Tin tức, cảnh báo', ic: Newspaper } ] },
+      { to: '/quan-tri/tin-tuc', ten: 'Tin tức, cảnh báo', ic: Newspaper },
+      { to: '/quan-tri/nguon-anh', ten: 'Nguồn ảnh', ic: ImageIcon } ] },
     { nhom: 'Phụ lục thống kê', ds: [
       { to: '/quan-tri/bao-cao', ten: 'Báo cáo kỳ', ic: ClipboardCheck },
       { to: '/quan-tri/thong-ke', ten: 'Thống kê', ic: BarChart3 },

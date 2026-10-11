@@ -11,9 +11,9 @@
  *   -> public/anh/dia-diem/<mã>-<n>.jpg (cạnh dài 1600px) và <mã>-<n>-800.jpg,
  *      ghi src/du-lieu/anh-dia-diem.json (tác giả, giấy phép, đường dẫn nguồn).
  *
- * Chỉ nhận CC0, phạm vi công cộng, CC BY, CC BY-SA. Không nhận ảnh có giấy phép
- * khác (NC, ND, "fair use"...). Cần Node 18+ (có fetch). Không cần thư viện ngoài:
- * Commons tự thu nhỏ ảnh theo cỡ yêu cầu.
+ * Chỉ nhận CC0 và phạm vi công cộng (không bắt buộc ghi tác giả), vì trang người dân
+ * không hiện dòng tác giả. Cần Node 18+ (có fetch). Không cần thư viện ngoài: Commons
+ * tự thu nhỏ ảnh theo cỡ yêu cầu.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,7 +44,9 @@ const TU_KHOA = {
   'soc-bom-bo': ['Sóc Bom Bo', 'Bom Bo Bình Phước'],
   'ho-suoi-lam': ['Hồ Suối Lam', 'Suoi Lam lake Dong Phu'],
 };
-const GIAY_PHEP_DUOC = /^(cc0|public domain|pd\b|pd-|cc[ -]by(-sa)?[ -][0-9.]+)/i;
+/* CHỈ nhận ảnh không bắt buộc ghi tác giả: trang người dân không hiện tác giả, giấy phép
+   (theo yêu cầu của đơn vị). Ảnh CC BY / CC BY-SA bắt buộc ghi công công khai nên bị loại. */
+const GIAY_PHEP_DUOC = /^(cc0|public domain|pd\b|pd-|cc-zero|no restrictions)/i;
 const KHONG_LAY = /\b(map|bản đồ|ban do|logo|sơ đồ|so do|diagram|location|locator|flag|coat of arms)\b/i;
 
 const boThe = (s = '') => String(s).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();

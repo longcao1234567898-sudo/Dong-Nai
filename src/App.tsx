@@ -22,7 +22,7 @@ const LuuTruPage = lazy(() => import('./pages/cong-khai/LuuTruPage'));
 const PhanAnhPage = lazy(() => import('./pages/cong-khai/PhanAnhPage'));
 const TinTucPage = lazy(() => import('./pages/cong-khai/TinTucPage'));
 const KhachQuocTePage = lazy(() => import('./pages/cong-khai/KhachQuocTePage'));
-const NguonAnhPage = lazy(() => import('./pages/cong-khai/NguonAnhPage'));
+const AdminNguonAnh = lazy(() => import('./pages/admin/AdminNguonAnh'));
 const AdminLoTrinh = lazy(() => import('./pages/admin/AdminLoTrinh'));
 const AdminTinTuc = lazy(() => import('./pages/admin/AdminTinTuc'));
 const AdminPhanAnh = lazy(() => import('./pages/admin/AdminPhanAnh'));
@@ -75,7 +75,6 @@ export default function App() {
               <Route path="/phan-anh" element={<PhanAnhPage />} />
               <Route path="/tin-tuc" element={<TinTucPage />} />
               <Route path="/khach-quoc-te" element={<KhachQuocTePage />} />
-              <Route path="/nguon-anh" element={<NguonAnhPage />} />
               <Route path="/dang-nhap" element={<AdminLoginPage />} />
               <Route path="/quan-tri" element={<CanDangNhap />}>
                 <Route index element={<AdminTongQuan />} />
@@ -92,6 +91,7 @@ export default function App() {
                 <Route path="lo-trinh" element={<AdminLoTrinh />} />
                 <Route path="tin-tuc" element={<AdminTinTuc />} />
                 <Route path="phan-anh" element={<AdminPhanAnh />} />
+                <Route path="nguon-anh" element={<AdminNguonAnh />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

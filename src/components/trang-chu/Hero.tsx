@@ -5,7 +5,7 @@ import { Search, Map as IcBanDo, Route, Pause, Play } from 'lucide-react';
 import { useNN } from '../../i18n/NgonNgu';
 import { LOAI, giamChuyenDong } from '../../utils/hangSo';
 import { anhUrl } from '../../services/api';
-import { anhMacDinh, ghiCong } from '../../utils/anhMacDinh';
+import { anhMacDinh } from '../../utils/anhMacDinh';
 import { AnhTuyen } from '../du-lich/GiaoDien';
 import type { DiaDiem, LoTrinh } from '../../utils/kieu';
 
@@ -70,14 +70,14 @@ function TheLoTrinhNoi({ lt, diem }: { lt: LoTrinh; diem: DiaDiem[] }) {
 export default function Hero({ ds, loTrinh, onTim, onToiBanDo, onToiLoTrinh }: {
   ds: DiaDiem[]; loTrinh: LoTrinh[]; onTim: (q: string) => void; onToiBanDo: () => void; onToiLoTrinh: () => void;
 }) {
-  const { t, nn, chon } = useNN();
+  const { t, chon } = useNN();
   /* Ảnh trình chiếu: điểm nổi bật trước, mỗi điểm một ảnh — ảnh cán bộ tải lên, không thì ảnh mặc định. */
   const chieu = useMemo(() => ds.map((p) => {
     const a = p.anh?.[0], m = anhMacDinh(p.id);
-    if (a) return { p, src: anhUrl(a.id), srcSet: undefined as string | undefined, ghi: a.chuThich, nguon: null as string | null };
-    if (m) return { p, src: m.tep, srcSet: `${m.nho} 800w, ${m.tep} ${m.rong}w`, ghi: ghiCong(m, nn) as string | null, nguon: m.nguon };
+    if (a) return { p, src: anhUrl(a.id), srcSet: undefined as string | undefined };
+    if (m) return { p, src: m.tep, srcSet: `${m.nho} 800w, ${m.tep} ${m.rong}w` };
     return null;
-  }).filter((x): x is NonNullable<typeof x> => !!x).sort((a, b) => Number(b.p.noiBat) - Number(a.p.noiBat)).slice(0, 5), [ds, nn]);
+  }).filter((x): x is NonNullable<typeof x> => !!x).sort((a, b) => Number(b.p.noiBat) - Number(a.p.noiBat)).slice(0, 5), [ds]);
   const [i, setI] = useState(0);
   const [dung, setDung] = useState(() => giamChuyenDong());
   useEffect(() => {
@@ -124,12 +124,10 @@ export default function Hero({ ds, loTrinh, onTim, onToiBanDo, onToiLoTrinh }: {
         <div className="hero-noi"><TheLoTrinhNoi lt={lt0} diem={diemLt0} /></div>
       </div>}
 
-      {/* Chú thích ảnh đang chiếu + điều khiển: nội dung tự chạy quá 5 giây phải dừng được. */}
+      {/* Tên điểm trong ảnh đang chiếu + điều khiển: nội dung tự chạy quá 5 giây phải dừng được. */}
       {hienTai && <div className="container-page absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 pb-5">
         <p className="max-w-[70%] text-[13px] leading-snug text-[#F7F5EF]/85" aria-live="polite">
-          <Link to={`/dia-diem/${hienTai.p.id}`} className="font-semibold text-[#F7F5EF] underline-offset-2 hover:underline">{t('trongAnh')}: {chon(hienTai.p.ten, hienTai.p.tenEn)}</Link>
-          {hienTai.ghi && <>{' '}<span className="text-[#F7F5EF]/75">{hienTai.nguon
-            ? <a href={hienTai.nguon} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">{hienTai.ghi}</a> : hienTai.ghi}</span></>}</p>
+          <Link to={`/dia-diem/${hienTai.p.id}`} className="font-semibold text-[#F7F5EF] underline-offset-2 hover:underline">{t('trongAnh')}: {chon(hienTai.p.ten, hienTai.p.tenEn)}</Link></p>
         {chieu.length > 1 && <div className="flex items-center gap-1">
           {chieu.map((c, k) => (
             <button key={c.p.id} type="button" onClick={() => setI(k)} aria-label={`${t('anhSo', { n: k + 1 })}: ${chon(c.p.ten, c.p.tenEn)}`} aria-current={k === i}

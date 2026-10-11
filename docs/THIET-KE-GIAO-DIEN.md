@@ -8,9 +8,9 @@ Mã nguồn hiện có: React 18 + TypeScript + Vite + Tailwind 3 + react-query 
 
 Người dùng thấy cảnh 3D và ảnh địa hình vẽ máy "mờ, nhựa", nên đã gỡ hẳn (bỏ cả gói three.js). Thay bằng:
 
-- **Ảnh mặc định của địa điểm**: ảnh chụp thật, giấy phép tự do (CC0, CC BY, CC BY-SA) trên Wikimedia Commons, tải bằng `scripts/tai-anh-dia-diem.mjs` về `public/anh/dia-diem/`, thông tin tác giả và giấy phép ở `src/du-lieu/anh-dia-diem.json`. Thứ tự ưu tiên: ảnh cán bộ tải lên, rồi ảnh mặc định, rồi khung chờ (nền rừng đêm có đường đồng mức).
-- **Hero**: trình chiếu ảnh các điểm nổi bật, mỗi ảnh 7 giây, chuyển mờ dần, ảnh đang chiếu phóng rất chậm (Ken Burns), lớp ảnh trôi chậm hơn trang khi cuộn. Có chấm chọn ảnh và nút tạm dừng (nội dung tự chạy quá 5 giây phải dừng được); bật "giảm chuyển động" thì không tự chạy. Góc dưới ghi "Trong ảnh: tên điểm" và tác giả, giấy phép.
-- **Ghi công**: ảnh lớn (hero, trang địa điểm) ghi tác giả, giấy phép ngay trên ảnh; trang `/nguon-anh` liệt kê đủ mọi ảnh mặc định.
+- **Ảnh mặc định của địa điểm**: ảnh chụp thật trên Wikimedia Commons, **chỉ loại CC0 hoặc phạm vi công cộng** (không bắt buộc ghi tác giả), tải bằng `scripts/tai-anh-dia-diem.mjs` về `public/anh/dia-diem/`, thông tin tác giả và giấy phép ở `src/du-lieu/anh-dia-diem.json`. Thứ tự ưu tiên: ảnh cán bộ tải lên, rồi ảnh mặc định, rồi khung chờ (nền rừng đêm có đường đồng mức).
+- **Hero**: trình chiếu ảnh các điểm nổi bật, mỗi ảnh 7 giây, chuyển mờ dần, ảnh đang chiếu phóng rất chậm (Ken Burns), lớp ảnh trôi chậm hơn trang khi cuộn. Có chấm chọn ảnh và nút tạm dừng (nội dung tự chạy quá 5 giây phải dừng được); bật "giảm chuyển động" thì không tự chạy. Góc dưới ghi "Trong ảnh: tên điểm".
+- **Không hiện tác giả, giấy phép phía người dân** (theo yêu cầu của đơn vị). Vì thế chỉ dùng ảnh CC0 hoặc phạm vi công cộng; script tải ảnh tự loại CC BY, CC BY-SA (hai loại này bắt buộc ghi công công khai). Nguồn từng ảnh vẫn lưu, cán bộ xem ở Quản trị → Nguồn ảnh.
 - Ảnh lộ trình là ảnh điểm dừng đầu tiên có ảnh. Trang đăng nhập cán bộ đặt trên một ảnh thật.
 
 Các chuyển động không dính tới 3D vẫn giữ: thẻ nghiêng theo chuột, hiện khi cuộn, đường kể chuyện của lộ trình, View Transitions.

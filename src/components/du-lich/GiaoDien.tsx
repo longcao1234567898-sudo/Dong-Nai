@@ -2,7 +2,7 @@
 import { useId, type ReactNode } from 'react';
 import { Leaf, Landmark, Tent, BedDouble, UtensilsCrossed, Gift } from 'lucide-react';
 import { anhUrl } from '../../services/api';
-import { anhMacDinh, ghiCong } from '../../utils/anhMacDinh';
+import { anhMacDinh } from '../../utils/anhMacDinh';
 import { useNN } from '../../i18n/NgonNgu';
 import type { DiaDiem, Loai } from '../../utils/kieu';
 
@@ -22,20 +22,17 @@ export function HienSao({ gt, co = 16 }: { gt: number; co?: number }) {
     </span>);
 }
 
-/** Ảnh của điểm: ảnh cán bộ tải lên; chưa có thì ảnh mặc định (ảnh thật, giấy phép tự do,
- *  xem utils/anhMacDinh.ts); chưa có cả hai thì khung chờ. Khung cha phải có position:
- *  relative và overflow: hidden. ghiCong: hiện dòng tác giả, giấy phép ngay trên ảnh (ảnh lớn). */
-export function KhungAnh({ p, sizes = '(min-width: 1024px) 50vw, 100vw', ghiCong: coGhiCong = false, uuTien = false }:
-  { p: DiaDiem; sizes?: string; ghiCong?: boolean; uuTien?: boolean }) {
-  const { t, nn, chon } = useNN();
+/** Ảnh của điểm: ảnh cán bộ tải lên; chưa có thì ảnh mặc định (ảnh thật, CC0 hoặc phạm vi
+ *  công cộng — không bắt buộc ghi tác giả, xem utils/anhMacDinh.ts); chưa có cả hai thì khung
+ *  chờ. Khung cha phải có position: relative và overflow: hidden. */
+export function KhungAnh({ p, sizes = '(min-width: 1024px) 50vw, 100vw', uuTien = false }: { p: DiaDiem; sizes?: string; uuTien?: boolean }) {
+  const { t, chon } = useNN();
   const a = p.anh?.[0];
   if (a) return <img src={anhUrl(a.id)} alt={a.chuThich || chon(p.ten, p.tenEn)} loading={uuTien ? 'eager' : 'lazy'} decoding="async"
     width={a.rong || undefined} height={a.cao || undefined} className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />;
   const m = anhMacDinh(p.id);
-  if (m) return (<>
-    <img src={m.nho} srcSet={`${m.nho} 800w, ${m.tep} ${m.rong}w`} sizes={sizes} alt={m.moTa || chon(p.ten, p.tenEn)} width={m.rong} height={m.cao}
-      loading={uuTien ? 'eager' : 'lazy'} decoding="async" className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />
-    {coGhiCong && <a href={m.nguon} target="_blank" rel="noopener noreferrer" className="ghi-cong">{ghiCong(m, nn)}</a>}</>);
+  if (m) return <img src={m.nho} srcSet={`${m.nho} 800w, ${m.tep} ${m.rong}w`} sizes={sizes} alt={chon(p.ten, p.tenEn)} width={m.rong} height={m.cao}
+    loading={uuTien ? 'eager' : 'lazy'} decoding="async" className="fx-anh-troi absolute inset-0 h-full w-full object-cover" />;
   const Ic = IC_LOAI[p.loai] || Leaf;
   return <span className="anh-cho"><Ic className="h-7 w-7" strokeWidth={1.5} /><span className="text-xs font-medium">{t('chuaCoAnh')}</span></span>;
 }

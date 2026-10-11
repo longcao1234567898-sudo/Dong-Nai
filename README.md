@@ -110,7 +110,9 @@ Các bảng hiện có:
 
 **Cán bộ quản lý** ở nhóm *Người dân* trong khu quản trị: Phản ánh (xử lý, giao về xã, ghi kết quả xử lý nội bộ — bắt buộc khi đóng phản ánh; số hiệu 8 ký tự để cán bộ đối chiếu), Lộ trình, Tin tức – cảnh báo. Ảnh địa điểm thêm ở mục Địa điểm → Sửa: tối đa 8 ảnh mỗi điểm, ảnh tự thu nhỏ trên trình duyệt (cạnh dài 1600px) trước khi tải lên, lưu trong cơ sở dữ liệu (Render không có ổ đĩa lưu tệp lâu dài). Đánh giá bị du khách bấm *Báo vi phạm* nổi lên đầu mục Đánh giá.
 
-**Giao diện:** trang chủ mở bằng cảnh 3D địa hình Đồng Nai (three.js, địa hình minh hoạ, các điểm đúng toạ độ thật); thẻ chưa có ảnh dùng ảnh nhìn từ trên cao do cảnh 3D chụp, có nhãn "Địa hình minh hoạ". Thiết kế và các quyết định: [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md). Xem thử bố cục khi có đánh giá: chạy `npm run dev` rồi mở `/?minh-hoa=1` (dữ liệu minh hoạ chỉ có ở máy phát triển, không vào bản build).
+**Giao diện:** trang chủ mở bằng trình chiếu ảnh thật các điểm nổi bật (có nút tạm dừng); thẻ, trang địa điểm, lộ trình dùng ảnh thật. Thiết kế và các quyết định: [`docs/THIET-KE-GIAO-DIEN.md`](docs/THIET-KE-GIAO-DIEN.md). Xem thử bố cục khi có đánh giá: chạy `npm run dev` rồi mở `/?minh-hoa=1` (dữ liệu minh hoạ chỉ có ở máy phát triển, không vào bản build).
+
+**Ảnh địa điểm:** ảnh cán bộ tải lên (Quản trị → Địa điểm → Sửa) luôn hiện trước. Chưa có thì dùng ảnh mặc định trong `public/anh/dia-diem/`, lấy từ Wikimedia Commons bằng `node scripts/tai-anh-dia-diem.mjs goi-y` (xem ứng viên, chép tên tệp vào `scripts/anh-dia-diem.json`) rồi `node scripts/tai-anh-dia-diem.mjs tai`. Script chỉ nhận ảnh CC0 hoặc phạm vi công cộng, vì trang người dân không hiện tác giả; nguồn từng ảnh xem ở Quản trị → Nguồn ảnh.
 
 **Cập nhật mã lên bản mới thì dán lại toàn bộ `database/du_lich_dong_nai.sql`** (chạy lại không mất số liệu): bản này thêm cột vùng du lịch cho địa điểm và cột phương tiện cho lộ trình. Thiếu cột thì máy chủ báo ngay lúc khởi động.
 
