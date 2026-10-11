@@ -24,6 +24,9 @@ export function datBienMoiTruongHopLe() {
   process.env.JWT_SECRET = TEST_JWT_SECRET;
   process.env.HASH_PEPPER = TEST_PEPPER;
   process.env.ENCRYPTION_KEY = TEST_ENCRYPTION_KEY;
+  /* Tắt cổng chống người máy cho các bài không kiểm nó: server/.env thật có thể
+     khai khoá Turnstile, dotenv không ghi đè biến đã có nên đặt rỗng ở đây là đủ. */
+  process.env.TURNSTILE_SECRET_KEY = '';
 }
 
 /**
